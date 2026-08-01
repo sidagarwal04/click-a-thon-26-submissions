@@ -1,6 +1,6 @@
 # Snorlax
 
-Trial run
+Trial run - hello there!
 
 ## Project
 _Your project's name and a one-line tagline._
