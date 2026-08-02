@@ -1,123 +1,259 @@
-# Click-a-thon '26 Submissions
+# Root-Cause Analyst — InMobi Click-a-thon 2026
 
-Welcome! This repository collects all project submissions for **Click-a-thon 2026**.
+> **From alert to answer:** a metric moves, and this system tells you *why* — which
+> segment, which funnel factor, backed by numbers a judge can re-run, in seconds.
 
-## How to Submit
-
-1. Review your partner track's **submission guidelines** — each partner has
-  track-specific guidelines for better evaluation, which apply **in addition to**
-   the common requirements below:
-  - **Atlys** — [ATLYS_SUBMISSION_GUIDELINES.md](ATLYS_SUBMISSION_GUIDELINES.md)
-  - **SonyLIV** — [SONYLIV_SUBMISSION_GUIDELINES.md](SONYLIV_SUBMISSION_GUIDELINES.md)
-  - **InMobi** — [INMOBI_SUBMISSION_GUIDELINES.md](INMOBI_SUBMISSION_GUIDELINES.md)
-   Where a partner's guidelines specify something more specific (e.g. artifacts,
-   architecture format, video length), the partner track's guidelines take precedence.
-2. **Fork** this repository.
-3. Create a folder at the root of the repo, named after your **team** - your team name
-  is your unique identifier across all tracks:
-4. Inside your folder, the following are **mandatory for all submissions**, regardless
-  of track:
-  - **Project source code** (**mandatory**)
-  - `README.md` (**mandatory**) — must include a **hosted demo link**, and this demo link itself must cover the details required by your track's submission guidelines ([Atlys](ATLYS_SUBMISSION_GUIDELINES.md) ·
-  [SonyLIV](SONYLIV_SUBMISSION_GUIDELINES.md) ·
-  [InMobi](INMOBI_SUBMISSION_GUIDELINES.md)) — see the
-  [template below](#submission-readme-template)
-  - **Architecture** (**mandatory**) — Atlys teams follow the architecture section in
-  their [track guidelines](ATLYS_SUBMISSION_GUIDELINES.md); other tracks may cover
-  it within the `README.md` or as separate screenshots/diagrams
-  - **Demo video** (**mandatory**) — a recorded video, 2–3 minutes
-  - **Pitch deck in PDF format** (**mandatory**) — e.g. `pitch-deck.pdf`
-5. Add anything else your track's guidelines require (artifacts, traces, probe
-  outputs, etc.).
-6. Open a **pull request** against this repository with the title:
-  ```
-   [Submission] Your Team Name
-  ```
-
-
-
-## Submission README Template
-
-Your team's `README.md` should cover:
-
-```markdown
-# Team Name
+Built on **ClickHouse Cloud** (all analysis lives in SQL), visualized by a
+FastAPI + Chart.js dashboard, narrated by a constrained LLM, traced end-to-end
+in **Langfuse**, and explorable conversationally through **LibreChat + the
+official ClickHouse MCP server**.
 
 ## Track
-Atlys / SonyLIV / InMobi
 
-## Project
-Your project's name and a one-line tagline.
-
-## Team Members
-- Name (GitHub handle)
+InMobi
 
 ## What it does
-A short description of your project.
 
-## Hosted Demo
-Link to your live, hosted demo (mandatory). The demo must cover the details
-required by your track's submission guidelines.
+Root-causes ad-metric anomalies automatically: ClickHouse detects the
+deviation and attributes it to a funnel factor and segment, and a
+deterministic diagnosis card explains it in plain language, backed only by
+numbers ClickHouse computed.
 
-## Demo Video
-Link to your recorded 2–3 minute demo video (mandatory).
+## Technology integration
 
-## Architecture
-Diagram and/or explanation of your architecture (Atlys teams: follow your
-track guidelines instead).
+| Tool | Role in this project |
+|---|---|
+| **ClickHouse Cloud** | Primary datastore *and* the only place computation happens — raw events, 50 SummingMergeTree rollup tables, and 50 refreshable materialized views score every (segment, bucket) against a like-for-like baseline. Every number shown anywhere in the dashboard is server-computed in ClickHouse, never in application code. |
+| **MCP (Model Context Protocol)** | The official ClickHouse MCP server is embedded in LibreChat, giving it live SQL access to the same `agg_*`/`anomaly_*` tables — so a judge's follow-up question in plain English runs as a real, auditable query, not a canned answer. |
+| **Langfuse** | Full investigation tracing: every incident fetch, drill-down query, trend query, and LLM generation (with token usage and cost) lands as a nested span. A judge can open any diagnosis and walk backwards to the exact queries that produced every number — *no trace, no credit*. |
+| **LibreChat** | Embedded conversational layer with auto-login (no signup friction for judges), armed with the ClickHouse MCP server, enabling open-ended natural-language drill-down beyond the fixed dashboard views. |
+
+## Team & submission links
+
+| | |
+|---|---|
+| Team name | `Quvia` |
+| Team members | `Ganesh`, `Parasayya`, `Syam`, `Richard` |
+| Public repo (MIT) | `https://github.com/RichardMairembam/click-a-thon-26-submissions-quvia/tree/main/quvia` |
+| Hosted demo | `http://20.83.176.60:8000/` |
+| Demo video (≤5 min) | `https://drive.google.com/file/d/1Nw7cosQbQJhdDbPw5iwwUqawd0CrHt9b/view?usp=sharing` |
+
+---
+
+## Solution summary
+
+When a business metric jumps or drops, the alert only says *that* it moved.
+The expensive part is the investigation: slicing the metric across app,
+device, geo, and advertiser dimensions to find the segment responsible, and
+producing an explanation someone can trust. We automated that loop — with the
+firm rule that **ClickHouse computes, the LLM only narrates**.
+
+**Detection lives inside ClickHouse.** Raw ad events are rolled into
+per-dimension aggregate tables (`agg_<dimension>_<freq>`, SummingMergeTree —
+plain additive sums; ratio metrics are always computed sum/sum at query time
+so rollups stay correct). On top of these, **refreshable materialized views**
+re-score every (segment, bucket) daily against a like-for-like baseline:
+window-partitioned by segment × weekday-or-weekend class × time-of-day, over
+all prior history *excluding the current row*. A row is flagged only if it
+clears a **dual gate**: statistically surprising (|z| > 3 against the
+segment's own historical noise) **and** practically material (percent
+deviation above a per-metric floor). The z-gate self-calibrates per segment —
+noisy low-volume segments automatically carry a higher bar — while the
+percent-gate stops microscopic wobbles on ultra-stable series from flagging.
+Requests, revenue, fill rate, and eCPM are scored independently, so every
+incident is immediately attributed to its funnel factor (volume, fill, or
+price) via the revenue identity 
+
+**Explanation is deterministic first, LLM second.** The diagnosis card is
+generated by plain code reading numbers ClickHouse already computed — it
+cannot hallucinate. The optional Claude summaries receive *only* the exact
+JSON the dashboard has already rendered, with a hard instruction to phrase
+those numbers and never invent a figure or a cause. Contribution analysis
+ranks every dimension's segments by signed share of the deviation, which is
+also how the system distinguishes **localized** incidents ("Android 15 fill
+rate −45%, all other OS versions at baseline") from **platform-wide** ones
+(every segment's share ≈ its traffic share) — and it reports what it
+**ruled out**, not just what it found.
+
+**Traceability is structural.** Every investigation step — incident fetch,
+drill-down, trend query, and each LLM generation with token usage and cost —
+lands in Langfuse. A judge can open any diagnosis and walk backwards to the
+queries that produced every number. For open-ended follow-ups, an embedded
+LibreChat (auto-login, no signup) carries the official ClickHouse MCP server,
+so "show me fill rate by OS on June 24" becomes live SQL against the same
+database — the agent queries data instead of guessing.
+
+On the provided dataset the system recovers the planted incidents — the
+platform-wide June 21 request collapse, the finance-category eCPM drop, the
+Android 15 and iOS 18.1 fill-rate failures, and the gradual tier-3 CTR decay —
+and the same pipeline, unchanged, processes the unseen incident: load, refresh,
+diagnose, with traces as proof.
+
+---
+
+## How this maps to the problem statement
+
+The InMobi brief asks for four things ([PROBLEM_STATEMENT.md](../PROBLEM_STATEMENT.md)):
+
+| Ask | How we do it |
+|---|---|
+| **Detect** deviations from baseline | Refreshable MVs in ClickHouse score every (segment, bucket) against a rolling like-for-like baseline; dual gate `abs(z) > 3` **and** percent-deviation floor |
+| **Automatically drill down** to the responsible segment | Signed contribution analysis across 9 dimensions, ranked per dimension; radar + drill-down in the dashboard |
+| **Plain-language diagnosis, every claim backed by a computed number** | Deterministic diagnosis card built from query results; optional LLM summary constrained to the same JSON |
+| **Bonus: state what was ruled out** | Factor decomposition names the funnel factor responsible *and* the metrics/dimensions that stayed at baseline |
+
+And the two hard requirements:
+
+- **ClickHouse is the primary datastore and analytical engine** — all raw
+  events, aggregates, and anomaly scoring live in ClickHouse; every number on
+  screen is server-computed.
+- **Meaningful integration of ClickStack / Langfuse / LibreChat** — we use
+  **two**: Langfuse (full investigation + LLM tracing) and LibreChat
+  (embedded, MCP-armed conversational drill-down).
+
+## Architecture & data flow
+
+```mermaid
+flowchart LR
+    subgraph CH["ClickHouse Cloud (primary datastore + engine)"]
+        RAW[("ad_events<br/>9M raw events")] --> AGG["agg_&lt;dim&gt;_&lt;freq&gt; ×50<br/>SummingMergeTree<br/>additive sums only"]
+        AGG -->|"refreshable MVs<br/>REFRESH EVERY 1 DAY<br/>z>3 AND pct dual gate"| ANOM["anomaly_&lt;dim&gt;_&lt;freq&gt; ×50<br/>flagged rows + evidence"]
+    end
+
+    subgraph DASH["dashboard container :8000"]
+        DB["db.py<br/>all ClickHouse access"] --> API["main.py<br/>FastAPI routes"]
+        API --> NARR["narrate.py<br/>deterministic diagnosis"]
+        API --> LLM["llm.py<br/>Claude Haiku, evidence-only"]
+    end
+
+    ANOM --> DB
+    AGG --> DB
+    API --> FE["frontend SPA<br/>Chart.js · trend · radar · drill-down"]
+    LLM --> LF[("Langfuse :3000<br/>traces · tokens · cost")]
+    DB -.investigation spans.-> LF
+
+    FE -->|"Ask LibreChat<br/>(cookie auto-login)"| LC["LibreChat :3080"]
+    LC -->|"MCP over SSE"| MCP["clickhouse-mcp :8001<br/>official MCP server"]
+    MCP --> AGG
+```
+
+## Codebase map
+
+```mermaid
+flowchart TD
+    ROOT["clickathon_2/"] --> DC["docker-compose.yml<br/>dashboard + clickhouse-mcp"]
+    ROOT --> DEP["deploy.sh<br/>one-click: Langfuse + LibreChat + dashboard"]
+    ROOT --> BE["backend/app/"]
+    ROOT --> FED["frontend/"]
+    ROOT --> DOCS["docs/RCA_Pipeline_Guide.pdf"]
+
+    BE --> MAIN["main.py — routes, no-cache static,<br/>0.0.0.0→localhost redirect"]
+    BE --> DBPY["db.py — thread-local CH clients,<br/>detection/trend/contribution/drilldown SQL"]
+    BE --> VAR["variable.py — DATABASE from env"]
+    BE --> NARRP["narrate.py — deterministic diagnosis text"]
+    BE --> LLMP["llm.py — Langfuse-traced Claude summaries"]
+    BE --> LCA["librechat_auth.py — server-to-server login,<br/>forwards Set-Cookie to browser"]
+
+    FED --> IDX["index.html — trend panel,<br/>incident view, drill-down, chat panel"]
+    FED --> APPJS["app.js — Chart.js rendering,<br/>severity-tiered anomaly dots, radar"]
+    FED --> CSS["styles.css — dark theme"]
+```
+
+## Run it
+
+```bash
+cp .env.example .env        # fill in ClickHouse Cloud + (optional) Anthropic keys
+./deploy.sh                 # brings up Langfuse, LibreChat, dashboard + MCP
+```
+
+Required environment (see `.env.example`):
+
+| Variable | Value |
+|---|---|
+| `CLICKHOUSE_HOST` | your ClickHouse Cloud host |
+| `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` | service credentials |
+| `ANTHROPIC_API_KEY` | optional — enables AI summaries |
+| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` | from your Langfuse project |
+
+
+**Judge flow (2 minutes):** open the dashboard → the trend chart lands on the
+anomaly cluster with severity-colored dots → click the darkest dot
+(Jun 21 06:00, z=58) → KPI strip, deterministic diagnosis, factor tiles, and
+the dimension-impact radar unfold → click a radar axis to drill into a
+dimension → "Generate AI summary" (watch the trace land in Langfuse) →
+"Ask LibreChat" → toggle the `clickhouse` MCP server on → ask a follow-up in
+plain English.
 
 ## How we built it
-Tech stack, tools, and anything interesting about the implementation.
 
-## How to run it
-Step-by-step instructions to run the project locally.
+**Stack:** ClickHouse Cloud (schema, rollups, anomaly-detection MVs — all
+analysis lives here, nothing computed in application code beyond formatting),
+FastAPI + Chart.js dashboard, Claude Haiku for evidence-constrained
+narration, Langfuse for tracing, and LibreChat embedded with the official
+ClickHouse MCP server for open-ended conversational drill-down.
+
+**Interesting implementation details:**
+- *Dual-gate detection*: every (segment, bucket) row must clear both a
+  self-calibrating z-score bar (`|z| > 3` against that segment's own
+  historical noise) and a per-metric percent-deviation floor — so noisy
+  low-volume segments don't false-positive and ultra-stable series don't
+  flag on microscopic wobbles.
+- *Additive-only rollups*: `agg_<dimension>_<freq>` tables (SummingMergeTree)
+  store only plain sums; ratio metrics (fill rate, eCPM) are always
+  recomputed sum/sum at query time so rollups stay mathematically correct
+  under merges.
+- *Signed concentration bug*: when every segment in a dimension moves
+  together (a platform-wide incident), a naive `delta/Σdelta` share
+  calculation reads as deceptively concentrated in one segment. We found and
+  fixed this with a `signed_concentration()` helper that re-signs shares
+  everywhere they're displayed, which is also how the system tells
+  "localized" incidents apart from "platform-wide" ones.
+- *Evidence-only LLM boundary*: the Claude summary call receives only the
+  exact JSON already rendered on screen and is explicitly instructed never
+  to invent a number or a cause — the diagnosis card itself is generated by
+  plain code, so a wrong figure can't reach the narrative.
+
+## What makes the answers trustworthy
+
+1. **Deterministic core** — detection, decomposition, and contribution are
+   SQL; the diagnosis card is code formatting query results.
+2. **Evidence-only LLM** — summaries receive the exact JSON already rendered
+   on screen; the system prompt forbids inventing numbers or causes. A wrong
+   number cannot enter the narrative because the LLM never computes one.
+3. **Signed concentration** — when all segments fall together,
+   `delta/Σdelta` is deceptively positive; a `signed_concentration()` helper
+   re-signs shares everywhere they're shown (a real bug we found and fixed).
+4. **Full tracing** — investigation spans + LLM generations (tokens, cost,
+   latency) in Langfuse. *No trace, no credit — so everything is traced.*
+
+## Results on the provided dataset
+
+Incidents recovered on the ~9M-event / 5-week dataset, judged against our own
+analysis (the official answer key is private):
+
+| Incident | Segment named | Funnel factor | Evidence |
+|---|---|---|---|
+| Platform-wide request collapse | all segments, Jun 21 06:00 (z=58) | volume | |
+| Finance-category eCPM drop | `category=finance` | price | |
+| Android 15 fill-rate failure | `os_version=Android 15` | fill | |
+| iOS 18.1 fill-rate failure | `os_version=iOS 18.1` | fill | |
+| Gradual tier-3 CTR decay | `publisher_tier=3` | — | |
+
+## The unseen incident
+
+**Output:** `docs/unseen/` — diagnosis text, the numbers behind it, and the
+Langfuse trace URLs proving the pipeline generated them. Generated on
+release day — see runbook below.
+
+### Runbook (release day)
+
+```bash
+# 1. load the fresh slice into the same raw table (MVs pick it up)
+clickhouse client ... --query "INSERT INTO <raw> FORMAT Parquet" < unseen.parquet
+# 2. force the refreshable MVs instead of waiting for the daily tick
+clickhouse client ... --query "SYSTEM REFRESH VIEW py.mv_anomaly_<dim>_<freq>"   # per view
+# 3. open the dashboard → new anomalies appear → generate diagnoses
+# 4. export: diagnosis text + the Langfuse trace URLs proving pipeline provenance
 ```
 
 
-
-## Using ClickStack, Langfuse, or LibreChat?
-
-These tools run as services outside your repo, so judges only see what you capture. If your solution uses any of them, include the following in your team's folder - "we had it running" is not evidence.
-
-**For every tool you use:**
-
-- **Commit the wiring** — deployment config (e.g. `docker-compose.yml` / Helm),
-an `.env.example` with **secrets redacted**, and the integration code itself
-(SDK setup, OTel collector config, custom endpoints). Judges must be able to see
-*how* it's connected, even if they don't redeploy it.
-- **Show it live** in your hosted demo and demo video - a screenshot alone is not proof of integration.
-- **Explain its role** in your README's architecture section: what part of the
-pipeline runs through the tool. Superficial inclusion (installed but not part of
-the actual workflow) scores nothing on the ClickHouse & OSS Stack criterion.
-
-**Tool-specific evidence:**
-
-- **Langfuse** — share traces as **public share links**, or export them as JSON
-into your submission folder. Do not rely on judges logging into your Langfuse
-project. Traces must correspond to the actual graded runs (see your track's
-guidelines for which runs require traces).
-- **ClickStack** — include your OTel collector / ingestion config, state which
-ClickHouse service and tables it writes to, and capture the dashboards or
-searches you actually used (screenshots in the README plus a live walkthrough
-in the video).
-- **LibreChat** — commit your `librechat.yaml` and any custom endpoint, agent, or  
-tool definitions (keys redacted). If LibreChat is your product UI, the hosted  
-demo link should point to it — provide test credentials for judges in your  
-README, or demonstrate the full chat flow in the video.
-
-## Rules
-
-- All code must be written during the hackathon period.
-- Third-party libraries and open-source tools are allowed.
-- Each team submits one project via a single pull request.
-- Keep your submission self-contained within your team's folder.
-
-
-
-## License
-
-Unless stated otherwise in an individual submission, the contents of this repository are licensed under the [MIT License](LICENSE).
-
-## Questions?
-
-Open an [issue](../../issues) in this repository and we'll get back to you.
