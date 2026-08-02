@@ -1,4 +1,3 @@
-cccccbrdinbdcbdtfhfhbucievljvubtnuvghtkrdiuj
 # Watcher Griffin
 
 ## Track
