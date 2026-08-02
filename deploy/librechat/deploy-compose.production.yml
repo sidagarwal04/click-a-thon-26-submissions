@@ -1,0 +1,67 @@
+services:
+  context-store-mcp:
+    build:
+      context: ./context-store-mcp
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  analytics-runner-mcp:
+    build:
+      context: ./analytics_agent
+    env_file:
+      - .env
+    environment:
+      CLICKHOUSE_HOST: "${CLICKHOUSE_ENDPOINT}"
+      CLICKHOUSE_PORT: "8443"
+      CLICKHOUSE_DATABASE: "default"
+      CLICKHOUSE_SECURE: "true"
+      CLICKHOUSE_VERIFY: "true"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    restart: unless-stopped
+
+  # The API is reachable to the frontend through Docker's internal network.
+  # Do not publish it directly on the VM.
+  api:
+    ports: !reset []
+    volumes:
+      - type: bind
+        source: ./agents
+        target: /app/agents
+        read_only: true
+      - type: bind
+        source: ./runtime-context
+        target: /app/runtime-context
+        read_only: false
+      # Exposed read-only so the bootstrap script can load the canonical role
+      # contracts. Python execution happens only in analytics-runner-mcp.
+      - type: bind
+        source: ./analytics_agent
+        target: /app/analytics-agent
+        read_only: true
+
+  # The host Nginx reverse proxy is the only public entry point.
+  client:
+    ports: !override
+      - "127.0.0.1:8080:80"
+    volumes:
+      - type: bind
+        source: ./nginx/default.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+
+  # Private OTLP gateway for LibreChat's backend telemetry and authenticated
+  # browser-RUM proxy. No host ports are published.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.157.0
+    command: ["--config=/etc/otelcol-contrib/otel-config.yaml"]
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./otel-config.yaml
+        target: /etc/otelcol-contrib/otel-config.yaml
+        read_only: true
+    restart: unless-stopped

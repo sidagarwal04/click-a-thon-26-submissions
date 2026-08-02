@@ -1,7 +1,7 @@
 # Atlys track — What to submit at code freeze
 
 Your submission is scored on the event's standard 6-criteria rubric (ClickHouse &
-OSS Stack 25% · Problem Fit 20% · Technical Implementation 20% · Innovation 20% ·
+OSS Stack 25% · Problem Fit 20% · Technical Implementation 20% · Innovation 20% · 
 Scalability & Impact 10% · Presentation 5%). The items below are the **evidence the
 judges need** to score those criteria for this track. Missing evidence can't be
 scored.

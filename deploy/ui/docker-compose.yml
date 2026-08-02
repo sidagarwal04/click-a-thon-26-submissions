@@ -1,0 +1,19 @@
+services:
+  investigations-ui:
+    build:
+      context: ../..
+      dockerfile: deploy/ui/Dockerfile
+    env_file: .env
+    environment:
+      WORKFLOW_WORKER_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8090:8090"
+    restart: unless-stopped
+
+  instrumentation-runner:
+    build:
+      context: ../..
+      dockerfile: deploy/ui/Dockerfile
+    command: ["python", "-m", "backend.runner"]
+    env_file: .env
+    restart: unless-stopped
