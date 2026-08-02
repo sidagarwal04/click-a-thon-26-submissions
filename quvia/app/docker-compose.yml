@@ -1,0 +1,30 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  clickhouse-mcp:
+    # Official ClickHouse MCP server (github.com/ClickHouse/mcp-clickhouse),
+    # run standalone over SSE so LibreChat's own container (which has no C
+    # compiler, so `uvx mcp-clickhouse` there fails building the lz4 wheel
+    # from source) can reach it over the network instead of spawning it
+    # in-process via stdio.
+    image: python:3.12-slim
+    command: >
+      sh -c "pip install --no-cache-dir --quiet uv && uvx mcp-clickhouse"
+    env_file:
+      - .env
+    environment:
+      - CLICKHOUSE_DATABASE=py
+      - CLICKHOUSE_SECURE=true
+      - CLICKHOUSE_MCP_SERVER_TRANSPORT=sse
+      - CLICKHOUSE_MCP_BIND_HOST=0.0.0.0
+      - CLICKHOUSE_MCP_BIND_PORT=8001
+      - CLICKHOUSE_MCP_AUTH_DISABLED=true
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
