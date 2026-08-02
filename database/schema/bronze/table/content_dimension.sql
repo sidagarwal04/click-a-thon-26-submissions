@@ -1,0 +1,1 @@
+CREATE TABLE bronze.content_dimension (`content_id` Int64, `title` String, `video_type` LowCardinality(String) DEFAULT 'unknown', `category` LowCardinality(String) DEFAULT 'unknown', `show_name` String) ENGINE = SharedMergeTree('/clickhouse/tables/{uuid}/{shard}', '{replica}') PRIMARY KEY content_id ORDER BY content_id SETTINGS index_granularity = 8192

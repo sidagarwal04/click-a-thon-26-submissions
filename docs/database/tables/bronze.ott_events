@@ -1,0 +1,27 @@
+CREATE TABLE bronze.ott_events (
+    `content_id` Int64 CODEC(Delta(8), ZSTD(1)),
+    `video_session_id` FixedString(64) CODEC(ZSTD(1)),
+    `user_id` FixedString(64) CODEC(ZSTD(1)),
+    `event_type` LowCardinality(String) CODEC(ZSTD(1)),
+    `event` LowCardinality(String) CODEC(ZSTD(1)),
+    `event_timestamp` DateTime64(3, 'UTC') CODEC(DoubleDelta, ZSTD(1)),
+    `platform` LowCardinality(String),
+    `app_version` LowCardinality(String),
+    `country` LowCardinality(String),
+    `audio_language` LowCardinality(String) DEFAULT 'unk',
+    `subtitle_language` LowCardinality(String) DEFAULT 'unk',
+    `player_version` LowCardinality(String) DEFAULT '',
+    `session_start_epoch` DateTime64(3, 'UTC'),
+    `ingested_at` DateTime64(3, 'UTC') DEFAULT now64(3)
+) ENGINE = SharedReplacingMergeTree(
+    '/clickhouse/tables/{uuid}/{shard}',
+    '{replica}',
+    ingested_at
+) PARTITION BY toYYYYMM(event_timestamp)
+ORDER BY
+    (
+        event_timestamp,
+        event_type,
+        event,
+        video_session_id
+    ) SETTINGS index_granularity = 8192

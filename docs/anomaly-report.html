@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anomaly Detection Report — SonyLIV OTT Event Workflows</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1d2638;
+    --border: #2a3550;
+    --text: #dbe4f3;
+    --muted: #8b9bb4;
+    --accent: #4f8ef7;
+    --crit: #ff5c7a;
+    --warn: #ffb454;
+    --ok: #2fd08a;
+    --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    line-height: 1.55;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header.top {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #16203a, #131a2c);
+    padding: 28px 32px;
+    margin-bottom: 28px;
+  }
+  header.top h1 { font-size: 26px; letter-spacing: 0.3px; }
+  header.top .sub { color: var(--muted); margin-top: 6px; font-size: 14px; }
+  .badges { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .badge b { color: var(--text); }
+
+  section { margin-bottom: 26px; }
+  h2 {
+    font-size: 19px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .n {
+    background: var(--accent);
+    color: #0b1020;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 9px;
+    font-family: var(--mono);
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  .card .val { font-size: 26px; font-weight: 700; font-family: var(--mono); margin-top: 4px; }
+  .card .note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+
+  .anom {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--warn);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+  }
+  .anom.crit { border-left-color: var(--crit); }
+  .anom.ok   { border-left-color: var(--ok); }
+  .anom h3 { font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sev {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: var(--mono);
+  }
+  .sev.crit { background: rgba(255,92,122,.15); color: var(--crit); border: 1px solid rgba(255,92,122,.4); }
+  .sev.warn { background: rgba(255,180,84,.12); color: var(--warn); border: 1px solid rgba(255,180,84,.4); }
+  .sev.ok   { background: rgba(47,208,138,.12); color: var(--ok); border: 1px solid rgba(47,208,138,.4); }
+  .anom p { font-size: 14px; color: var(--text); }
+  .anom .meta { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .anom .meta code { background: var(--panel2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-family: var(--mono); color: #a9c4ff; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--panel);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th {
+    text-align: left;
+    background: var(--panel2);
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    padding: 10px 14px;
+  }
+  td { padding: 9px 14px; border-top: 1px solid var(--border); font-family: var(--mono); }
+  tr:hover td { background: rgba(79,142,247,.06); }
+
+  .barrow { display: grid; grid-template-columns: 180px 1fr 90px; gap: 12px; align-items: center; margin: 6px 0; font-size: 13px; }
+  .barrow .bl { color: var(--muted); text-align: right; font-size: 12px; }
+  .track { height: 12px; background: var(--panel2); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .fill { height: 100%; border-radius: 6px; }
+  .fill.c { background: linear-gradient(90deg, #ff5c7a, #ff8aa0); }
+  .fill.w { background: linear-gradient(90deg, #ffb454, #ffd28a); }
+  .fill.g { background: linear-gradient(90deg, #2fd08a, #7fe8b8); }
+  .barrow .bv { text-align: right; font-family: var(--mono); }
+
+  .kw { color: var(--accent); }
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; }
+  pre {
+    background: #0b0f1a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    font-family: var(--mono);
+    color: #a9c4ff;
+    margin: 10px 0;
+  }
+  footer { color: var(--muted); font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid var(--border); padding-top: 16px; }
+  .legend { display: flex; gap: 18px; font-size: 12px; color: var(--muted); flex-wrap: wrap; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>Anomaly Detection Report — SonyLIV OTT Session Event Workflows</h1>
+  <div class="sub">Read-only analysis of the ClickHouse event dataset (<span class="mono">bronze.ott_events</span>) against the concurrency model requirements in the Click-a-thon 2026 problem statement and Jira stories (US-01…US-17).</div>
+  <div class="badges">
+    <span class="badge">901,348 <b>events</b></span>
+    <span class="badge">10,866 <b>sessions</b></span>
+    <span class="badge">9,618 <b>users</b></span>
+    <span class="badge">3,357 <b>content</b></span>
+    <span class="badge">2026-07-14 → 2026-07-26 <b>window</b></span>
+    <span class="badge">100% <b>read-only</b></span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="n">0</span>Executive summary</h2>
+  <p class="small">
+    The event stream is well-formed at the top level — every session has exactly one <code>VideoSessionStart</code> and at least one heartbeat, and no exact-duplicate rows exist. However, deep inspection of the session lifecycle reveals <b>12 distinct anomalies / edge cases</b> that will distort foreground-only concurrency if not handled. The most severe: the <code>session_start_epoch</code> column is <b>100% a sentinel value (2299-12-31)</b>, heartbeat cadence is far higher than the documented 1/min (with sub-second bursts), ~37% of heartbeat gaps exceed the 90&nbsp;s timeout, and heartbeats continue while the app is backgrounded. The silver serving layer (<code>sw_active_intervals</code>, <code>sw_delta_minute</code>) is internally consistent (zero net delta, no inverted intervals), which is a good sign the derived model is sound — but the raw layer above it is noisy.
+  </p>
+</section>
+
+<section>
+  <h2><span class="n">1</span>Dataset overview</h2>
+  <div class="grid">
+    <div class="card"><div class="label">Total events</div><div class="val">901,348</div><div class="note">VideoHeartbeat alone = 839,546 (93.1%)</div></div>
+    <div class="card"><div class="label">Video sessions</div><div class="val">10,866</div><div class="note">starts = ends − 4 (see anomaly #3)</div></div>
+    <div class="card"><div class="label">Unique users</div><div class="val">9,618</div><div class="note">784 users have ≥2 sessions</div></div>
+    <div class="card"><div class="label">Unique content</div><div class="val">3,357</div><div class="note">0 unmapped content_id (join ok)</div></div>
+    <div class="card"><div class="label">Time window</div><div class="val">12 days</div><div class="note">but 93.8% of events on 2026-07-26</div></div>
+    <div class="card"><div class="label">Event types</div><div class="val">7</div><div class="note">start/play/hb/bg/fg/end/error</div></div>
+  </div>
+
+  <h3 style="margin:20px 0 8px;">Events per type</h3>
+  <div class="barrow"><span class="bl">VideoHeartbeat</span><div class="track"><div class="fill c" style="width:100%"></div></div><span class="bv">839,546</span></div>
+  <div class="barrow"><span class="bl">AppBackgrounded</span><div class="track"><div class="fill w" style="width:1.74%"></div></div><span class="bv">14,616</span></div>
+  <div class="barrow"><span class="bl">AppForegrounded</span><div class="track"><div class="fill w" style="width:1.70%"></div></div><span class="bv">14,291</span></div>
+  <div class="barrow"><span class="bl">VideoSessionEnd</span><div class="track"><div class="fill g" style="width:1.30%"></div></div><span class="bv">10,870</span></div>
+  <div class="barrow"><span class="bl">VideoPlay</span><div class="track"><div class="fill g" style="width:1.29%"></div></div><span class="bv">10,866</span></div>
+  <div class="barrow"><span class="bl">VideoSessionStart</span><div class="track"><div class="fill g" style="width:1.29%"></div></div><span class="bv">10,866</span></div>
+  <div class="barrow"><span class="bl">VideoError</span><div class="track"><div class="fill w" style="width:0.03%"></div></div><span class="bv">293</span></div>
+
+  <h3 style="margin:20px 0 8px;">Events per day</h3>
+  <table>
+    <tr><th>Date</th><th>Events</th><th>Sessions</th><th>Users</th><th>Share</th></tr>
+    <tr><td>2026-07-14</td><td>150</td><td>2</td><td>1</td><td>0.02%</td></tr>
+    <tr><td>2026-07-21</td><td>65</td><td>2</td><td>2</td><td>0.01%</td></tr>
+    <tr><td>2026-07-22</td><td>5,997</td><td>25</td><td>16</td><td>0.67%</td></tr>
+    <tr><td>2026-07-23</td><td>8,189</td><td>49</td><td>36</td><td>0.91%</td></tr>
+    <tr><td>2026-07-24</td><td>11,132</td><td>71</td><td>52</td><td>1.23%</td></tr>
+    <tr><td>2026-07-25</td><td>30,055</td><td>204</td><td>137</td><td>3.33%</td></tr>
+    <tr><td style="font-weight:700">2026-07-26</td><td style="font-weight:700">845,760</td><td style="font-weight:700">10,524</td><td style="font-weight:700">9,455</td><td style="font-weight:700">93.83%</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">2</span>Expected session workflow (from stories)</h2>
+  <p class="small">Per US-01/06/07/09 the canonical lifecycle is:</p>
+  <pre>VideoSessionStart → VideoPlay → VideoHeartbeat* (≈1/min) → AppBackgrounded → AppForegrounded → VideoHeartbeat* → VideoSessionEnd
+                          └── gap_timeout=90s: gap &gt; 90s ⇒ active interval closes at last_hb + 90s (US-07)</pre>
+  <p class="small">Expected invariants: <code>starts = ends</code>, heartbeats ≈ 1 per minute, no events after <code>VideoSessionEnd</code>, no heartbeats while backgrounded, and each bg is followed by a fg (or vice-versa). Every deviation below violates one of these.</p>
+</section>
+
+<section>
+  <h2><span class="n">3</span>Anomalies &amp; edge cases</h2>
+
+  <div class="anom crit">
+    <h3>A1 · <code>session_start_epoch</code> is 100% sentinel garbage <span class="sev crit">Critical</span></h3>
+    <p>Every one of the 901,348 rows carries <code>session_start_epoch = 2299-12-31 23:59:59.000</code> — the DateTime max sentinel. It cannot be used to derive a session start, so <b>session boundaries must be computed from the <code>VideoSessionStart</code> event</b> (or the min event timestamp) instead. This affects any logic keyed on <code>session_start_epoch</code> (US-01/08 session-aware path).</p>
+    <p class="meta"><code>SELECT count() FROM ott_events WHERE session_start_epoch >= '2299-01-01' → 901,348 / 901,348</code></p>
+  </div>
+
+  <div class="anom crit">
+    <h3>A2 · Heartbeat cadence far exceeds documented 1/min <span class="sev crit">Critical</span></h3>
+    <p>Heartbeats are documented as "every 1 minute" (US-07). Actual consecutive-heartbeat gaps (excluding exact-ms duplicates): <b>355,217 gaps &lt; 60&nbsp;s</b> vs only <b>3,044 gaps ≈ 60&nbsp;s</b>. Sub-second spacing exists too: 1–100&nbsp;ms (1,554), 101–500&nbsp;ms (21,964), 501–1000&nbsp;ms (27,322), 1–2&nbsp;s (31,572), 2–5&nbsp;s (38,136). The busiest session fired <b>1,792 heartbeats in 43 minutes</b> (~0.7/sec).</p>
+    <p>Implication: a "heartbeat = alive" model using the documented 1-min cadence and 90&nbsp;s timeout will massively over-split intervals and over-count active minutes. The 90&nbsp;s timeout must be tuned to actual cadence, and per-<code>event</code> heartbeat payloads (see A5) must be understood first.</p>
+    <p class="meta"><code>lagInFrame(event_timestamp) OVER (PARTITION BY video_session_id …) — heartbeat-only</code></p>
+  </div>
+
+  <div class="anom crit">
+    <h3>A3 · 4 extra <code>VideoSessionEnd</code> events — duplicate/late ends <span class="sev crit">Critical</span></h3>
+    <p><code>VideoSessionEnd</code> (10,870) outnumbers <code>VideoSessionStart</code> (10,866) by 4. Four sessions emit two end events (e.g. two ends 0.5&nbsp;s apart). Applying a second end as another −1 delta would drive concurrency negative or double-count. Dedup rule (US-10) must key on <code>(session, event_type, event)</code> and ignore redundant second ends.</p>
+    <p class="meta"><code>GROUP BY video_session_id HAVING countIf(event_type='VideoSessionEnd') &gt; 1 → 4 sessions</code></p>
+  </div>
+
+  <div class="anom crit">
+    <h3>A4 · 799 events arrive AFTER <code>VideoSessionEnd</code> <span class="sev crit">Critical</span></h3>
+    <p>Across 239 sessions, events appear after the session's end timestamp: 519 heartbeats, 239 <code>AppBackgrounded</code>, 28 <code>AppForegrounded</code>, 13 <code>VideoPlay</code>. These are out-of-order / late-arriving events (US-10) — if applied at arrival time instead of event time they would wrongly extend the session's active tail. Late events must land on their original event minute, and post-end events should be dropped (or flagged).</p>
+    <p class="meta"><code>JOIN (max(event_timestamp) WHERE event_type='VideoSessionEnd') … WHERE event_timestamp &gt; end → 799 rows</code></p>
+  </div>
+
+  <div class="anom warn">
+    <h3>A5 · 366K "duplicate" heartbeat timestamps are actually distinct signal bursts <span class="sev warn">High</span></h3>
+    <p>158,986 distinct <code>(session, type, timestamp)</code> groups have count&gt;1, totaling 366,083 extra rows at identical millisecond timestamps (up to 5 per ms). <b>However</b> these are not true duplicates: each carries a distinct <code>event</code> payload. Heartbeats carry 41 different signals — <code>network-activity</code> (176K), <code>buffer-health</code> (167K), <code>video-resize</code> (141K), <code>BufferStart</code>/<code>BufferEnd</code>, <code>pause</code>, <code>resume</code>, <code>Seek</code>, <code>video_forward/rewind</code>, <code>dropped-frames</code>, <code>AdSkipTrueView</code>, etc.</p>
+    <p>Implication: <b>a dedup key of <code>(session, event_type, timestamp)</code> would throw away real state signals</b> (US-10). These are bursts of telemetry sharing one ms stamp, likely batched by the player. They also inflate event volume ~40% — a naive per-minute count of heartbeat rows overstates active time.</p>
+    <p class="meta"><code>GROUP BY video_session_id, event_type, event_timestamp HAVING count()&gt;1 → 158,986 groups; re-check with event → 0 true duplicates</code></p>
+  </div>
+
+  <div class="anom warn">
+    <h3>A6 · ~37% of heartbeat gaps exceed the 90 s timeout — every session is affected <span class="sev warn">High</span></h3>
+    <p>Of 841,756 consecutive heartbeat pairs, <b>16,305 gaps &gt; 90&nbsp;s</b> (10,930 &gt; 1&nbsp;h) and they touch <b>all 10,866 sessions</b> (avg ≈ 1.5 per session). Gap histogram: ≤1s (69K), 1–60s (286K), 61–90s (1.9K), 91–180s (2.0K), 181s–10m (2.3K), 10m–1h (1.1K), &gt;6h (10,876). The &gt;6h bucket nearly equals the session count, so almost every session has at least one long silence.</p>
+    <p>Under the US-07 rule (close at <code>last_hb + 90s</code>) this splits virtually every session into multiple active intervals — consistent with the silver layer where 10,783/10,866 sessions have 2+ active intervals. This is the dominant edge case for concurrency correctness.</p>
+  </div>
+
+  <div class="anom warn">
+    <h3>A7 · 4,733 heartbeats fire while the app is backgrounded <span class="sev warn">High</span></h3>
+    <p>Using a running counter over bg/fg events (<code>+1</code> on background, <code>−1</code> on foreground), 4,733 heartbeats arrive while the session is in backgrounded state. This directly contradicts the foreground-only assumption (US-06): "no heartbeat ⇒ not watching" is not reliable here, because the player keeps emitting heartbeats (network-activity, buffer-health, etc.) in the background.</p>
+    <p>Implication: heartbeat presence alone cannot mark active viewing — the bg/fg state machine must gate the active flag, and backgrounded intervals must contribute 0 regardless of heartbeats.</p>
+  </div>
+
+  <div class="anom warn">
+    <h3>A8 · bg/fg imbalance &amp; rapid toggling <span class="sev warn">High</span></h3>
+    <p>354 sessions have more backgrounds than foregrounds; 31 the reverse. Sequence analysis: <code>bg→fg</code> 14,247 · <code>fg→bg</code> 3,754 · <code>bg→bg</code> 25 · <code>fg→fg</code> 15. Real sessions show churn — e.g. a session toggling bg/fg five times in 6 seconds (10:52:35→10:52:41), and another with three fg/bg flips inside one second. <code>AppBackgrounded/Foregrounded</code> are documented as "not guaranteed events" (dataset_details) — an unpaired bg must be treated as an interval end, and an unpaired fg must still require a confirming heartbeat (US-06/07) to resume active state.</p>
+  </div>
+
+  <div class="anom warn">
+    <h3>A9 · Content metadata gap — 142 titles missing <code>video_type</code> <span class="sev warn">High</span></h3>
+    <p>25,633 events / 250 sessions reference content whose <code>video_type</code> is empty (title &amp; category present). Sample: <code>20972531 · "fuwiw kig" · video_type='' · category='bgfff'</code>; the most active is <code>21007550</code> (1,612 events). These look like synthetic-filler rows and appear across the top traffic. <code>video_type</code> is a core serving dimension (US-04/11/12) — an empty bucket will silently absorb real concurrency unless coalesced to a fallback like <code>'unknown'</code>.</p>
+    <p class="meta">0 unmapped content_id on join; 142 content_ids have empty video_type</p>
+  </div>
+
+  <div class="anom warn">
+    <h3>A10 · Session duration extremes <span class="sev warn">High</span></h3>
+    <p>973 sessions (9%) last ≤ 1 minute (48 of them &lt; 5&nbsp;s, with <code>VideoSessionEnd</code> arriving before <code>VideoPlay</code> in some cases), while 12 sessions run &gt; 6&nbsp;hours and one spans 2 calendar days (07-25→07-26). Sub-minute sessions are likely abandoned starts / errors — they produce noisy +1/−1 deltas that can briefly spike or dip per-minute concurrency and should be reviewed (e.g. a 2.5&nbsp;s session where <code>VideoSessionEnd</code> precedes <code>VideoPlay</code> breaks the ordering invariant).</p>
+  </div>
+
+  <div class="anom ok">
+    <h3>G1 · Serving layer is internally consistent <span class="sev ok">Healthy</span></h3>
+    <p><code>silver.sw_delta_minute</code> (19,448 rows): sum(delta) = 0, 9,717 negative vs 9,731 positive deltas — perfectly balanced. <code>silver.sw_active_intervals</code> (25,091 rows for 10,866 sessions): no inverted intervals, no zero-length intervals, `is_active` all 1. 10,783 sessions have 2+ intervals, matching the A6 heartbeat-split expectation. The derived model behaves as designed; the anomalies are upstream in raw events.</p>
+  </div>
+
+  <div class="anom ok">
+    <h3>G2 · Core lifecycle is complete at session level <span class="sev ok">Healthy</span></h3>
+    <p>No session is missing <code>VideoSessionStart</code>, <code>VideoPlay</code>, or heartbeats; no session has multiple starts; no heartbeats occur before session start; there are no exact-duplicate rows; and all 3,357 content_ids resolve via <code>LEFT JOIN</code> (US-11). 293 <code>VideoError</code> events all belong to sessions that also ended cleanly.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>Risk matrix vs user stories</h2>
+  <table>
+    <tr><th>Story</th><th>Anomalies that threaten it</th><th>Key mitigation</th></tr>
+    <tr><td>US-01 · foreground concurrency/min</td><td>A2, A5, A6, A7</td><td>Gate active flag on bg/fg state, not heartbeat presence; calibrate timeout to real cadence</td></tr>
+    <tr><td>US-02 · peak concurrency</td><td>A4, A10</td><td>Drop post-end events; treat sub-minute sessions as abandoned</td></tr>
+    <tr><td>US-03 · average concurrency</td><td>A6, A7</td><td>Exclude backgrounded minutes (0-count) so avg stays ≤ peak</td></tr>
+    <tr><td>US-04 · dimension filtering</td><td>A9</td><td>Coalesce empty <code>video_type</code> to 'unknown'</td></tr>
+    <tr><td>US-05 · time grains</td><td>—</td><td>Rollups from serving table consistent (verified)</td></tr>
+    <tr><td>US-06 · exclude backgrounded</td><td>A7, A8</td><td>Heartbeat-while-bg must NOT resume active state</td></tr>
+    <tr><td>US-07 · missing-heartbeat rule</td><td>A2, A6</td><td>Re-derive heartbeat_interval &amp; gap_timeout from observed cadence</td></tr>
+    <tr><td>US-08 · open sessions incremental</td><td>A2</td><td>Deltas still incremental; bursts just produce more minute deltas</td></tr>
+    <tr><td>US-09 · session-aware vs independent</td><td>A3, A4, A7, A8</td><td>Both engines must implement identical bg-gating &amp; dedup</td></tr>
+    <tr><td>US-10 · late / duplicate events</td><td>A3, A4, A5</td><td>Dedup on (session, event_type, event); land late events on event minute</td></tr>
+    <tr><td>US-11 · content enrichment</td><td>A9</td><td>Left join + NULL/empty flag</td></tr>
+    <tr><td>US-12 · serving layer</td><td>—</td><td>Serving table verified balanced (G1)</td></tr>
+    <tr><td>US-13 · compaction</td><td>A6</td><td>Interval count inflated by splits — compaction into delta rows is even more valuable</td></tr>
+    <tr><td>US-14 · observability</td><td>—</td><td>Ingestion lag / query latency from <code>system.query_log</code></td></tr>
+    <tr><td>US-15 · 100x scaling</td><td>A5, A6</td><td>Burst volume scales linearly; interval→delta keeps serving tier small</td></tr>
+    <tr><td>US-16 · unseen day</td><td>—</td><td>Same pipeline, no hand-tuning</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">5</span>Recommendations</h2>
+  <ol class="small" style="padding-left:20px; display:grid; gap:8px;">
+    <li><b>Never trust <code>session_start_epoch</code></b> — derive session start from <code>VideoSessionStart</code> / min event timestamp (A1).</li>
+    <li><b>Dedup on <code>(session, event_type, event)</code></b>, not <code>(session, event_type, timestamp)</code>, or 41 real heartbeat signals get lost (A5).</li>
+    <li><b>Gate "active" on the bg/fg state machine</b>; heartbeats emitted while backgrounded (A7) must not mark viewing.</li>
+    <li><b>Recalibrate the heartbeat timeout</b> from observed cadence instead of the documented 1-min/90-s defaults (A2, A6) — e.g. gap_timeout ≈ a few heartbeat periods.</li>
+    <li><b>Handle post-end events</b>: apply late events on their event minute and ignore anything after <code>VideoSessionEnd</code> (A4); ignore redundant second end events (A3).</li>
+    <li><b>Coalesce empty <code>video_type</code></b> to <code>'unknown'</code> at enrichment so US-04 filters stay complete (A9).</li>
+    <li><b>Sanitize sub-minute sessions</b> (A10) — a start that never plays is not an active viewer.</li>
+  </ol>
+</section>
+
+<footer>
+  Generated read-only against ClickHouse Cloud · <code>bronze.ott_events</code>, <code>bronze.content_dimension</code>, <code>silver.sw_active_intervals</code>, <code>silver.sw_delta_minute</code> · No data modified.
+</footer>
+
+</div>
+</body>
+</html>

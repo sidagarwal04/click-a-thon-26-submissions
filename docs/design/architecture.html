@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SonyLIV — ClickHouse Architecture: Foreground-Only Concurrency</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel2: #243247;
+    --line: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #f59e0b;
+    --clickhouse: #ffcc01;
+    --green: #34d399;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --violet: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 24px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  h2 {
+    font-size: 1.1rem;
+    margin: 32px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    color: var(--clickhouse);
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  code, .mono {
+    font-family: "Cascadia Code", Consolas, Menlo, monospace;
+    font-size: 0.85em;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: #0b1220;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 0.82em;
+    line-height: 1.45;
+    color: #cbd5e1;
+  }
+  .k { color: #93c5fd; }
+  .s { color: #86efac; }
+  .c { color: #64748b; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; background: var(--panel2); }
+  .tag {
+    display: inline-block;
+    font-size: 0.72em;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: rgba(245,158,11,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(245,158,11,0.4);
+    margin-right: 6px;
+  }
+  .ok { color: var(--green); font-weight: 700; }
+  svg text { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .legend { font-size: 0.85em; color: var(--muted); }
+  .legend span { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin: 0 4px 0 14px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>SonyLIV — ClickHouse Architecture</h1>
+  <div class="sub">Foreground-only concurrency at streaming scale &middot; data flow + systematic aggregation &middot; covers all Jira use cases (US-01 … US-17) &middot; every solution direction from the problem statement is explored</div>
+
+  <h2>0. Solution-directions coverage (from problem statement)</h2>
+  <div class="panel">
+    <table>
+      <tr><th>Direction</th><th>Status</th><th>Where / what we chose</th></tr>
+      <tr><td>Interval-to-delta model (+1/−1)</td><td class="ok">✅ Adopted (core)</td><td><code>delta_minute</code> / <code>serving_minute</code> — additive &amp; idempotent, appends never rebuild</td></tr>
+      <tr><td>Dedicated serving table</td><td class="ok">✅ Adopted (core)</td><td>dashboards read <code>serving_minute</code> only, ~60 rows/hour → ms</td></tr>
+      <tr><td>Incremental compaction</td><td class="ok">✅ Adopted</td><td><code>open_sessions</code> tail-extends in place; finalize on close / watermark</td></tr>
+      <tr><td>Hybrid tiering</td><td class="ok">✅ Adopted</td><td>recent detail tier + compacted history tier (deltas)</td></tr>
+      <tr><td>Background exclusion logic</td><td class="ok">✅ Adopted (all 4 signals)</td><td>heartbeat gap (90s) + bg/fg cuts + pause/resume + explicit <code>is_active</code> flag</td></tr>
+    </table>
+  </div>
+
+  <h2>1. End-to-end pipeline</h2>
+  <div class="panel">
+    <svg viewBox="0 0 1040 1000" width="100%" role="img" aria-label="Pipeline diagram">
+      <defs>
+        <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="#f59e0b"/>
+        </marker>
+        <marker id="arrowG" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="#34d399"/>
+        </marker>
+      </defs>
+
+      <!-- ===== L1 ===== -->
+      <text x="20" y="26" fill="#94a3b8" font-size="13" font-weight="700">L1 &middot; INGESTION &amp; LANDING</text>
+
+      <rect x="20"  y="40" width="470" height="70" rx="9" fill="#243247" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="36" y="66" fill="#60a5fa" font-size="14" font-weight="700">raw_events &middot; MergeTree</text>
+      <text x="36" y="86" fill="#cbd5e1" font-size="12">~905K events · PARTITION BY day</text>
+      <text x="36" y="102" fill="#94a3b8" font-size="12" font-family="monospace">ORDER BY (event_timestamp, video_session_id)</text>
+
+      <rect x="560" y="40" width="250" height="46" rx="9" fill="#243247" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="576" y="64" fill="#60a5fa" font-size="14" font-weight="700">content_dim · MergeTree</text>
+      <text x="576" y="80" fill="#94a3b8" font-size="12">ORDER BY content_id</text>
+
+      <rect x="560" y="96" width="250" height="46" rx="9" fill="#243247" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="576" y="120" fill="#a78bfa" font-size="14" font-weight="700">content_dict · HashedDictionary</text>
+      <text x="576" y="136" fill="#94a3b8" font-size="12">O(1) dictGet · video_type / title / category</text>
+
+      <rect x="20" y="118" width="120" height="28" rx="6" fill="#0f172a" stroke="#334155"/>
+      <text x="30" y="136" fill="#e2e8f0" font-size="11">ch-hackathon CSV</text>
+      <path d="M80,118 L80,108 L255,108 L255,112" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="100" y="104" fill="#94a3b8" font-size="10.5">INSERT…FORMAT CSV · async_insert</text>
+
+      <!-- ===== L2 ===== -->
+      <text x="20" y="196" fill="#94a3b8" font-size="13" font-weight="700">L2 &middot; ENRICHMENT</text>
+      <rect x="20" y="210" width="790" height="58" rx="9" fill="#243247" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="36" y="234" fill="#60a5fa" font-size="14" font-weight="700">enriched_events &middot; MV / VIEW</text>
+      <text x="36" y="254" fill="#cbd5e1" font-size="12">raw ⊲ left join content via dictGet → video_type becomes a filter dimension (US-11)</text>
+
+      <path d="M255,110 L255,150 L510,150 L510,205" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M685,96 L685,180 L700,205" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+
+      <!-- ===== L3 STATE ===== -->
+      <text x="20" y="318" fill="#94a3b8" font-size="13" font-weight="700">L3 &middot; THE STATEFUL BRAIN — ACTIVE-INTERVAL DERIVATION</text>
+      <rect x="20" y="332" width="790" height="132" rx="9" fill="#2b1f10" stroke="#f59e0b" stroke-width="2"/>
+      <text x="36" y="354" fill="#f59e0b" font-size="13" font-weight="700">delta builder &middot; session-aware + session-independent (US-06/07/09)</text>
+      <text x="36" y="376" fill="#cbd5e1" font-size="12">· heartbeat gap &gt; 90s → close active interval at last_heartbeat + 90s</text>
+      <text x="36" y="396" fill="#cbd5e1" font-size="12">· AppBackgrounded → cut  ·  AppForegrounded → resume  ·  VideoSessionEnd → close</text>
+      <text x="36" y="416" fill="#cbd5e1" font-size="12">· pause/resume markers · explicit is_active flag (evidence)  ·  open sessions: extend tail only (US-08)</text>
+      <text x="36" y="442" fill="#f87171" font-size="12" font-weight="700">⚠ contained statefulness: everything downstream is stateless &amp; incremental</text>
+      <text x="36" y="458" fill="#94a3b8" font-size="11">output: +1 at active-start minute · −1 at active-end minute</text>
+
+      <path d="M415,268 L415,327" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+
+      <!-- ===== L4 TIER ===== -->
+      <text x="20" y="514" fill="#94a3b8" font-size="13" font-weight="700">L4 &middot; HYBRID TIERING + SERVING (incremental, additive)</text>
+
+      <rect x="20" y="528" width="380" height="86" rx="9" fill="#243247" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="36" y="552" fill="#60a5fa" font-size="13" font-weight="700">RECENT · open_sessions · ReplacingMergeTree</text>
+      <text x="36" y="572" fill="#cbd5e1" font-size="11">active ranges per open session, extend in place</text>
+      <text x="36" y="590" fill="#cbd5e1" font-size="11">finalize on close / watermark → deltas (US-08/13)</text>
+      <text x="36" y="606" fill="#94a3b8" font-size="11">minute 10:04 stays 500 when 10:06 arrives</text>
+
+      <rect x="430" y="528" width="380" height="86" rx="9" fill="#243247" stroke="#34d399" stroke-width="1.5"/>
+      <text x="446" y="552" fill="#34d399" font-size="13" font-weight="700">HISTORY · delta_minute · SummingMergeTree</text>
+      <text x="446" y="572" fill="#cbd5e1" font-size="11">compacted +1/−1 deltas · collapse by key on merge</text>
+      <text x="446" y="590" fill="#cbd5e1" font-size="11">additive → late events absorbed (US-10)</text>
+      <text x="446" y="606" fill="#94a3b8" font-size="11">30-min session → ~2 rows · TTL tiering</text>
+
+      <rect x="20" y="634" width="790" height="78" rx="9" fill="#243247" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="36" y="658" fill="#60a5fa" font-size="13" font-weight="700">serving_minute · SummingMergeTree — dashboards read here only (US-12)</text>
+      <text x="36" y="678" fill="#cbd5e1" font-size="11">stores per-minute DELTA SUMS, not absolute concurrency → updates never rebuild</text>
+      <text x="36" y="696" fill="#cbd5e1" font-size="11">reconstruct: sum(delta) OVER (PARTITION BY dims ORDER BY minute) → bounded range, ms</text>
+      <text x="36" y="710" fill="#94a3b8" font-size="11">GROUPING SETS → every dim combo peaks at its own minute (US-04)</text>
+
+      <path d="M210,528 L210,490 L415,490 L415,514" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#arrowG)"/>
+      <path d="M415,464 L415,514" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#arrowG)"/>
+
+      <!-- ===== L5 CONSUMERS ===== -->
+      <text x="20" y="762" fill="#94a3b8" font-size="13" font-weight="700">L5 &middot; CONSUMERS</text>
+      <rect x="20"  y="776" width="240" height="70" rx="9" fill="#1e293b" stroke="#f87171" stroke-width="1.5"/>
+      <text x="36" y="800" fill="#f87171" font-size="13" font-weight="700">Peak / Avg benchmark</text>
+      <text x="36" y="818" fill="#cbd5e1" font-size="11">minute/hour/day + filters (US-02/03/05)</text>
+      <text x="36" y="834" fill="#94a3b8" font-size="11">~ms · reads serving only</text>
+
+      <rect x="280" y="776" width="240" height="70" rx="9" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="296" y="800" fill="#34d399" font-size="13" font-weight="700">Dashboard / live replay</text>
+      <text x="296" y="818" fill="#cbd5e1" font-size="11">curve builds in real time (US-17)</text>
+      <text x="296" y="834" fill="#94a3b8" font-size="11">filter: android / IN · 40ms</text>
+
+      <rect x="540" y="776" width="270" height="70" rx="9" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="556" y="800" fill="#a78bfa" font-size="13" font-weight="700">Chat + Observability</text>
+      <text x="556" y="818" fill="#cbd5e1" font-size="11">LibreChat + ClickHouse MCP</text>
+      <text x="556" y="834" fill="#94a3b8" font-size="11">ClickStack: lag / p95 (US-14)</text>
+
+      <path d="M145,712 L145,771" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M415,712 L415,771" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M685,712 L685,771" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+
+      <rect x="20" y="870" width="790" height="46" rx="9" fill="#3b1a1a" stroke="#f87171" stroke-width="1.5"/>
+      <text x="36" y="890" fill="#f87171" font-size="13" font-weight="700">Unseen-day evidence (US-16)</text>
+      <text x="36" y="908" fill="#cbd5e1" font-size="12">answers CSV + system.query_log + EXPLAIN + latency per query · no hand-computed answers</text>
+    </svg>
+    <div class="legend">
+      <span style="background:#60a5fa"></span>tables <span style="background:#f59e0b"></span>flow / delta builder
+      <span style="background:#34d399"></span>compaction / serving <span style="background:#a78bfa"></span>lookup / dim materialization
+    </div>
+  </div>
+
+  <h2>2. How the aggregations form (systematic chain)</h2>
+  <div class="panel">
+    <div class="grid">
+      <div>
+        <pre><span class="c">-- 1. LAND     raw per-event (ms ts)</span>
+INSERT INTO raw_events FORMAT CSV</pre>
+        <pre><span class="c">-- 2. ENRICH   attach content metadata</span>
+dictGet(content_dict, 'video_type', content_id) <span class="k">AS</span> video_type</pre>
+        <pre><span class="c">-- 3. DERIVE   active intervals (stateful)</span>
+<span class="c">--   gap &gt; 90s · bg/fg cuts · end</span>
+<span class="k">--   window funcs / groupArray + arrayDifference</span></pre>
+        <pre><span class="c">-- 4. EXPAND   [s,e) → +1 / −1 deltas</span>
+<span class="k">SELECT</span> toStartOfMinute(s) <span class="k">AS</span> minute, <span class="s">+1</span> <span class="k">AS</span> delta
+<span class="k">UNION ALL SELECT</span> toStartOfMinute(e), <span class="s">-1</span>;</pre>
+      </div>
+      <div>
+        <pre><span class="c">-- 5. COMPACT  SummingMergeTree collapses (minute, dims)</span>
+<span class="c">--   → net delta per minute; additive &amp; idempotent</span></pre>
+        <pre><span class="c">-- 6. RECONSTRUCT per-minute concurrency (bounded, ms)</span>
+<span class="k">SELECT</span> minute, <span class="k">sum</span>(delta) <span class="k">OVER</span>
+  (<span class="k">PARTITION BY</span> platform, country, content_id, video_type
+   <span class="k">ORDER BY</span> minute) <span class="k">AS</span> concurrency
+<span class="k">FROM</span> serving_minute
+<span class="k">WHERE</span> minute <span class="k">BETWEEN</span> <span class="s">'2026-07-26 19:00'</span> <span class="k">AND</span> <span class="s">'19:59'</span>;</pre>
+        <pre><span class="c">-- 7. AGGREGATE peak = max · avg = mean over minutes</span>
+<span class="c">--   hour/day grains · GROUPING SETS dim combos (US-04/05)</span></pre>
+        <pre><span class="c">-- 8. SERVE   dashboards / benchmarks / chat — never raw</span></pre>
+      </div>
+    </div>
+    <p style="font-size:0.9em;color:var(--muted)">Each step is lossless &amp; additive except step 7 (intentional compaction). Updates from the delta builder flow forward as deltas only — absorbed incrementally, never rebuilt.</p>
+  </div>
+
+  <h2>3. DDL sketch</h2>
+  <div class="panel">
+<pre><span class="c">-- L1 raw (ground truth)</span>
+CREATE TABLE raw_events (
+    content_id          UInt64,
+    video_session_id    String,
+    user_id             String,
+    event_type          LowCardinality(String),
+    event               LowCardinality(String),
+    event_timestamp     DateTime64(3),
+    platform            LowCardinality(String),
+    app_version         String,
+    country             LowCardinality(String),
+    audio_language      LowCardinality(String),
+    subtitle_language   LowCardinality(String),
+    player_version      String,
+    session_start_epoch DateTime64(3)
+) ENGINE = MergeTree
+PARTITION BY toDate(event_timestamp)
+ORDER BY (event_timestamp, video_session_id);
+
+<span class="c">-- L4 RECENT tier — open sessions, extend in place (US-08)</span>
+CREATE TABLE open_sessions (
+    video_session_id  String,
+    platform          LowCardinality(String),
+    country           LowCardinality(String),
+    content_id        UInt64,
+    video_type        LowCardinality(String),
+    last_heartbeat    DateTime64(3),
+    active_ranges     Array(Tuple(DateTime64(3), DateTime64(3))),
+    is_active         UInt8,
+    watermark_expires DateTime64(3)
+) ENGINE = ReplacingMergeTree
+ORDER BY video_session_id;
+
+<span class="c">-- L4 HISTORY tier — compacted, additive, incremental (US-13)</span>
+CREATE TABLE delta_minute (
+    minute     DateTime,
+    platform   LowCardinality(String),
+    country    LowCardinality(String),
+    content_id UInt64,
+    video_type LowCardinality(String),
+    delta      Int32
+) ENGINE = SummingMergeTree
+PARTITION BY toDate(minute)
+ORDER BY (minute, platform, country, content_id, video_type);
+
+<span class="c">-- L4 SERVING — per-minute delta sums; dashboards read here only (US-12)</span>
+<span class="c">-- NOTE: stores delta, NOT absolute concurrency → window-sum at query keeps updates incremental</span>
+CREATE TABLE serving_minute (
+    minute     DateTime,
+    platform   LowCardinality(String),
+    country    LowCardinality(String),
+    content_id UInt64,
+    video_type LowCardinality(String),
+    category   LowCardinality(String),
+    delta      Int32
+) ENGINE = SummingMergeTree
+PARTITION BY toDate(minute)
+ORDER BY (minute, platform, country, content_id, video_type, category);</pre>
+  </div>
+
+  <h2>4. Use-case coverage</h2>
+  <div class="panel">
+    <table>
+      <tr><th>Story</th><th>Satisfied by</th></tr>
+      <tr><td><span class="tag">US-01</span> foreground concurrency / min</td><td>L3 interval logic + L4 serving_minute</td></tr>
+      <tr><td><span class="tag">US-02</span> peak over range</td><td>L4 max(concurrency) after window sum</td></tr>
+      <tr><td><span class="tag">US-03</span> average over range</td><td>L4 mean(concurrency) per minute</td></tr>
+      <tr><td><span class="tag">US-04</span> dimension-filtered</td><td>L4 GROUPING SETS + LowCardinality dims</td></tr>
+      <tr><td><span class="tag">US-05</span> minute / hour / day</td><td>L4 serving_minute + serving_hour/day</td></tr>
+      <tr><td><span class="tag">US-06</span> exclude backgrounded</td><td>L3 AppBackgrounded / AppForegrounded cuts</td></tr>
+      <tr><td><span class="tag">US-07</span> missing-heartbeat rule</td><td>L3 gap-timeout (90s) closes interval</td></tr>
+      <tr><td><span class="tag">US-08</span> open sessions incremental</td><td>L4 tail-extension emits new deltas only</td></tr>
+      <tr><td><span class="tag">US-09</span> aware vs independent parity</td><td>L3 both derivations, reconciled</td></tr>
+      <tr><td><span class="tag">US-10</span> late / duplicate events</td><td>L4 additive deltas + dedup on (session, ts, type)</td></tr>
+      <tr><td><span class="tag">US-11</span> content enrichment</td><td>L2 dictionary join</td></tr>
+      <tr><td><span class="tag">US-12</span> serving layer</td><td>L4 pre-aggregated tables</td></tr>
+      <tr><td><span class="tag">US-13</span> incremental compaction</td><td>L4 open_sessions → delta_minute finalization + TTL</td></tr>
+      <tr><td><span class="tag">US-14</span> observability integration</td><td>L6 ClickStack / LibreChat + CH MCP</td></tr>
+      <tr><td><span class="tag">US-15</span> scalability 100x</td><td>L4 compaction + bounded-range serving (no rescans)</td></tr>
+      <tr><td><span class="tag">US-16</span> unseen-day evidence</td><td>L6 system.query_log + EXPLAIN + latency</td></tr>
+      <tr><td><span class="tag">US-17</span> demo replay</td><td>L6 live ingestion → curve → filter → chat</td></tr>
+    </table>
+  </div>
+
+  <h2>5. Grouping / partitioning columns per layer</h2>
+  <div class="panel">
+    <table>
+      <tr><th>Layer</th><th>Table / step</th><th>Grouping key (semantic)</th><th>ClickHouse key</th><th>Why this grouping</th></tr>
+      <tr><td>L1</td><td>raw_events</td><td><i>none — row level</i></td><td><code>PARTITION BY toDate(event_timestamp)</code> · <code>ORDER BY (event_timestamp, video_session_id)</code></td><td>raw landing; no grouping yet, only ordering for scans + session walk</td></tr>
+      <tr><td>L1</td><td>content_dim</td><td><code>content_id</code></td><td><code>ORDER BY content_id</code></td><td>metadata lookups by content</td></tr>
+      <tr><td>L2</td><td>enriched_events</td><td><i>none — row level</i></td><td>same as raw + dictGet columns</td><td>adds video_type/category as future filter dims; no aggregation yet</td></tr>
+      <tr><td>L3</td><td>delta builder (session-aware)</td><td><code>video_session_id</code></td><td><code>GROUP BY video_session_id</code> + order by <code>event_timestamp</code></td><td>stateful per-session interval assembly (heartbeat gaps, bg/fg, end)</td></tr>
+      <tr><td>L3</td><td>delta builder (session-independent)</td><td><i>none — pure event-state</i></td><td>event stream ordered by <code>event_timestamp</code></td><td>emits +1/−1 from transitions; no session grouping</td></tr>
+      <tr><td>L4</td><td>open_sessions (recent)</td><td><code>video_session_id</code></td><td><code>ORDER BY video_session_id</code> (ReplacingMergeTree)</td><td>one current row per open session; tail-extension overwrites by key</td></tr>
+      <tr><td>L4</td><td>delta_minute (history)</td><td><code>(minute, platform, country, content_id, video_type)</code></td><td><code>ORDER BY (minute, platform, country, content_id, video_type)</code> · <code>delta Int32</code> (SummingMergeTree)</td><td><b>the canonical aggregation key</b> — rows collapse by summing delta</td></tr>
+      <tr><td>L5</td><td>serving_minute</td><td><code>(minute, platform, country, content_id, video_type, category)</code></td><td>same + <code>category</code></td><td>dashboard reads; window <code>PARTITION BY</code> the same dims, <code>ORDER BY minute</code> for cumulative sum</td></tr>
+      <tr><td>L5</td><td>serving_hour / serving_day</td><td><code>(grain, platform, country, content_id, video_type, category)</code></td><td><code>ORDER BY (grain, …)</code> · <code>SimpleAggregateFunction(max/avg)</code></td><td>fixed-grain rollups: peak = max / avg = mean over contained minutes</td></tr>
+      <tr><td>L5</td><td>benchmark queries</td><td>arbitrary GROUP BY over serving dims</td><td>e.g., <code>GROUP BY platform</code> / <code>GROUP BY platform, country</code></td><td>each dimension combination peaks at its own minute (US-04); pre-materialized via GROUPING SETS</td></tr>
+    </table>
+    <p style="font-size:0.9em;color:var(--muted)"><b>Design invariant:</b> the grouping key only ever <i>widens</i> as data flows down (L1 none → L3 session → L4 minute+dims → L5 grain+dims). It never splits or re-joins across a different column family — that's why the deltas stay additive and each layer is a pure refinement of the one above it. <code>platform</code>/<code>country</code>/<code>content_id</code>/<code>video_type</code> are the canonical filter dimensions and are preserved through every layer.</p>
+  </div>
+
+  <h2>6. Key trade-offs</h2>
+  <div class="panel">
+    <table>
+      <tr><th>Decision</th><th>Chose</th><th>Rejected</th><th>Why</th></tr>
+      <tr><td>Active representation</td><td>interval → delta (+1/−1)</td><td>per-minute explosion; interval arrays</td><td>additive = incremental; ~2 rows/session; arrays are update-hostile in CH</td></tr>
+      <tr><td>Where statefulness lives</td><td>one delta-builder component</td><td>stateful MVs everywhere</td><td>CH MVs are per-insert; contain state → stateless chain</td></tr>
+      <tr><td>Serving content</td><td>delta sums + window sum at query</td><td>absolute concurrency materialized in MV</td><td>absolute cumulative can't be maintained incrementally → rebuild</td></tr>
+      <tr><td>Serving range size</td><td>bounded window (day = 1440 rows)</td><td>scan raw history</td><td>ms latency; judges see serving-only reads</td></tr>
+      <tr><td>Open sessions</td><td>tail-extension deltas in open_sessions</td><td>re-run full event stream</td><td>minute 10:04 must stay 500 when 10:06 arrives</td></tr>
+      <tr><td>Heartbeat gap rule</td><td>last heartbeat + 90s closes</td><td>naive fixed session window</td><td>matches US-07; measured cadence ~40s &lt; threshold</td></tr>
+      <tr><td>Background markers</td><td>corroborating, not required</td><td>rely on them alone</td><td>docs: not guaranteed events</td></tr>
+      <tr><td>History</td><td>hybrid tiering (recent detail / compacted)</td><td>single flat history</td><td>balances update cost vs query speed at 100x</td></tr>
+      <tr><td>Coarse grains</td><td>fixed-grain rollups + arbitrary window sums</td><td>only pre-aggregated</td><td>keeps arbitrary queries correct without explosion</td></tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>
