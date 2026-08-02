@@ -1,0 +1,44 @@
+# PINNED DELIBERATELY.
+#
+# Every entry here used to be a bare package name, which meant each
+# `docker compose up --build` resolved to whatever was latest on PyPI at that
+# moment. For a graded artifact that is a real risk, not a theoretical one: the
+# container that runs against the unseen-incident dataset would not necessarily
+# be the container the tests passed against, and a behaviour change in
+# langgraph/langfuse/clickhouse-connect between builds would surface as a wrong
+# answer with no local reproduction.
+#
+# These versions are the set actually resolved and verified in .venv.
+# To upgrade: bump here, re-run `pytest tests/`, then rebuild.
+
+python-dotenv==1.2.2
+clickhouse-connect==1.6.0
+# Floor, not a pin: the CA bundle must know Let's Encrypt's current roots or every
+# ClickHouse Cloud query fails with CERTIFICATE_VERIFY_FAILED (hit in production
+# when a stale image carried an old bundle).
+certifi>=2026.1.1
+pandas==3.0.5
+pyarrow==25.0.0
+
+# engine
+pydantic==2.13.4
+pydantic-settings==2.14.2
+tenacity==9.1.4
+langgraph==1.2.10
+
+# LLM providers (narrator.py picks one via LLM_PROVIDER config)
+anthropic==0.120.2
+openai==2.52.0
+google-genai==2.16.0
+
+# observability
+langfuse==4.14.2
+
+# API + demo
+fastapi==0.141.1
+uvicorn[standard]==0.52.0
+
+# tests
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1

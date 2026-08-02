@@ -1,0 +1,76 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8088:8000"
+    env_file:
+      - utils/.env
+    restart: unless-stopped
+    # Newer Docker engines default containers to a 1024 soft nofile limit; the API
+    # (2 uvicorn workers x per-thread clients x 2 datasets + fan-out pools) needs
+    # real headroom or it dies with "[Errno 24] Too many open files".
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # The real-time monitor, deliberately its own single-instance service (not
+  # a FastAPI lifespan task) -- the api service scales to N replicas/workers
+  # safely, while exactly one scanner runs regardless, so scan_ticks never
+  # gets duplicated. See api/main.py's module docstring for the bug this
+  # avoided (found via a live test with --workers 2: every tick appeared twice).
+  scanner:
+    build: .
+    command: ["python", "-m", "engine.scanner", "--interval", "30"]
+    env_file:
+      - utils/.env
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # A SECOND scanner, for the second dataset. One process per dataset, because a
+  # scanner is inherently bound to one: its cadence is tracked in that database's
+  # sweep_coverage, its "now" is that database's max(event_time) (2026-07-10 here
+  # versus 2026-07-05 for the primary), and its findings belong in that database's
+  # incidents table. Nothing about a scan tick is shared between datasets.
+  #
+  # This does NOT reintroduce the duplicated-tick bug (see the note on `scanner`
+  # above): that came from ONE dataset being swept by N processes, because a FastAPI
+  # lifespan task ran once per uvicorn worker. Here each dataset still has exactly
+  # one scanner.
+  #
+  # `--dataset unseen` rather than an environment override of CLICKHOUSE_DATABASE.
+  # Both point the connection at the same place, but the flag leaves the dataset
+  # registry coherent inside the container -- with the env override, 'main' would
+  # also resolve to unseen_data, which is harmless but reads as a misconfiguration
+  # to anyone debugging it later. The flag also prints the resolved database at
+  # startup, so `docker compose logs scanner-unseen` identifies itself.
+  scanner-unseen:
+    build: .
+    command: ["python", "-m", "engine.scanner", "--interval", "30", "--dataset", "unseen"]
+    env_file:
+      - utils/.env
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # The React UI module -- nginx serves the Vite production build and
+  # reverse-proxies API calls to `api` (see ui/nginx.conf), so the browser
+  # only ever talks to one origin.
+  ui:
+    build: ./ui
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped

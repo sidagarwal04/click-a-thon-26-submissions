@@ -1,0 +1,261 @@
+/* ===========================================================================
+ * Design tokens.
+ *
+ * DIRECTION — "instrument panel"
+ * Ad operations is not finance and not a generic SaaS dashboard: it is someone
+ * watching a live signal for deviation from an expected range. That is literally
+ * what a measuring instrument does, so the console is built like one — a precise,
+ * quiet chassis whose only bright thing is the signal itself.
+ *
+ * The signature element is THE BAND RIBBON: the expected range rendered as a soft
+ * luminous corridor with the actual value tracing through it and breaking out where
+ * it breaches. It is the product's entire idea in one mark, so it gets the boldness
+ * and everything around it stays disciplined — hairline rules, generous space, one
+ * accent, no decorative gradients anywhere else.
+ *
+ * COLOUR IS NOT MINE TO INVENT
+ * The categorical, status and chrome values below are the validated dataviz palette
+ * (skill reference `references/palette.md`) and are reproduced byte-for-byte. They
+ * passed CVD separation, lightness-band and contrast checks against these exact
+ * surfaces. "Premium" here therefore comes from typography, spacing, motion and
+ * chart craft — never from re-tinting a palette whose safety was computed, not
+ * chosen. New tokens are DERIVED from these with color-mix so nothing drifts.
+ * ======================================================================== */
+
+/* Self-hosted, no CDN: the UI is served by nginx inside Docker with no outbound
+   network, so a webfont link would silently fall back to system sans in the one
+   environment that matters. */
+/* Latin subsets only. The default entry points ship Cyrillic, Cyrillic-Extended, Greek
+   and Vietnamese too — for three mono weights that was 36 extra font files in the bundle
+   for glyphs this interface never renders. */
+@import '@fontsource-variable/instrument-sans/wght.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
+
+:root {
+  color-scheme: light;
+
+  /* ---- validated dataviz palette: chrome & ink ---- */
+  --surface-1: #fcfcfb;
+  --page-plane: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline-axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+
+  /* ---- validated categorical slots (fixed order, never cycled) ---- */
+  --series-1: #2a78d6; /* blue -- sequential default */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua */
+  --series-4: #eda100; /* yellow */
+
+  /* ---- validated status palette (reserved; never reused as a series) ---- */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  --delta-good-text: #006300;
+
+  /* ---- derived surfaces: elevation without new hues ----
+     Three planes only. More than three and "elevated" stops meaning anything. */
+  --surface-2: color-mix(in srgb, var(--text-primary) 3%, var(--surface-1));
+  --surface-sunken: color-mix(in srgb, var(--text-primary) 5%, var(--page-plane));
+  --border-strong: color-mix(in srgb, var(--text-primary) 18%, transparent);
+  --accent-wash: color-mix(in srgb, var(--series-1) 8%, transparent);
+  --accent-wash-strong: color-mix(in srgb, var(--series-1) 14%, transparent);
+
+  /* Soft, low-contrast shadows. A premium surface reads as *lifted*, not outlined —
+     but on a dark plane a black shadow is invisible, so dark mode swaps to a ring. */
+  --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.04), 0 1px 1px rgba(11, 11, 11, 0.03);
+  --shadow-md: 0 2px 4px rgba(11, 11, 11, 0.05), 0 8px 24px -8px rgba(11, 11, 11, 0.1);
+  --shadow-lg: 0 4px 8px rgba(11, 11, 11, 0.06), 0 16px 48px -12px rgba(11, 11, 11, 0.14);
+
+  /* ---- type ----
+     Instrument Sans for the interface: technical, slightly narrow, and deliberately
+     not Inter — Inter is the default every dashboard already wears.
+     IBM Plex Mono for figures in columns: it earns its place functionally, because
+     a monitoring table is scanned vertically and needs real tabular alignment. */
+  --font-ui: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  /* A 1.18 scale — tight enough for a data-dense product, wide enough that hierarchy
+     is legible. The old scale bottomed out at 0.65rem (10.4px) on grain chips, which
+     is below any reasonable floor; nothing here goes under 11px, and that step is
+     reserved for chart axis ticks. */
+  --fs-2xs: 0.6875rem; /* 11px -- axis ticks ONLY */
+  --fs-xs: 0.75rem; /* 12px -- meta, captions */
+  --fs-sm: 0.8125rem; /* 13px -- secondary text */
+  --fs-md: 0.875rem; /* 14px -- body default */
+  --fs-lg: 1rem; /* 16px */
+  --fs-xl: 1.25rem; /* 20px -- section titles */
+  --fs-2xl: 1.75rem; /* 28px */
+  --fs-3xl: 2.5rem; /* 40px -- hero figure */
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-body: 1.55;
+
+  /* Instrument Sans is a touch wide at display sizes; negative tracking on the big
+     steps keeps headlines from looking loose. */
+  --track-tight: -0.02em;
+  --track-normal: 0;
+  --track-wide: 0.06em; /* eyebrows / small caps only */
+
+  /* ---- space: a 4px base, so every gap is a multiple and nothing is eyeballed ---- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+
+  --r-sm: 5px;
+  --r-md: 9px;
+  --r-lg: 13px;
+  --r-xl: 18px;
+  --r-pill: 999px;
+
+  /* ---- motion ----
+     One expo-out curve for everything that enters or lifts. A single easing across a
+     product is most of what makes motion feel authored rather than accidental. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 460ms;
+}
+
+/* Dark values are SELECTED for the dark surface, not an automatic inversion — the
+   categorical slots are the same eight hues re-stepped, per the palette reference.
+   Declared under both scopes so the OS setting and the theme toggle both win. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page-plane: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline-axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #d03b3b;
+
+    --delta-good-text: #0ca30c;
+
+    --surface-2: color-mix(in srgb, #ffffff 4%, var(--surface-1));
+    --surface-sunken: #000000;
+    --border-strong: color-mix(in srgb, #ffffff 20%, transparent);
+
+    /* A black drop shadow does nothing on a near-black plane. Depth on dark comes
+       from a light inner ring plus a deeper backdrop. */
+    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.03);
+    --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 12px 32px -12px rgba(0, 0, 0, 0.8);
+    --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 64px -16px rgba(0, 0, 0, 0.9);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page-plane: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline-axis: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  --delta-good-text: #0ca30c;
+
+  --surface-2: color-mix(in srgb, #ffffff 4%, var(--surface-1));
+  --surface-sunken: #000000;
+  --border-strong: color-mix(in srgb, #ffffff 20%, transparent);
+  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 12px 32px -12px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 64px -16px rgba(0, 0, 0, 0.9);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--page-plane);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis-weight: none;
+}
+
+a {
+  color: var(--series-1);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Tabular figures for anything read in a column. Applied by class rather than
+   globally: the dataviz reference reserves tabular for aligned columns and keeps
+   proportional figures for standalone hero numbers, which genuinely look better. */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.01em;
+}
+
+/* Reduced motion is honoured globally and once, so no component has to remember.
+   scroll-behavior is included because smooth scrolling is itself motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
