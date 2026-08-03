@@ -1,0 +1,88 @@
+# Single demo box: LibreChat (with bundled MongoDB) + FastAPI + React UI
+# (ENGINEERING.md §6.1/§6.4, D13).
+#
+# Usage (fully automated — no manual agent setup):
+#   docker compose up -d
+#
+# What happens on cold start:
+#   1. mongo starts
+#   2. librechat starts (waits for mongo healthy)
+#   3. fastapi starts, runs provision_agent.py (waits for librechat, creates
+#      "Atlys PM" agent, writes agent_id to .atlys_agent_id)
+#   4. uvicorn serves the FastAPI API + React UI at :8000
+#
+# LibreChat is still the chat backend (LLM routing + MCP). The React UI at
+# :8000 talks to LibreChat via FastAPI's /api/proxy/chat endpoint.
+#
+# Tunnel: FastAPI's MCP SSE endpoint is reachable from LibreChat via the
+# Docker-internal URL http://fastapi:8000/mcp/sse — no external tunnel needed.
+# Update librechat.yaml → mcpServers.atlys-orchestrator.url accordingly.
+services:
+  mongo:
+    image: mongo:7
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest   # pin ≥ v0.7.6
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/LibreChat
+      MONGO_HOST: mongo
+    ports:
+      - "3080:3080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      - librechat-images:/app/client/public/images
+      - librechat-files:/app/uploads
+    healthcheck:
+      # Simple TCP connection check via Node's net module — extremely robust and independent of HTTP paths
+      test: ["CMD-SHELL", "node -e \"const client = require('net').connect(3080, '127.0.0.1'); client.on('connect', () => process.exit(0)); client.on('error', () => process.exit(1));\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  fastapi:
+    # Removed from 'fastapi' profile — now always-on (D13 revision).
+    # Builds the React UI (Stage 1) then the Python service (Stage 2).
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    restart: always
+    depends_on:
+      librechat:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Internal Docker network URL — no external tunnel needed for MCP SSE.
+      LIBRECHAT_URL: http://librechat:3080
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist specs + chat transcripts (generated/chats/*.json) across restarts.
+      - ./specs:/app/specs
+      - ./generated:/app/generated
+      # Bind-mount service code so conversation APIs / chat_store stay in sync
+      # with the repo without requiring an image rebuild for every change.
+      - ./service:/app/service
+      - ./scripts:/app/scripts
+      - ./agents:/app/agents
+
+volumes:
+  mongo-data:
+  librechat-images:
+  librechat-files:
+

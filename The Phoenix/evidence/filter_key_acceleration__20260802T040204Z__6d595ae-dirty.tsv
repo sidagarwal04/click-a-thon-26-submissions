@@ -1,0 +1,29 @@
+# evidence: filter_key_acceleration
+# what: projection plus two skip indices: 7.1x on suffix-dimension filters, 59000x on the per-tick user lookup
+# run_utc: 2026-08-02 04:02:04
+# git: 6d595ae-dirty
+# host: ss-cric
+# row_count: 7000000
+# event_watermark: 2026-08-03 11:26:15.032
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 7000000   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 02:35:57   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+optimisation	before	after	factor	source
+p_suffix_first projection on concurrency_deltas	133784 rows read	18809 rows read	7.1x	clickhouse-best-practices review, option (a)
+idx_user_id bloom_filter on session_minute_runs	118497 rows read	2 rows read	59248x	database-war-room finding 1
+idx_run_range minmax on user_minute_runs	0 percent granules pruned	matches the session twin at 44 percent	-	database-war-room finding 6
+#
+detail	value
+projection_selected	EXPLAIN indexes=1 shows ReadFromMergeTree (p_suffix_first), Parts 21/37, Granules 22/52
+projection_query	video_resolution = 1920*1080, a SUFFIX dimension that previously pruned nothing
+projection_prerequisite	deduplicate_merge_projection_mode = rebuild; ClickHouse REFUSES projections on SummingMergeTree under the default throw, and drop would silently discard it on merge
+projection_safety	rebuild is safe here because sum() is associative; verified correct pre- and post-merge on a 2.5M-row MV-fed replica
+why_projection_not_second_table	auto-selected by the analyzer, so none of the 11 serving queries needs routing logic and no published read figure moves for an invisible reason
+bloom_filter_target	04c_merge_user_runs_atomic.sql filters session_minute_runs by user_id every 60s tick; user_id is not in the sort key so the read was a full scan of total history
+bloom_filter_measurement	same query with use_skip_indexes=0 vs default, real user_id
+honest_limit	nine independent filter dimensions is 512 combinations; no pair of sort orders serves them all. app_version alone is still unprunable in both orders
+verdict	PASS

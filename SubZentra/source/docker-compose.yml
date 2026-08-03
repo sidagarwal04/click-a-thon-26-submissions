@@ -1,0 +1,135 @@
+name: zentraos-phase0
+
+services:
+  control-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: zentra_control
+      POSTGRES_USER: zentra_owner
+      POSTGRES_PASSWORD: zentra_owner
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zentra_owner -d zentra_control"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - control-postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+
+  warehouse-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: zentra_warehouse
+      POSTGRES_USER: warehouse_reader
+      POSTGRES_PASSWORD: warehouse_reader
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse_reader -d zentra_warehouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - warehouse-postgres-data:/var/lib/postgresql/data
+      - ./infra/warehouse/init:/docker-entrypoint-initdb.d:ro
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.6
+    environment:
+      CLICKHOUSE_DB: zentra_audit
+      CLICKHOUSE_USER: zentra_audit_owner
+      CLICKHOUSE_PASSWORD: zentra_audit_owner
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8123/ping",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
+
+  cube:
+    image: cubejs/cube@sha256:c4c9330a0e8188ea8a4c6c904681dca0a1790c9be5b1d2da950b0429171283bb
+    environment:
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: warehouse-postgres
+      CUBEJS_DB_PORT: "5432"
+      CUBEJS_DB_NAME: zentra_warehouse
+      CUBEJS_DB_USER: warehouse_reader
+      CUBEJS_DB_PASS: warehouse_reader
+      CUBEJS_API_SECRET: local-cube-secret
+      # The internal model endpoint's own secret, not CUBEJS_API_SECRET —
+      # this is Cube's Node process calling back into apps/api, a different
+      # trust boundary from a tenant's request into Cube.
+      CUBE_INTERNAL_API_SECRET: local-cube-internal-secret
+      # Defaults to the host rather than the `api` service, because `api` is in
+      # the `app` profile and a local dev loop normally runs uvicorn on the
+      # host instead. Pointing at `api:8000` there resolves to nothing, the
+      # schema compile fails, and the tenant's tables never become cubes —
+      # while the demo warehouse keeps working, which hides it. Override to
+      # `http://api:8000` when running with `--profile app`.
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4000:4000"
+    depends_on:
+      warehouse-postgres:
+        condition: service_healthy
+    volumes:
+      - ./infra/cube/cube.js:/cube/conf/cube.js:ro
+      - ./infra/cube/model:/cube/conf/model:ro
+      - cube-data:/cube/conf/.cubestore
+
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://zentra_app:zentra_app@control-postgres:5432/zentra_control
+      DATABASE_OWNER_URL: postgresql+psycopg://zentra_owner:zentra_owner@control-postgres:5432/zentra_control
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USERNAME: zentra_audit_app
+      CLICKHOUSE_PASSWORD: zentra_audit_app
+      CLICKHOUSE_DATABASE: zentra_audit
+      CUBE_URL: http://cube:4000
+      CUBE_API_SECRET: local-cube-secret
+      CUBE_INTERNAL_API_SECRET: local-cube-internal-secret
+      # Dev-only, committed like every other secret in this file. Seals
+      # connector source credentials at rest — without it ConnectorService
+      # is never constructed and every connector route, plus Cube's
+      # internal model callback, answers "not configured".
+      CONNECTOR_CREDENTIAL_KEY: 9cae34e4992b93fdcffe049dfa92ca0442f942c24b5c8d3cc0290438bc4746d2
+      FRONTEND_ORIGIN: http://localhost:4200
+    ports:
+      - "8000:8000"
+    depends_on:
+      control-postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      cube:
+        condition: service_started
+
+volumes:
+  control-postgres-data:
+  warehouse-postgres-data:
+  clickhouse-data:
+  cube-data:

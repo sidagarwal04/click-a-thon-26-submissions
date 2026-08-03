@@ -1,0 +1,30 @@
+# LibreChat config — registers the RootCauseOS OpenAI-compatible shim
+# (integrations/openai_shim.py, host port 8601) as a custom endpoint.
+# The shim binds 0.0.0.0:8601 on the HOST, so from inside the container
+# the baseURL must go through host.docker.internal.
+#
+# Config version kept current with the installed LibreChat image. v0.8.x
+# serves chat through the Agents API; a custom endpoint only reaches the
+# /api/agents/chat stream (and renders answers instead of empty replies)
+# when the config version is recent enough that the endpoint surfaces in
+# /api/config with endpointType=custom so the browser sets it on the
+# request body. An outdated version (1.2.1) loaded but never surfaced the
+# endpoint, which is why every assistant message came back blank.
+
+version: 1.3.5
+cache: true
+
+interface:
+  modelSelect: true
+
+endpoints:
+  custom:
+    - name: "RootCauseOS"
+      apiKey: "sk-rootcauseos-local"   # shim accepts any token; value never logged
+      baseURL: "http://host.docker.internal:8601/v1"
+      models:
+        default: ["rootcauseos-rca"]
+        fetch: false
+      titleConvo: true
+      titleModel: "rootcauseos-rca"
+      modelDisplayLabel: "RootCauseOS RCA"

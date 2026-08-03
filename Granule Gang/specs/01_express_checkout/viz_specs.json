@@ -1,0 +1,204 @@
+{
+  "conversion_funnel": {
+    "id": "conversion_funnel",
+    "title": "Conversion Funnel",
+    "type": "funnel",
+    "query": "\n            SELECT \n                'Destination Card Clicked' as step,\n                count(DISTINCT user_id) as users\n            FROM atlys.destination_card_clicked\n            UNION ALL\n            SELECT \n                'Application Started' as step,\n                count(DISTINCT user_id) as users\n            FROM atlys.application_started\n            UNION ALL\n            SELECT \n                'Document Uploaded' as step,\n                count(DISTINCT user_id) as users\n            FROM atlys.document_uploaded\n            UNION ALL\n            SELECT \n                'Purchase Completed' as step,\n                count(DISTINCT user_id) as users\n            FROM atlys.purchase_completed\n            ",
+    "config": {
+      "step_field": "step",
+      "value_field": "users",
+      "orientation": "vertical"
+    },
+    "description": "User conversion through the purchase funnel"
+  },
+  "metric_total_users": {
+    "id": "metric_total_users",
+    "title": "Total Users",
+    "type": "metric",
+    "query": "SELECT count(DISTINCT user_id) FROM atlys.destination_card_clicked",
+    "config": {
+      "format": "number",
+      "precision": 0
+    },
+    "description": "Metric: Total Users"
+  },
+  "metric_conversion_rate": {
+    "id": "metric_conversion_rate",
+    "title": "Conversion Rate",
+    "type": "metric",
+    "query": "SELECT round(100 * (SELECT count(DISTINCT user_id) FROM atlys.purchase_completed) / (SELECT count(DISTINCT user_id) FROM atlys.destination_card_clicked), 2)",
+    "config": {
+      "format": "number",
+      "precision": 0
+    },
+    "description": "Metric: Conversion Rate"
+  },
+  "destination_card_clicked_by_device_type": {
+    "id": "destination_card_clicked_by_device_type",
+    "title": "destination_card_clicked by device_type",
+    "type": "bar",
+    "query": "\n            SELECT \n                device_type as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.destination_card_clicked\n            WHERE device_type IS NOT NULL\n            GROUP BY device_type\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of destination_card_clicked across device_type"
+  },
+  "destination_card_clicked_by_geoip_country_code": {
+    "id": "destination_card_clicked_by_geoip_country_code",
+    "title": "destination_card_clicked by geoip_country_code",
+    "type": "bar",
+    "query": "\n            SELECT \n                geoip_country_code as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.destination_card_clicked\n            WHERE geoip_country_code IS NOT NULL\n            GROUP BY geoip_country_code\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of destination_card_clicked across geoip_country_code"
+  },
+  "destination_card_clicked_by_funnel_type": {
+    "id": "destination_card_clicked_by_funnel_type",
+    "title": "destination_card_clicked by funnel_type",
+    "type": "bar",
+    "query": "\n            SELECT \n                funnel_type as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.destination_card_clicked\n            WHERE funnel_type IS NOT NULL\n            GROUP BY funnel_type\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of destination_card_clicked across funnel_type"
+  },
+  "application_started_by_device_type": {
+    "id": "application_started_by_device_type",
+    "title": "application_started by device_type",
+    "type": "bar",
+    "query": "\n            SELECT \n                device_type as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.application_started\n            WHERE device_type IS NOT NULL\n            GROUP BY device_type\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of application_started across device_type"
+  },
+  "application_started_by_geoip_country_code": {
+    "id": "application_started_by_geoip_country_code",
+    "title": "application_started by geoip_country_code",
+    "type": "bar",
+    "query": "\n            SELECT \n                geoip_country_code as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.application_started\n            WHERE geoip_country_code IS NOT NULL\n            GROUP BY geoip_country_code\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of application_started across geoip_country_code"
+  },
+  "application_started_by_funnel_type": {
+    "id": "application_started_by_funnel_type",
+    "title": "application_started by funnel_type",
+    "type": "bar",
+    "query": "\n            SELECT \n                funnel_type as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.application_started\n            WHERE funnel_type IS NOT NULL\n            GROUP BY funnel_type\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of application_started across funnel_type"
+  },
+  "purchase_completed_by_device_type": {
+    "id": "purchase_completed_by_device_type",
+    "title": "purchase_completed by device_type",
+    "type": "bar",
+    "query": "\n            SELECT \n                device_type as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.purchase_completed\n            WHERE device_type IS NOT NULL\n            GROUP BY device_type\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of purchase_completed across device_type"
+  },
+  "purchase_completed_by_geoip_country_code": {
+    "id": "purchase_completed_by_geoip_country_code",
+    "title": "purchase_completed by geoip_country_code",
+    "type": "bar",
+    "query": "\n            SELECT \n                geoip_country_code as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.purchase_completed\n            WHERE geoip_country_code IS NOT NULL\n            GROUP BY geoip_country_code\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of purchase_completed across geoip_country_code"
+  },
+  "purchase_completed_by_funnel_type": {
+    "id": "purchase_completed_by_funnel_type",
+    "title": "purchase_completed by funnel_type",
+    "type": "bar",
+    "query": "\n            SELECT \n                funnel_type as segment,\n                count(DISTINCT user_id) as users,\n                count() as events\n            FROM atlys.purchase_completed\n            WHERE funnel_type IS NOT NULL\n            GROUP BY funnel_type\n            ORDER BY users DESC\n            LIMIT 20\n            ",
+    "config": {
+      "x_field": "segment",
+      "y_field": "users",
+      "color_field": null
+    },
+    "description": "Distribution of purchase_completed across funnel_type"
+  },
+  "destination_card_clicked_events_over_time": {
+    "id": "destination_card_clicked_events_over_time",
+    "title": "count() over time (destination_card_clicked)",
+    "type": "line",
+    "query": "\n            SELECT \n                toStartOfHour(timestamp) as hour,\n                count() as value\n            FROM atlys.destination_card_clicked\n            WHERE timestamp >= now() - INTERVAL 7 DAY\n            ORDER BY hour\n            ",
+    "config": {
+      "x_field": "hour",
+      "y_field": "value",
+      "time_format": "%Y-%m-%d %H:00"
+    },
+    "description": "Time series of count() from destination_card_clicked"
+  },
+  "application_started_events_over_time": {
+    "id": "application_started_events_over_time",
+    "title": "count() over time (application_started)",
+    "type": "line",
+    "query": "\n            SELECT \n                toStartOfHour(timestamp) as hour,\n                count() as value\n            FROM atlys.application_started\n            WHERE timestamp >= now() - INTERVAL 7 DAY\n            ORDER BY hour\n            ",
+    "config": {
+      "x_field": "hour",
+      "y_field": "value",
+      "time_format": "%Y-%m-%d %H:00"
+    },
+    "description": "Time series of count() from application_started"
+  },
+  "purchase_completed_events_over_time": {
+    "id": "purchase_completed_events_over_time",
+    "title": "count() over time (purchase_completed)",
+    "type": "line",
+    "query": "\n            SELECT \n                toStartOfHour(timestamp) as hour,\n                count() as value\n            FROM atlys.purchase_completed\n            WHERE timestamp >= now() - INTERVAL 7 DAY\n            ORDER BY hour\n            ",
+    "config": {
+      "x_field": "hour",
+      "y_field": "value",
+      "time_format": "%Y-%m-%d %H:00"
+    },
+    "description": "Time series of count() from purchase_completed"
+  },
+  "destination_card_clicked_heatmap_device_type_vs_geoip_country_code": {
+    "id": "destination_card_clicked_heatmap_device_type_vs_geoip_country_code",
+    "title": "Heatmap: device_type vs geoip_country_code (destination_card_clicked)",
+    "type": "heatmap",
+    "query": "\n            SELECT \n                device_type as x,\n                geoip_country_code as y,\n                count(DISTINCT user_id) as users\n            FROM atlys.destination_card_clicked\n            WHERE device_type IS NOT NULL AND geoip_country_code IS NOT NULL\n            GROUP BY device_type, geoip_country_code\n            ORDER BY users DESC\n            ",
+    "config": {
+      "x_field": "x",
+      "y_field": "y",
+      "value_field": "users"
+    },
+    "description": "Cross-tabulation of device_type and geoip_country_code"
+  },
+  "application_started_heatmap_funnel_type_vs_device_type": {
+    "id": "application_started_heatmap_funnel_type_vs_device_type",
+    "title": "Heatmap: funnel_type vs device_type (application_started)",
+    "type": "heatmap",
+    "query": "\n            SELECT \n                funnel_type as x,\n                device_type as y,\n                count(DISTINCT user_id) as users\n            FROM atlys.application_started\n            WHERE funnel_type IS NOT NULL AND device_type IS NOT NULL\n            GROUP BY funnel_type, device_type\n            ORDER BY users DESC\n            ",
+    "config": {
+      "x_field": "x",
+      "y_field": "y",
+      "value_field": "users"
+    },
+    "description": "Cross-tabulation of funnel_type and device_type"
+  }
+}

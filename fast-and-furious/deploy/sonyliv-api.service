@@ -1,0 +1,103 @@
+# systemd unit for the event-ingest API.
+#
+# Install once, by hand, as root:
+#
+#   sudo cp deploy/sonyliv-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable sonyliv-api
+#
+# deploy.sh restarts this unit but never installs or edits it: a unit file is a
+# root-owned, security-relevant artifact and changing it deserves to be a
+# deliberate, auditable act rather than a side effect of shipping a binary.
+#
+# Note the service will not start until sonyliv-api exists. Until then deploy.sh
+# detects the missing unit and skips the restart.
+
+[Unit]
+Description=SonyLIV event ingest API
+Documentation=https://github.com/ishantd/sonyliv-clickathon-2026
+# Wants= rather than Requires=: the API should start and report unhealthy if the
+# network is slow to come up, not refuse to start and need manual intervention.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+
+# Dedicated unprivileged account. Create it once with:
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin sonyliv
+User=sonyliv
+Group=sonyliv
+
+# ClickHouse credentials and tunables. Provisioned out of band, mode 0600, owned
+# by sonyliv -- deploy.sh never writes this file, so no CH secret ever passes
+# through the deploy path. See README.md.
+EnvironmentFile=/etc/sonyliv/sonyliv.env
+
+# Configuration comes from the environment file so tuning the listen address,
+# batch size or worker count needs a `systemctl restart`, not a redeploy.
+#
+# SONYLIV_API_LISTEN is expanded by systemd from the EnvironmentFile above. The
+# binary's own default is 127.0.0.1:8080; set 0.0.0.0:8080 in the env file to
+# serve the VPC.
+#
+# 0.0.0.0 is the right default on this box, not a compromise: the instance has no
+# public IPv4 (IMDS returns 404 for public-ipv4) and a single ENI, so the bind
+# address cannot expose anything the security group does not already allow --
+# while pinning a specific private IP would break the unit the moment the
+# instance is replaced, and can silently miss a path if traffic arrives on
+# another interface. The network boundary belongs in the security group.
+#
+# TLS: SONYLIV_API_TLS_CERT/KEY point at a self-signed pair. That is adequate
+# here -- the bearer token is the authentication, TLS is transport encryption
+# only, and the host is reachable solely over a private path. Clients need -k.
+# SONYLIV_API_TLS_ARGS carries the whole flag pair, or is empty for plaintext.
+# Unquoted $VAR (not ${VAR}) so systemd word-splits it and an empty value
+# disappears entirely -- with ${VAR} an empty value becomes an empty argument and
+# --tls-cert would swallow the next flag.
+ExecStart=/usr/local/bin/sonyliv-api --listen ${SONYLIV_API_LISTEN} $SONYLIV_API_TLS_ARGS $SONYLIV_API_AUTH_ARGS
+
+# Port 443 is privileged and this runs as an unprivileged user, so grant exactly
+# the one capability that allows binding it -- not root. CapabilityBoundingSet
+# caps what the process could ever hold; AmbientCapabilities is what it actually
+# gets. Both are needed, and both survive NoNewPrivileges because systemd applies
+# the ambient set at exec.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+Restart=always
+RestartSec=2
+# Give up if it crashes 5 times in 60s. Without this a binary that dies on
+# startup restarts forever and buries the real error in log noise.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# SIGTERM lets the API finish in-flight inserts. wait_for_async_insert=1 means a
+# request can be blocked on a server-side flush, so allow time to drain rather
+# than killing mid-insert.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# --- hardening -------------------------------------------------------------
+# The process needs outbound TCP to ClickHouse and nothing else on this box.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# ProtectSystem=strict makes everything read-only; nothing here needs to write to
+# disk. Add ReadWritePaths= only if that changes.
+
+[Install]
+WantedBy=multi-user.target

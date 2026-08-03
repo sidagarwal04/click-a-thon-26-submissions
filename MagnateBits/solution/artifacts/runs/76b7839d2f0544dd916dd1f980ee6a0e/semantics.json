@@ -1,0 +1,104 @@
+{
+  "feature_slug": "express_checkout",
+  "table_fqn": "atlys.f_express_checkout_events",
+  "event_column": "event",
+  "event_types": [
+    "express_checkout_shown",
+    "express_checkout_selected",
+    "saved_method_used",
+    "otp_entered",
+    "express_payment_confirmed"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "express_checkout_shown",
+    "express_checkout_selected",
+    "saved_method_used",
+    "otp_entered",
+    "express_payment_confirmed"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "device_type",
+    "os",
+    "geoip_country_code",
+    "destination",
+    "saved_method_type",
+    "city",
+    "app_version",
+    "client_lib"
+  ],
+  "measures": [
+    {
+      "column": "shown_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "express_checkout_shown"
+      ],
+      "unit": "currency"
+    },
+    {
+      "column": "payment_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "express_payment_confirmed"
+      ],
+      "unit": "currency"
+    },
+    {
+      "column": "payment_latency_ms",
+      "kind": "duration_ms",
+      "scoped_to_events": [
+        "express_payment_confirmed"
+      ],
+      "unit": "ms"
+    },
+    {
+      "column": "otp_attempts",
+      "kind": "count",
+      "scoped_to_events": [
+        "otp_entered"
+      ],
+      "unit": "attempts"
+    }
+  ],
+  "flags": [
+    "eligible",
+    "otp_success"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "app_version",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked"
+      ],
+      "join_key": "app_version",
+      "evidence": "3 shared app_version values with destination_card_clicked, plus toDate(timestamp); no shared identity column across the 8 legacy tables"
+    },
+    {
+      "from_column": "city",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked"
+      ],
+      "join_key": "city",
+      "evidence": "7 shared city values with destination_card_clicked, plus toDate(timestamp)"
+    },
+    {
+      "from_column": "client_lib",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked"
+      ],
+      "join_key": "client_lib",
+      "evidence": "2 shared client_lib values with destination_card_clicked, plus toDate(timestamp)"
+    }
+  ]
+}

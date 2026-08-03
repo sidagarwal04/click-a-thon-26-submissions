@@ -1,0 +1,27 @@
+# evidence: replicate_phoenix_next_to_phoenix_insights
+# what: copy raw events at a pinned cut and re-derive through the unmodified pipeline
+# run_utc: 2026-08-01 20:57:11
+# git: b6c7949-dirty
+# host: ss-cric
+# row_count: 905558
+# event_watermark: 2026-07-26 11:30:04.847
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 20:57:05   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+source_database	phoenix_next
+destination_database	phoenix_insights
+cut_event_timestamp	2026-07-31 23:59:59.999	(source rows at or before this were copied)
+content_copied_at_utc	2026-08-01 20:57:05	(content has no event time to bound, so it is read at its own instant; 33k rows of slowly-changing dimensions)
+source.raw_events_at_cut	905558
+dest.raw_events	905558	(required equal to source at cut)
+source.frozen_slice	905558
+dest.frozen_slice	905558	(required equal, this is the graded corpus)
+source.content	33464
+dest.content	33464	(required equal)
+dest.rows_with_observed_arrival	0	(required 0, copied rows did not arrive)
+verdict	PASS

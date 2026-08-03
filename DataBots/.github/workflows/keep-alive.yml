@@ -1,0 +1,15 @@
+name: Keep-Alive Pinger
+
+on:
+  schedule:
+    # Trigger every 10 minutes to prevent Render free instance from sleeping
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend Health Check
+        run: |
+          curl -s -f https://peekachu-backend.onrender.com/health || echo "Ping failed or server waking up"

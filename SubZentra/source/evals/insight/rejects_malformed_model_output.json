@@ -1,0 +1,50 @@
+{
+  "name": "rejects_malformed_model_output",
+  "agent": "insight",
+  "state": {
+    "question": "Why did EU refunds increase from June to July 2026?",
+    "analyst": {
+      "metrics": [
+        {
+          "metric": "refund_amount",
+          "previous_value": "20.00",
+          "current_value": "260.00",
+          "unit": "USD",
+          "previous_label": "June 2026",
+          "current_label": "July 2026"
+        },
+        {
+          "metric": "order_count",
+          "previous_value": "480",
+          "current_value": "486",
+          "unit": "orders",
+          "previous_label": "June 2026",
+          "current_label": "July 2026"
+        }
+      ],
+      "result_summary": "EU refunds rose from $20 to $260 while orders held flat.",
+      "evidence_refs": [
+        "artifact://execution/11000000-0000-0000-0000-000000000001"
+      ]
+    },
+    "evaluator": {
+      "recheck_passed": true,
+      "discrepancy_pct": 0.0,
+      "issues": [],
+      "evidence_refs": [
+        "artifact://execution/11000000-0000-0000-0000-000000000002"
+      ],
+      "outcome": {
+        "kind": "confidence",
+        "score": 0.82,
+        "calibration_method": "evaluator_independent_recheck"
+      }
+    }
+  },
+  "model_responses": [
+    "not json at all"
+  ],
+  "expect": {
+    "raises": "MalformedAgentResponseError"
+  }
+}

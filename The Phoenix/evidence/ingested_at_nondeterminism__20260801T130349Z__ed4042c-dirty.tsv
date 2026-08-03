@@ -1,0 +1,35 @@
+# evidence: ingested_at_nondeterminism
+# what: ingested_at is re-evaluated at read time for pre-ALTER parts, so a watermark filter erases the validated dataset
+# run_utc: 2026-08-01 13:03:49
+# git: ed4042c-dirty
+# host: ss-cric
+# row_count: 939860
+# event_watermark: 2026-08-01 13:03:47.857
+# frozen_slice_rows: 905558   (event_timestamp before 2026-08-01, the validated July replay)
+# ingest_watermark: 2026-08-01 13:03:49   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+read_1_query_time	2026-08-01 13:03:40
+read_1_july_min_ingested_at	2026-08-01 13:03:40
+read_1_july_max_ingested_at	2026-08-01 13:03:40
+read_1_july_distinct_ingested_at	1
+read_1_july_rows	905558
+read_2_query_time	2026-08-01 13:03:44
+read_2_july_min_ingested_at	2026-08-01 13:03:44
+read_2_july_max_ingested_at	2026-08-01 13:03:44
+read_2_july_distinct_ingested_at	1
+read_2_july_rows	905558
+read_3_query_time	2026-08-01 13:03:48
+read_3_july_min_ingested_at	2026-08-01 13:03:48
+read_3_july_max_ingested_at	2026-08-01 13:03:48
+read_3_july_distinct_ingested_at	1
+read_3_july_rows	905558
+frozen_predicate	ingested_at <= 2026-08-01 13:03:48
+july_rows_total	905558
+july_rows_surviving_frozen_filter	0
+august_rows_total	34302
+august_rows_surviving_frozen_filter	34302
+verdict	ingested_at is NOT usable as a freeze key

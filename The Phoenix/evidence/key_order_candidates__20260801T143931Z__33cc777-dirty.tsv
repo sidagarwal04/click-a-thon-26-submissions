@@ -1,0 +1,32 @@
+# evidence: key_order_candidates
+# what: granules read per filter shape for three candidate ORDER BY keys, measured on identical data
+# run_utc: 2026-08-01 14:39:31
+# git: 33cc777-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 14:39:31   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+shape	A_shipped	B_cardinality_order	C_no_dead_column
+unfiltered	3/3	3/3	3/3
+platform	2/3	2/3	2/3
+country	3/3	3/3	3/3
+content	3/3	3/3	3/3
+video_type	3/3	3/3	3/3
+app_version	3/3	3/3	3/3
+platform+country	2/3	2/3	2/3
+content+platform	2/3	2/3	2/3
+#
+# granules read / granules total. Lower is better; equal totals mean identical data.
+# A = shipped: platform, country, video_type, content_id, app_version, minute
+# B = strict low-to-high cardinality: country, video_type, platform, app_version, minute, content_id
+# C = dead single-valued column dropped: video_type, platform, app_version, content_id, minute
+# cardinalities: country 1, video_type 3, platform 10, app_version 65, minute 1532, content_id 3357
+# size.deltas_a_shipped	55.09 KiB
+# size.deltas_b_cardinality	75.08 KiB
+# size.deltas_c_no_dead_column	54.84 KiB

@@ -1,0 +1,62 @@
+{
+  "name": "evals",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "evals",
+  "targets": {
+    "check": {
+      "executor": "nx:run-commands",
+      "outputs": [],
+      "options": {
+        "command": "uv run python tools/evals/run_evals.py",
+        "cwd": "."
+      },
+      "cache": true
+    },
+    "replay": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "uv run python tools/evals/live_run.py --replay free_tier",
+          "uv run python tools/evals/live_run.py --replay free_collapsed",
+          "uv run python tools/evals/live_run.py --replay premium_tier",
+          "uv run python tools/evals/live_run.py --replay na_growth_free",
+          "uv run python tools/evals/live_run.py --replay na_growth_premium",
+          "uv run python tools/evals/live_run.py --replay na_growth_collapsed"
+        ],
+        "parallel": false,
+        "cwd": "."
+      },
+      "cache": false
+    },
+    "promote": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run python tools/evals/run_evals.py --promote",
+        "cwd": "."
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": [],
+      "options": {
+        "command": "uv run pytest tools/evals/test_gate.py -q -o addopts=--cov=tools/evals",
+        "cwd": "."
+      },
+      "cache": true
+    },
+    "connector-accuracy": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "uv run python tools/evals/connector_accuracy.py",
+        "cwd": "."
+      },
+      "cache": false
+    }
+  },
+  "tags": [
+    "layer:tooling",
+    "platform:python",
+    "scope:core"
+  ]
+}

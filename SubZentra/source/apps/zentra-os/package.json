@@ -1,0 +1,65 @@
+{
+  "name": "@open-zentra/zentra-os",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "zentra-os",
+    "tags": [
+      "layer:app",
+      "platform:react",
+      "scope:core"
+    ],
+    "targets": {
+      "build": {
+        "syncGenerators": [
+          "@juristr/nx-tailwind-sync:source-directives"
+        ]
+      },
+      "serve": {
+        "syncGenerators": [
+          "@juristr/nx-tailwind-sync:source-directives"
+        ]
+      },
+      "dev": {
+        "syncGenerators": [
+          "@juristr/nx-tailwind-sync:source-directives"
+        ]
+      },
+      "build-e2e": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "npx vite build --mode e2e --outDir dist-e2e",
+          "cwd": "apps/zentra-os"
+        },
+        "outputs": [
+          "{projectRoot}/dist-e2e"
+        ],
+        "cache": true
+      },
+      "preview-e2e": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "npx vite preview --mode e2e --outDir dist-e2e --port 4200 --strictPort",
+          "cwd": "apps/zentra-os"
+        },
+        "dependsOn": [
+          "build-e2e"
+        ],
+        "cache": false
+      }
+    }
+  },
+  "dependencies": {
+    "@clerk/clerk-react": "^5.61.9",
+    "@crayonai/react-core": "^0.7.7",
+    "@crayonai/react-ui": "^0.9.16",
+    "@open-zentra/foundation-auth": "^0.0.1",
+    "@open-zentra/foundation-authz": "^0.0.1",
+    "@open-zentra/foundation-design-system": "^0.0.1",
+    "@open-zentra/foundation-icons": "^0.0.1",
+    "@tanstack/react-query": "^5.101.4",
+    "@thesysai/genui-sdk": "^0.7.16",
+    "motion": "^12.43.0",
+    "react-router-dom": "^7.18.1"
+  }
+}

@@ -1,0 +1,33 @@
+# Runtime dependencies.
+# Bounded to the current major line so `pip install -r` stays reproducible-ish
+# without pinning you to a patch release. Run `make lock` to freeze exact
+# versions into requirements.lock once you are happy with a resolution.
+
+clickhouse-connect>=0.8.0,<1.0.0
+python-dotenv>=1.0.0,<2.0.0
+
+# Agent + LLM tracing. Server side runs under the `langfuse` compose profile.
+langfuse>=3.0.0,<4.0.0
+
+# LLM providers. prism_ch.agents.llm imports lazily, so only the one named by
+# LLM_PROVIDER needs to resolve at runtime.
+anthropic>=0.40.0,<1.0.0
+# <3.0.0, not <2.0.0: 2.16.0 is confirmed working end-to-end (live API call
+# through the same generate_content/GenerateContentConfig surface used below).
+google-genai>=1.0.0,<3.0.0
+
+# Pinned deliberately. cryptography 50.x ships an aarch64 Rust binary that dies
+# with SIGILL ("Illegal instruction") on import in this container - it is pulled
+# in transitively by google.auth.crypt.es, so it takes google-genai down with
+# it. 44.x imports cleanly. Revisit once a working 50.x aarch64 wheel exists.
+cryptography>=42.0,<45.0
+
+# Root certificates. Python from python.org on macOS has none of its own, and
+# ClickHouse Cloud is TLS-only - see prism_ch.db._ca_bundle.
+certifi>=2024.2.2
+
+# LangGraph for the Context Agent's state-machine orchestration.
+langgraph>=0.4.0,<1.0.0
+
+# MCP server exposing the agents to LibreChat (`python -m prism_ch mcp`).
+mcp>=1.2.0,<2.0.0

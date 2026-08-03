@@ -1,0 +1,21 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "docs",
+  "projectType": "library",
+  "root": "docs",
+  "tags": ["layer:documentation", "platform:any", "scope:core"],
+  "targets": {
+    "check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3 tools/documentation/validate_vault.py",
+        "cwd": "."
+      },
+      "inputs": [
+        "{projectRoot}/**/*.md",
+        "{workspaceRoot}/tools/documentation/validate_vault.py"
+      ],
+      "cache": true
+    }
+  }
+}

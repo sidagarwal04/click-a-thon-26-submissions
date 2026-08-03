@@ -1,0 +1,22 @@
+# evidence: derive_phoenix_live
+# what: guarded batch derivation into phoenix_live, with the post-conditions that would catch a double derive
+# run_utc: 2026-08-02 04:08:18
+# git: 6d595ae-dirty
+# host: ss-cric
+# row_count: 1161922
+# event_watermark: 2026-08-02 03:47:23.423
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 1161922   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 03:47:24   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+database	phoenix_live
+derive_seconds	8
+asserted_runs	36873
+invariant.closure	0	(required 0)
+invariant.max_assertions_of_one_run	1	(required 1, the only one that catches a double derive)
+invariant.max_runs_per_session_minute	1	(required 1)
+verdict	PASS

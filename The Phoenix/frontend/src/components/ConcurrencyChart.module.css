@@ -1,0 +1,169 @@
+.wrap {
+  position: relative;
+}
+
+/* No plate behind the plot: the chart sits directly on the chassis surface like everything else
+   on the screen, instead of being its own opaque rectangle. Its own dashed gridlines carry the
+   readability a filled background used to fake. */
+.svg {
+  width: 100%;
+  height: 360px;
+  display: block;
+}
+
+.grid {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.axisLabel {
+  fill: var(--ink-dim);
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+/* Was a drop-shadow glow for a line sitting on black; on paper the same blur just reads as a
+   smudge around the ink, so the line now carries its weight on stroke-width alone. */
+.glow {
+}
+
+.legend {
+  position: absolute;
+  top: 10px;
+  right: 16px;
+  display: flex;
+  gap: 1.1rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+}
+
+/* ------------------------------------------------------------- reference lines + peak marker */
+
+/* No opacity reduction: --ink-faint and --phosphor were already dimmed for exactly this job (a
+   reference line, not the data itself), and on dark backgrounds that dimming survived an extra
+   opacity cut. On paper the same cut drags a dashed line's contrast under the 3:1 floor a
+   graphical element needs, so each line now relies on the token's own contrast (4.70:1 / 4.60:1
+   against the paper) and the dash pattern alone to read as secondary. */
+.refLine {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.refLineP95 {
+  stroke: var(--phosphor);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.refLabel {
+  fill: var(--ink-faint);
+  font-size: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Same reasoning as .refLine: the opacity cut that kept this quiet on black drops it below 3:1
+   on paper, so the guide now stands on --ink-faint's own contrast and the tight dash alone. */
+.peakGuide {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.peakDot {
+  fill: currentColor;
+  stroke: var(--bg);
+  stroke-width: 1.5;
+}
+
+/* ------------------------------------------------------------------------ live end-of-line dot */
+
+@keyframes chart-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    r: 4;
+  }
+  50% {
+    opacity: 0.45;
+    r: 6;
+  }
+}
+
+/* The pulse used to read as a glowing phosphor dot against black; the drop-shadow that faked
+   that glow is gone, the opacity/radius pulse alone still reads as "still moving" on paper. */
+.livePoint {
+  fill: currentColor;
+  animation: chart-pulse 1.8s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------------- hover crosshair + tooltip */
+
+.crosshair {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
+
+.hoverDot {
+  stroke: var(--bg);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.tooltip {
+  position: absolute;
+  top: 10px;
+  transform: translateX(-50%);
+  background: var(--bg-raised);
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+  /* The heavy black shadow was there to lift this off a dark chassis; on paper it just reads as
+     a bruise. Softened and warmed to the ink colour, at the same low weight the modal shadow in
+     tokens.css uses for the one other element allowed to float above the page. */
+  box-shadow: 0 6px 16px rgba(20, 24, 28, 0.16);
+}
+
+.tooltipTime {
+  color: var(--ink-dim);
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink);
+}
+
+.tooltipRow b {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+

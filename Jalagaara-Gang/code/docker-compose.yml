@@ -1,0 +1,241 @@
+# One-command stack for the RCA analyst.
+#
+#   cp .env.example .env          # fill CLICKHOUSE_* (Langfuse dev keys are pre-filled)
+#   docker compose up --build
+#
+# Surfaces:  dashboard http://localhost:5173 · backend http://localhost:8000/health
+#            Langfuse  http://localhost:3000  · LibreChat http://localhost:3080
+#
+# ClickHouse for the RCA data stays EXTERNAL (Cloud, via .env). Langfuse is self-hosted v3, which
+# runs its OWN infra (postgres + clickhouse + redis + minio) — separate from the RCA Cloud CH.
+# docker-compose.override.yml (mounts librechat.yaml into `api`) is auto-merged by compose.
+#
+# NOTE: this is a heavy stack (~9 services). First `up` pulls the Langfuse ClickHouse/MinIO
+# images and runs migrations — give it a few minutes before the UI answers on :3000.
+
+# Shared Langfuse v3 infra env, used by BOTH langfuse-web and langfuse-worker (kept DRY via anchor).
+# Dev secrets are for a throwaway local stack — regenerate before exposing beyond localhost.
+x-langfuse-infra: &langfuse-infra
+  DATABASE_URL: postgresql://postgres:postgres@langfuse-postgres:5432/postgres
+  SALT: dev-langfuse-salt-change-me
+  ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+  TELEMETRY_ENABLED: "false"
+  LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+  CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+  CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+  CLICKHOUSE_USER: clickhouse
+  CLICKHOUSE_PASSWORD: clickhouse
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  REDIS_HOST: langfuse-redis
+  REDIS_PORT: "6379"
+  REDIS_AUTH: dev-langfuse-redis-change-me
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: dev-langfuse-minio-change-me
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+
+services:
+  # ---- RCA backend: FastAPI + uvicorn. Talks to external ClickHouse Cloud via .env.
+  #      Boots even without ClickHouse/AWS — it just serves fixture mode + skips narration.
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      # The datasets live OUTSIDE the build context (which is ./backend), so nothing under
+      # InMobi/ is in the image — /stream/start failed on a missing apps.csv until this existed.
+      # Mounted rather than COPYed: it is ~15MB of data, the parquet is gitignored, and mounting
+      # lets a different slice be swapped in without rebuilding.
+      - ./InMobi:/app/InMobi:ro
+    environment:
+      # SDK ingests to the internal service name; trace LINKS use the browser-facing host, since
+      # the host browser can't resolve langfuse-web. Without the split, "Open trace" dead-links.
+      LANGFUSE_HOST: http://langfuse-web:3000
+      # Browser-facing, so it must be an address the VIEWER can resolve. Defaults to localhost
+      # for laptop runs; a deployed host sets LANGFUSE_PUBLIC_HOST to its own public address
+      # (deploy/bootstrap.sh does this automatically). Left as localhost on a server, every
+      # "Open trace" link a judge clicks points at their own machine and dead-ends.
+      LANGFUSE_PUBLIC_HOST: ${LANGFUSE_PUBLIC_HOST:-http://localhost:3000}
+      # Publish traces so their URLs open without a Langfuse login. Safe here (synthetic demo
+      # data); publishing is irreversible, so leave it off against anything real.
+      LANGFUSE_PUBLISH_TRACES: ${LANGFUSE_PUBLISH_TRACES:-false}
+    depends_on:
+      langfuse-web:
+        condition: service_started
+    restart: unless-stopped
+
+  # ---- Dashboard: Vite build served by nginx. API/LibreChat URLs are baked at build time
+  #      and are host-browser URLs (see frontend/Dockerfile).
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Vite inlines these at BUILD time, and they are HOST-BROWSER URLs — so they must be
+        # whatever the viewer can reach, not what the container can reach. Default to localhost
+        # for laptop runs; a deployed host sets them in .env (deploy/bootstrap.sh does this).
+        # Hardcoded here, a deployed dashboard calls http://localhost:8000 from the judge's own
+        # machine and every request fails with "Backend unreachable".
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_LIBRECHAT_URL: ${VITE_LIBRECHAT_URL:-http://localhost:3080}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ---- LibreChat: conversational RCA UI. Named `api` so docker-compose.override.yml can mount
+  #      librechat.yaml here. Reaches the backend at host.docker.internal:8000 (published port).
+  api:
+    image: ghcr.io/danny-avila/librechat:latest
+    ports:
+      - "3080:3080"
+    depends_on:
+      - mongodb
+      - backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      CONFIG_PATH: /app/librechat.yaml
+      SEARCH: "false"                 # no MeiliSearch sidecar needed
+      ALLOW_REGISTRATION: "true"      # local demo: create an account on first visit
+      ALLOW_EMAIL_LOGIN: "true"
+      # Local-dev encryption values (LibreChat's published examples). Regenerate for anything
+      # that isn't a throwaway local stack: https://www.librechat.ai/toolkit/creds_generator
+      CREDS_KEY: f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0
+      CREDS_IV: e2341419ec3dd3d19b13a1a87fafcbfb
+      JWT_SECRET: dev-librechat-jwt-secret-change-me
+      JWT_REFRESH_SECRET: dev-librechat-jwt-refresh-secret-change-me
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # ---- Langfuse v3 (self-hosted) ------------------------------------------------------------
+  # web = UI + ingestion API (port 3000); worker = async trace processing. LANGFUSE_INIT_* on the
+  # web service headlessly seeds an org/project/user with the SAME keys the backend reads from
+  # .env, so tracing works with zero manual UI setup.
+  langfuse-web:
+    image: langfuse/langfuse:3
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *langfuse-infra
+      # Langfuse builds every auth redirect from this, so it must be the address the BROWSER
+      # uses. Hardcoded to localhost, signing in on a deployed host bounces the user to their
+      # own machine and the login silently fails. Defaults to localhost for laptop runs.
+      NEXTAUTH_URL: ${LANGFUSE_PUBLIC_HOST:-http://localhost:3000}
+      NEXTAUTH_SECRET: dev-langfuse-nextauth-secret-change-me
+      LANGFUSE_INIT_ORG_ID: clickathon
+      LANGFUSE_INIT_ORG_NAME: JalagaaraGang
+      LANGFUSE_INIT_PROJECT_ID: rca
+      LANGFUSE_INIT_PROJECT_NAME: RCA Analyst
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
+      LANGFUSE_INIT_USER_EMAIL: admin@clickathon.local
+      LANGFUSE_INIT_USER_NAME: Admin
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-clickathon123}
+    restart: unless-stopped
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-infra
+    restart: unless-stopped
+
+  langfuse-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - langfuse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  langfuse-redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass dev-langfuse-redis-change-me --maxmemory-policy noeviction
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a dev-langfuse-redis-change-me ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  langfuse-minio:
+    image: minio/minio
+    entrypoint: sh
+    # Pre-create the bucket dir (path-style) so event uploads have somewhere to land.
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: dev-langfuse-minio-change-me
+    ports:
+      - "9090:9000"   # S3 API  (console on 9091)
+      - "9091:9001"
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  langfuse_pgdata:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
+  langfuse_minio_data:

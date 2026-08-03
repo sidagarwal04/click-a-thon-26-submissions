@@ -1,0 +1,31 @@
+# evidence: insight_parity_session_facts
+# what: session_facts: independent ground truth in clickhouse local against the phoenix_next serving table
+# run_utc: 2026-08-01 17:54:57
+# git: bd04d14-dirty
+# host: ss-cric
+# row_count: 2188714
+# event_watermark: 2026-08-01 17:07:20.017
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 17:34:51   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+insight	session_facts
+database	phoenix_next
+ground_truth_engine	clickhouse local over data/ch-hackathon-raw-data.csv
+ground_truth_rows	10866
+optimized_rows	10866	(frozen slice: sessions whose every event precedes frozen_before)
+differing_rows	1	(required 0)
+missing_keys	0	(required 0)
+unexpected_keys	0	(required 0)
+keys_in_common	10866
+rows_actually_compared	10866	(required equal to keys_in_common and greater than 0)
+columns_compared	31	(required greater than 1)
+verdict	FAIL
+# diff: 1c1
+# diff: < 00062D89B16F15588DCDBB36273FA7D64497912F634C098071880E82A5218140	DBA8538184FFD4BF5E4C2098BEAF59634FC05A8A5003C21A6E9FC43D3BE9206F	2078158760	dijoj jeh	dhddd	vod	SAMSUNG_HTML_TV	india	5.17.39	2026-07-26 11:06:30.494	2026-07-26 11:07:08.542	2026-07-26 11:24:24.399	2026-07-26 11:06:30	2026-07-26 11:23:42	350	17	1	1	2	1	23	0	1	1	1	0	0	1	0	0	0
+# diff: ---
+# diff: > 00062D89B16F15588DCDBB36273FA7D64497912F634C098071880E82A5218140	DBA8538184FFD4BF5E4C2098BEAF59634FC05A8A5003C21A6E9FC43D3BE9206F	2078158760	dijoj jeh	dhddd	vod	SAMSUNG_HTML_TV	india	5.17.39	2026-07-26 11:06:30.494	2026-07-26 11:07:08.542	2026-07-26 11:24:24.399	2026-07-26 11:06:30	2026-07-26 11:23:42	351	17	1	1	2	1	23	0	1	1	1	0	0	1	0	0	0

@@ -1,0 +1,35 @@
+# evidence: widen_dimensions_parity
+# what: widening the delta key with four dimensions changes no concurrency answer: same runs, same peak, same averages
+# run_utc: 2026-08-02 03:25:19
+# git: 6d595ae-dirty
+# host: ss-cric
+# row_count: 7000000
+# event_watermark: 2026-08-03 11:26:15.032
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 7000000   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 02:35:57   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+purpose	widen concurrency_deltas key with audio_language, subtitle_language, player_version, video_resolution
+method	same 7,000,000-row unseen day derived twice: phoenix_unseen (5 dims) vs phoenix_widen_full (9 dims)
+asserted_runs_before	118498
+asserted_runs_after	118498	(identical)
+peak_before	22416 at 2026-07-31 11:16
+peak_after	22416 at 2026-07-31 11:16	(identical)
+avg_all_minutes_before	914.65
+avg_all_minutes_after	914.65	(identical)
+avg_active_minutes_before	1667.21
+avg_active_minutes_after	1667.21	(identical)
+minute_rows_with_differing_delta	0	(required 0)
+minute_rows_present_on_one_side_only	2	both carry delta sum = 0, so neither changes any cumulative sum
+note	the 2 rows are unmerged zero-sum residue in the dirty tail (2025-09-28, 2026-07-30), not a correctness difference
+derive_seconds_before	41
+derive_seconds_after	41	(no regression)
+deltas_size_before	341.41 KiB	120396 rows
+deltas_size_after	439.13 KiB	133784 rows
+size_cost	+28.6 percent on disk, +11.1 percent rows
+key_cardinality_estimate	547310 -> 876542 (1.6x)	the realised row growth is far smaller because SummingMergeTree collapses
+verdict	PASS	the widened key changes no answer and costs 98 KiB

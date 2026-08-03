@@ -1,0 +1,30 @@
+# LibreChat config — points a custom endpoint at the RCA backend (JAL-87).
+# The backend runs on the HOST (uvicorn :8000); from inside this container the host is
+# reached via host.docker.internal (docker-compose already sets it as an extra_host).
+version: 1.3.13
+cache: true
+
+endpoints:
+  custom:
+    - name: 'RCA-Analyst'
+      # The backend ignores auth, but LibreChat requires an apiKey value for a custom endpoint.
+      apiKey: 'noauth'
+      # LibreChat appends /chat/completions -> hits http://host.docker.internal:8000/v1/chat/completions
+      baseURL: 'http://host.docker.internal:8000/v1'
+      # Pass LibreChat's conversation id so the backend uses it as contextId AND the Langfuse
+      # session_id -> one chat thread maps to one Langfuse session (JAL-87 scope item 2).
+      headers:
+        X-Session-Id: '{{LIBRECHAT_BODY_CONVERSATIONID}}'
+      models:
+        # One model per detection path. The backend maps the chosen model name to a detector:
+        #   rca-statistical -> robust_z (median/MAD baseline)   rca-ml -> IsolationForest
+        # Pick the model in the LibreChat dropdown to switch paths per conversation.
+        default:
+          - 'rca-analyst'      # default path (config default detector = robust_z); keeps old convos working
+          - 'rca-statistical'  # -> robust_z (median/MAD baseline)
+          - 'rca-ml'           # -> IsolationForest
+        fetch: false
+      # Title generation is ON: LibreChat asks our endpoint for a title, and the backend detects
+      # the title prompt and returns a short deterministic title (no LLM, no investigation trace).
+      titleConvo: true
+      modelDisplayLabel: 'RCA Analyst'

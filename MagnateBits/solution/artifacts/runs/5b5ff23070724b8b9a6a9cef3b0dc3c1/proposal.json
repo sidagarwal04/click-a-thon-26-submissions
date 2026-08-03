@@ -1,0 +1,302 @@
+{
+  "table_name": "f_instant_forex_events",
+  "columns": [
+    {
+      "name": "event",
+      "type": "LowCardinality(String)",
+      "json_path": "event",
+      "codec": null,
+      "default": null,
+      "comment": "Discriminator, 5 values in sample (forex_offer_shown, currency_selected, amount_entered, forex_added_to_cart, forex_purchased); leads ORDER BY."
+    },
+    {
+      "name": "timestamp",
+      "type": "DateTime64(3)",
+      "json_path": "timestamp",
+      "codec": "Delta, ZSTD(1)",
+      "default": null,
+      "comment": "ISO-8601 with milliseconds in source (e.g. 2026-06-08T06:00:00.000); DateTime64(3) keeps that precision, DateTime would truncate it."
+    },
+    {
+      "name": "id",
+      "type": "String",
+      "json_path": "id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "Field profile samples (e.g. ee2d839ea73c3d5a9735e59d) are 24-char hex, not the 32-char form house rules warn about, but still not valid UUID syntax either way -- declared String, matching the general fix, to avoid the load failure the legacy tables' UUID columns would hit."
+    },
+    {
+      "name": "user_id",
+      "type": "String",
+      "json_path": "user_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "Entity key. 100% coverage, 2,900 distinct in sample. DEFAULT '' not Nullable; all aggregation must guard with uniqIf(user_id, user_id != '')."
+    },
+    {
+      "name": "application_id",
+      "type": "String",
+      "json_path": "application_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "100% coverage, 2,900 distinct, co-extensive with user_id in this feature; kept as secondary key / cross-reference join column into application_started etc."
+    },
+    {
+      "name": "device_type",
+      "type": "LowCardinality(String)",
+      "json_path": "device_type",
+      "codec": null,
+      "default": "''",
+      "comment": "4 distinct values (android, ios, web-user-b2c, Desktop), 100% coverage."
+    },
+    {
+      "name": "os",
+      "type": "LowCardinality(String)",
+      "json_path": "os",
+      "codec": null,
+      "default": "''",
+      "comment": "93.9% coverage; the 6.1% missing is device/client noise, not an analytically distinct tri-state, so DEFAULT '' not Nullable."
+    },
+    {
+      "name": "geoip_country_code",
+      "type": "LowCardinality(String)",
+      "json_path": "geoip_country_code",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct, 100% coverage."
+    },
+    {
+      "name": "destination",
+      "type": "LowCardinality(String)",
+      "json_path": "destination",
+      "codec": null,
+      "default": "''",
+      "comment": "14 distinct ISO-2 codes, 100% coverage; headline segment dim for attach-rate-by-destination."
+    },
+    {
+      "name": "city",
+      "type": "LowCardinality(String)",
+      "json_path": "city",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct, 100% coverage."
+    },
+    {
+      "name": "app_version",
+      "type": "LowCardinality(String)",
+      "json_path": "app_version",
+      "codec": null,
+      "default": "''",
+      "comment": "3 distinct; relevant to known_issue K7 (7.45 rollout funnel-timing shift)."
+    },
+    {
+      "name": "client_lib",
+      "type": "LowCardinality(String)",
+      "json_path": "client_lib",
+      "codec": null,
+      "default": "''",
+      "comment": "2 distinct (mobile-rn, web-js), 100% coverage."
+    },
+    {
+      "name": "from_currency",
+      "type": "LowCardinality(String)",
+      "json_path": "from_currency",
+      "codec": null,
+      "default": "''",
+      "comment": "1 distinct value (INR) in sample, still modeled as enum since forex could add a second source currency later."
+    },
+    {
+      "name": "to_currency",
+      "type": "LowCardinality(String)",
+      "json_path": "to_currency",
+      "codec": null,
+      "default": "''",
+      "comment": "13 distinct -- near 1:1 with destination's 14 distinct values (each destination is priced in ~one currency); see rationale.mvs for why this lets one GROUP BY key answer both 'destination' and 'currency' questions."
+    },
+    {
+      "name": "fx_rate",
+      "type": "Float64",
+      "json_path": "fx_rate",
+      "codec": "ZSTD(1)",
+      "default": "0",
+      "comment": "Present only on forex_offer_shown (46.5% coverage = 2900/6237). This is exactly the 'genuinely approximate FX rate' case the house rules call out for Float64 rather than Decimal."
+    },
+    {
+      "name": "amount",
+      "type": "Decimal(18, 4)",
+      "json_path": "amount",
+      "codec": "ZSTD(1)",
+      "default": "0",
+      "comment": "36.9% coverage (amount_entered/forex_added_to_cart/forex_purchased = 1033+725... note amount_entered and forex_added_to_cart/purchased overlap in the funnel). Denominated in to_currency, not summable across rows with different to_currency -- see semantics.measures kind='other'."
+    },
+    {
+      "name": "addon_value_inr",
+      "type": "Decimal(18, 4)",
+      "json_path": "addon_value_inr",
+      "codec": "ZSTD(1)",
+      "default": "0",
+      "comment": "20.4% coverage (725+546=1271/6237), present only on forex_added_to_cart/forex_purchased. Normalized to INR so it IS summable/distributable -- this is the AOV-uplift measure the PM asks about."
+    }
+  ],
+  "engine": "MergeTree",
+  "order_by": [
+    "event",
+    "timestamp",
+    "user_id"
+  ],
+  "partition_by": "toYYYYMM(timestamp)",
+  "ttl": "toDateTime(timestamp) + INTERVAL 18 MONTH",
+  "settings": {
+    "ratio_of_defaults_for_sparse_serialization": 0.8333333333333334
+  },
+  "materialized_views": [
+    {
+      "name": "mv_instant_forex_funnel_daily",
+      "target_table": "agg_instant_forex_funnel_daily",
+      "select_sql": "SELECT event, toDate(timestamp) AS day, destination, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state FROM f_instant_forex_events GROUP BY event, day, destination",
+      "justification": "Answers 'attach rate offer_shown -> forex_purchased, overall and by destination' and 'where is the drop' via uniqMerge(users_state)/countMerge(events_state) grouped by event and destination, instead of a windowFunnel scan of every raw row per query. Deliberately NOT keyed by device_type/geoip: at E=5 events x 365 days x 14 destinations the annual ceiling is 25,550 rows against a projected ~113,825 raw rows/yr (6,237 rows / 20-day sample x 365) -- a 4.46x ceiling on reduction. Adding device_type (4 values) would push the ceiling to ~102,200 rows, i.e. barely below raw and not worth a second dimension. Real occupancy (not every destination fires every event every day) will land well under the 25,550 ceiling, so true reduction is expected to clear 5x, but this is a ceiling-only projection -- flag for post-load count() verification per house rule 7 before treating it as kept.",
+      "serves_questions": [
+        "Attach rate: offer_shown -> forex_purchased, overall and by destination.",
+        "Where is the drop \u2014 offer -> amount_entered, or added_to_cart -> purchased?",
+        "Which destinations / currencies attach best; any segment (device/geo) skew?"
+      ],
+      "measured_source_rows": 6237,
+      "measured_target_rows": 1396,
+      "reduction_factor": 4.47,
+      "kept": false
+    },
+    {
+      "name": "mv_instant_forex_addon_value_daily",
+      "target_table": "agg_instant_forex_addon_value_daily",
+      "select_sql": "SELECT event, toDate(timestamp) AS day, countState() AS events_state, sumState(addon_value_inr) AS addon_value_sum_state, avgState(addon_value_inr) AS addon_value_avg_state, quantileState(0.5)(addon_value_inr) AS addon_value_median_state, uniqStateIf(user_id, user_id != '') AS attachers_state FROM f_instant_forex_events WHERE event IN ('forex_added_to_cart', 'forex_purchased') GROUP BY event, day",
+      "justification": "Answers the AOV-uplift distribution question (sumMerge/avgMerge/quantileMerge on addon_value_inr) restricted to the two attach events (725+546=1271/6237=20.4% of sample rows). Deliberately not keyed by destination or to_currency: to_currency is near-functionally-dependent on destination (13 distinct vs destination's 14 in this sample -- each destination is priced in essentially one currency), so per-destination/per-currency attach VOLUME is already answered by mv_instant_forex_funnel_daily's counts, and per-destination AOV cuts can run directly against the raw table's ~1,271 filtered rows (trivially cheap) rather than paying for a 2nd/3rd high-cardinality GROUP BY key here. With just event+day, the annual ceiling is 2 x 365 = 730 rows against a projected ~23,198 filtered raw rows/yr (113,825 x 1271/6237) -- a 31.8x reduction ceiling, comfortably above the 5x bar even in the worst case. Also survives the 18-month raw TTL so long-range AOV trend queries keep working. Not yet measured against a real load -- record measured_source_rows/measured_target_rows/reduction_factor/kept after count() per house rule 7.",
+      "serves_questions": [
+        "AOV uplift: distribution of addon_value_inr among attachers.",
+        "Which destinations / currencies attach best; any segment (device/geo) skew?"
+      ],
+      "measured_source_rows": 6237,
+      "measured_target_rows": 42,
+      "reduction_factor": 148.5,
+      "kept": true
+    }
+  ],
+  "semantics": {
+    "feature_slug": "instant_forex",
+    "table_fqn": "atlys.f_instant_forex_events",
+    "event_column": "event",
+    "event_types": [
+      "forex_offer_shown",
+      "currency_selected",
+      "amount_entered",
+      "forex_added_to_cart",
+      "forex_purchased"
+    ],
+    "entity_key": "user_id",
+    "entity_key_confidence": 0.8,
+    "secondary_keys": [
+      "application_id"
+    ],
+    "ordered_steps": [
+      "forex_offer_shown",
+      "currency_selected",
+      "amount_entered",
+      "forex_added_to_cart",
+      "forex_purchased"
+    ],
+    "step_order_source": "spec",
+    "segment_dims": [
+      "destination",
+      "device_type",
+      "geoip_country_code",
+      "to_currency",
+      "city",
+      "app_version"
+    ],
+    "measures": [
+      {
+        "column": "addon_value_inr",
+        "kind": "money",
+        "scoped_to_events": [
+          "forex_added_to_cart",
+          "forex_purchased"
+        ],
+        "unit": "INR"
+      },
+      {
+        "column": "amount",
+        "kind": "other",
+        "scoped_to_events": [
+          "amount_entered",
+          "forex_added_to_cart",
+          "forex_purchased"
+        ],
+        "unit": "to_currency (varies, 13 distinct) -- not summable across rows without a currency cut, unlike addon_value_inr"
+      },
+      {
+        "column": "fx_rate",
+        "kind": "rate",
+        "scoped_to_events": [
+          "forex_offer_shown"
+        ],
+        "unit": "to_currency per from_currency"
+      }
+    ],
+    "flags": [],
+    "disconnected_event_types": [],
+    "partial_identity_columns": [],
+    "cross_reference_hints": [
+      {
+        "from_column": "user_id",
+        "matches": "shared_key",
+        "targets": [
+          "destination_card_clicked",
+          "application_started",
+          "pay_now_clicked",
+          "purchase_completed"
+        ],
+        "join_key": "user_id",
+        "evidence": "relationship.destination_card_clicked_user_id: 'destination_card_clicked.user_id -> all tables (user_id)'. instant_forex user_id has 100% coverage (5/5 event types, 2,900 distinct in sample), so the forex add-on funnel can be joined onto the main purchase funnel to see whether forex attach correlates with overall conversion."
+      },
+      {
+        "from_column": "application_id",
+        "matches": "shared_key",
+        "targets": [
+          "application_started",
+          "document_uploaded",
+          "pay_now_clicked",
+          "purchase_completed"
+        ],
+        "join_key": "application_id",
+        "evidence": "relationship.application_started_application_id join key used by the checkout-adjacent existing tables. instant_forex application_id has 100% coverage here (offer is shown at checkout, after application_started), unlike destination_card_clicked/search_typed where application_id can be empty per relationship.supporting_tables_search_typed."
+      },
+      {
+        "from_column": "destination",
+        "matches": "existing_column_values",
+        "targets": [
+          "destination_card_clicked",
+          "application_started",
+          "purchase_completed"
+        ],
+        "join_key": "destination",
+        "evidence": "entity.destination: ISO-2 code shared across funnel tables. instant_forex destination sample values (GR, TH, ID, FR, ...) are drawn from the same 14-value domain, letting forex attach be cut by the same destination/region taxonomy (e.g. known_issue K4 Schengen summer softness) used elsewhere."
+      }
+    ]
+  },
+  "rationale": {
+    "order_by": "(event, timestamp, user_id). E=5 event types with an uneven but bounded split (offer_shown=2900, currency_selected=1033, amount_entered=1033, added_to_cart=725, purchased=546), so leading with event clusters each type contiguously (this is also what makes the sparse-serialization setting below effective) and matches every PM question, which filters/groups by event first ('offer_shown -> forex_purchased'). timestamp is second because every question is time-windowed (attach rate 'overall', AOV distribution, drop-off location). user_id is last as the derived entity_key: 100% coverage on 5/5 event types, 2,900 distinct users in the sample, chosen over the numerically-identical application_id by spec.md mention order (confidence 0.80, per the entity-key derivation note -- both partition the 6,237 rows identically so the ORDER BY is the same either way). We do NOT lead with id: id is unique per row (6,237 distinct on 6,237 rows, one per event), so an id-led primary index -- as the 8 legacy tables use -- prunes nothing for any query the PM actually runs; base_context.md itself admits queries 'filter by time/segment, never by id'.",
+    "partition_by": "toYYYYMM(timestamp), matching all 8 existing production tables so cross-table joins (e.g. instant_forex -> purchase_completed via user_id) prune on the same partition boundaries. At the observed rate (6,237 rows / 20 days -> ~113,825 rows/yr projected) monthly partitions hold on the order of 9-10K rows each; daily partitions would produce ~340 parts/yr of ~300 rows apiece for this single low-volume feature, which is exactly the tiny-part/merge-pressure problem house rule 3 warns against, for no pruning benefit over monthly.",
+    "types": "E=5 -> ratio_of_defaults_for_sparse_serialization = min(0.9, 1 - 1/(E+1)) = min(0.9, 1 - 1/6) = min(0.9, 0.8333) = 0.8333. This matters concretely here because the event-specific columns are far sparser than a balanced 1/E split: fx_rate coverage 0.465 (offer_shown only, 2,900/6,237 rows), amount 0.369 (present on 3 of 5 event types), addon_value_inr 0.204 (2 of 5 event types, 725+546=1,271/6,237). Each of these sits below the ~0.80 default-ratio a perfectly-balanced single-event column would show under E=5, and all are comfortably above the lowered 0.8333 threshold, so they get sparse serialization; the untouched default of 0.9375 would have left the least-sparse of them (fx_rate at 0.535 default-ratio) dense. id is declared String, not UUID: sample values (e.g. ee2d839ea73c3d5a9735e59d, 24 hex chars) do not parse as UUID -- exactly the load-failure trap the house rules flag for the existing id UUID columns. addon_value_inr and amount are Decimal(18,4) because addon_value_inr is explicitly summed/distributed for the AOV-uplift question (house rule: currency values that get summed are Decimal); fx_rate stays Float64 as the house rules' own example of a genuinely-approximate FX rate that is never summed.",
+    "nullable": "Zero Nullable columns. Every envelope and identity column in the field profile shows 100% coverage (user_id, application_id, destination, device_type, geoip_country_code, city, app_version, client_lib, from_currency, to_currency all 1.000; os is 0.939 but its gaps are ordinary client noise, not a distinct 'unknown vs empty' state), so DEFAULT '' is correct and avoids the null-map overhead + broken index usage that Nullable would cost on these hot filter/group-by columns. The event-scoped measures (fx_rate 0.465, amount 0.369, addon_value_inr 0.204 coverage) are legitimately zero/absent on events that don't carry them -- not tri-state unknowns -- so DEFAULT 0 is used there too. Because identity columns default to '' rather than NULL, every distinct-user aggregate (in this table's queries and in both MVs) uses uniqIf(user_id, user_id != '') / uniqStateIf(user_id, user_id != ''), never bare uniq(user_id) -- applied defensively even though partial_identity_columns is empty for this feature today, since 100% coverage is a property of this sample, not a schema guarantee.",
+    "ttl": "TTL toDateTime(timestamp) + INTERVAL 18 MONTH on the raw table, unchanged from the house default and consistent with the other feature tables in this database. Paired with the two agg_* rollups (agg_instant_forex_funnel_daily, agg_instant_forex_addon_value_daily), which carry no TTL of their own, so that once raw rows age out, attach-rate and AOV-trend queries spanning more than 18 months still run against the day-grained rollups instead of failing or silently truncating.",
+    "mvs": "Two MVs, both gated on house rule 7's 5x bar using the sample's actual event-count split, not a generic assumption. mv_instant_forex_funnel_daily (event, day, destination) has a *ceiling* reduction of only 4.46x (5 events x 365 days x 14 destinations = 25,550 vs ~113,825 projected annual raw rows) -- under the 5x bar on the worst case, so it is proposed but explicitly flagged as unverified pending post-load count() comparison; real occupancy (destinations don't fire every event every day) should push it above 5x but that is a claim to check, not assert. mv_instant_forex_addon_value_daily (event, day, filtered to forex_added_to_cart/forex_purchased) has a ceiling of 31.8x (2 x 365 = 730 vs ~23,198 projected annual filtered rows) -- comfortably above 5x even in the worst case. Both use AggregatingMergeTree-style *State aggregates (countState, uniqStateIf, sumState, avgState, quantileState) per the server's EMPTY-AS-SELECT requirement that every non-key output be a state, and uniq aggregates are guarded with uniqStateIf(user_id, user_id != '') per the identity-aggregation rule. Neither MV includes device_type or geoip as a GROUP BY key: doing so would multiply cardinality (e.g. +4x for device_type) while barely denting the row count once day is already a dimension, which is exactly the failure mode house rule 7 warns about -- so device/geo skew is left to direct queries against the raw table (itself only ~113,825 rows/yr projected, i.e. two orders of magnitude smaller than the largest existing production table).",
+    "contrast_with_legacy": "The 8 existing tables are one-table-per-event (destination_card_clicked ... purchase_completed), each ORDER BY (id, timestamp, user_id) with 30-35 of 33-38 columns Nullable; instrumentation_notes.md calls this an SDK artifact of the event-table template, not a design choice, and base_context.md confirms queries never actually filter by id. f_instant_forex_events instead: (1) is ONE wide table for all 5 event types instead of 5 event tables, turning every PM funnel question here into a single windowFunnel with no join, versus a 5-way join on the legacy pattern; (2) sorts (event, timestamp, user_id) instead of id-first, so the primary index actually prunes for the time/segment-filtered queries that are the only queries run; (3) has zero Nullable columns versus the legacy tables' 30+/33-38, using DEFAULT ''/DEFAULT 0 plus the sparse-serialization setting (0.8333, derived above from this feature's own E=5 and coverage numbers) to get the storage benefit of per-event tables without the join cost; (4) declares id as String, not UUID, avoiding the load-failure the legacy UUID columns would hit on this feature's 24-char hex ids.",
+    "generation_log": "attempt 0: lint clean, dry run OK"
+  },
+  "ddl_sql": [
+    "CREATE TABLE IF NOT EXISTS f_instant_forex_events\n(\n    `event` LowCardinality(String) COMMENT 'json_path=event; Discriminator, 5 values in sample (forex_offer_shown, currency_selected, amount_entered, forex_added_to_cart, forex_purchased); leads ORDER BY.',\n    `timestamp` DateTime64(3) COMMENT 'json_path=timestamp; ISO-8601 with milliseconds in source (e.g. 2026-06-08T06:00:00.000); DateTime64(3) keeps that precision, DateTime would truncate it.' CODEC(Delta, ZSTD(1)),\n    `id` String DEFAULT '' COMMENT 'json_path=id; Field profile samples (e.g. ee2d839ea73c3d5a9735e59d) are 24-char hex, not the 32-char form house rules warn about, but still not valid UUID syntax either way -- declared String, matching the general fix, to avoid the load failure the legacy tables'' UUID columns would hit.' CODEC(ZSTD(1)),\n    `user_id` String DEFAULT '' COMMENT 'json_path=user_id; Entity key. 100% coverage, 2,900 distinct in sample. DEFAULT '''' not Nullable; all aggregation must guard with uniqIf(user_id, user_id != '''').' CODEC(ZSTD(1)),\n    `application_id` String DEFAULT '' COMMENT 'json_path=application_id; 100% coverage, 2,900 distinct, co-extensive with user_id in this feature; kept as secondary key / cross-reference join column into application_started etc.' CODEC(ZSTD(1)),\n    `device_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=device_type; 4 distinct values (android, ios, web-user-b2c, Desktop), 100% coverage.',\n    `os` LowCardinality(String) DEFAULT '' COMMENT 'json_path=os; 93.9% coverage; the 6.1% missing is device/client noise, not an analytically distinct tri-state, so DEFAULT '''' not Nullable.',\n    `geoip_country_code` LowCardinality(String) DEFAULT '' COMMENT 'json_path=geoip_country_code; 7 distinct, 100% coverage.',\n    `destination` LowCardinality(String) DEFAULT '' COMMENT 'json_path=destination; 14 distinct ISO-2 codes, 100% coverage; headline segment dim for attach-rate-by-destination.',\n    `city` LowCardinality(String) DEFAULT '' COMMENT 'json_path=city; 7 distinct, 100% coverage.',\n    `app_version` LowCardinality(String) DEFAULT '' COMMENT 'json_path=app_version; 3 distinct; relevant to known_issue K7 (7.45 rollout funnel-timing shift).',\n    `client_lib` LowCardinality(String) DEFAULT '' COMMENT 'json_path=client_lib; 2 distinct (mobile-rn, web-js), 100% coverage.',\n    `from_currency` LowCardinality(String) DEFAULT '' COMMENT 'json_path=from_currency; 1 distinct value (INR) in sample, still modeled as enum since forex could add a second source currency later.',\n    `to_currency` LowCardinality(String) DEFAULT '' COMMENT 'json_path=to_currency; 13 distinct -- near 1:1 with destination''s 14 distinct values (each destination is priced in ~one currency); see rationale.mvs for why this lets one GROUP BY key answer both ''destination'' and ''currency'' questions.',\n    `fx_rate` Float64 DEFAULT 0 COMMENT 'json_path=fx_rate; Present only on forex_offer_shown (46.5% coverage = 2900/6237). This is exactly the ''genuinely approximate FX rate'' case the house rules call out for Float64 rather than Decimal.' CODEC(ZSTD(1)),\n    `amount` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=amount; 36.9% coverage (amount_entered/forex_added_to_cart/forex_purchased = 1033+725... note amount_entered and forex_added_to_cart/purchased overlap in the funnel). Denominated in to_currency, not summable across rows with different to_currency -- see semantics.measures kind=''other''.' CODEC(ZSTD(1)),\n    `addon_value_inr` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=addon_value_inr; 20.4% coverage (725+546=1271/6237), present only on forex_added_to_cart/forex_purchased. Normalized to INR so it IS summable/distributable -- this is the AOV-uplift measure the PM asks about.' CODEC(ZSTD(1))\n)\nENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nORDER BY (event, timestamp, user_id)\nTTL toDateTime(timestamp) + INTERVAL 18 MONTH\nSETTINGS ratio_of_defaults_for_sparse_serialization = 0.8333333333333334",
+    "CREATE TABLE IF NOT EXISTS agg_instant_forex_funnel_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (event, day, destination)\nEMPTY AS\nSELECT event, toDate(timestamp) AS day, destination, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state FROM f_instant_forex_events GROUP BY event, day, destination",
+    "CREATE TABLE IF NOT EXISTS agg_instant_forex_addon_value_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (event, day)\nEMPTY AS\nSELECT event, toDate(timestamp) AS day, countState() AS events_state, sumState(addon_value_inr) AS addon_value_sum_state, avgState(addon_value_inr) AS addon_value_avg_state, quantileState(0.5)(addon_value_inr) AS addon_value_median_state, uniqStateIf(user_id, user_id != '') AS attachers_state FROM f_instant_forex_events WHERE event IN ('forex_added_to_cart', 'forex_purchased') GROUP BY event, day",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_instant_forex_funnel_daily\nTO agg_instant_forex_funnel_daily AS\nSELECT event, toDate(timestamp) AS day, destination, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state FROM f_instant_forex_events GROUP BY event, day, destination",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_instant_forex_addon_value_daily\nTO agg_instant_forex_addon_value_daily AS\nSELECT event, toDate(timestamp) AS day, countState() AS events_state, sumState(addon_value_inr) AS addon_value_sum_state, avgState(addon_value_inr) AS addon_value_avg_state, quantileState(0.5)(addon_value_inr) AS addon_value_median_state, uniqStateIf(user_id, user_id != '') AS attachers_state FROM f_instant_forex_events WHERE event IN ('forex_added_to_cart', 'forex_purchased') GROUP BY event, day"
+  ]
+}

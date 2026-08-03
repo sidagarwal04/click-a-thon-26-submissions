@@ -1,0 +1,22 @@
+# evidence: live_queryload_phoenix
+# what: serving latency under concurrent ingest, live window
+# run_utc: 2026-08-01 21:54:53
+# git: 954b20d-dirty
+# host: ss-cric
+# row_count: 1750656
+# event_watermark: 2026-08-01 21:54:33.860
+# frozen_before: 2026-08-03
+# frozen_slice_rows: 1750656   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 21:54:34   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+query	runs	errors	p50_ms	p95_ms	p99_ms	max_ms
+concurrency_curve	1	0	299	299	299	299
+concurrency_curve_combo	1	0	223	223	223	223
+dimension_values	1	0	260	260	260	260
+peak_average_content	1	0	487	487	487	487
+peak_average_country	1	0	404	404	404	404
+peak_average_nofilter	1	0	244	244	244	244
+peak_average_platform	1	0	353	353	353	353

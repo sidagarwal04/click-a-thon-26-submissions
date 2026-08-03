@@ -1,0 +1,127 @@
+{
+  "call_id": "CALL-10-MEDIUM",
+  "category": "Medium",
+  "title": "Coupon Campaign Realized Value & Discount Share by Destination",
+  "question": "How do order volume, AOV, and average discount compare between coupon-applied orders vs full-price orders across top destinations (>= 50 orders)?",
+  "database": "default",
+  "target_tables": "purchase_completed, application_started",
+  "timestamp": "2026-08-02T00:14:33.214073+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 247.04,
+    "row_count": 12,
+    "columns_count": 7,
+    "columns": [
+      "a.destination",
+      "coupon_applied",
+      "coupon_code",
+      "order_volume",
+      "average_order_value",
+      "total_realized_revenue",
+      "avg_discount_given"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_medium_10",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/d1b9f0ecff85d62f7bec61985325cdd9",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    a.destination,\n    pur.coupon_applied,\n    if(pur.coupon_applied = 1, pur.coupon_name, 'NONE') AS coupon_code,\n    count() AS order_volume,\n    round(avg(pur.value), 2) AS average_order_value,\n    round(sum(pur.value), 2) AS total_realized_revenue,\n    round(avg(pur.discount_amount), 2) AS avg_discount_given\nFROM default.purchase_completed pur\nJOIN default.application_started a ON pur.application_id = a.application_id\nGROUP BY a.destination, pur.coupon_applied, coupon_code\nHAVING order_volume >= 50\nORDER BY order_volume DESC\nLIMIT 12",
+  "result_sample": [
+    {
+      "a.destination": "AE",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 916,
+      "average_order_value": 2870.03,
+      "total_realized_revenue": 2628951.7,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "US",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 540,
+      "average_order_value": 2876.68,
+      "total_realized_revenue": 1553407.2,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "ID",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 465,
+      "average_order_value": 2702.3,
+      "total_realized_revenue": 1256570.1,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "TH",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 351,
+      "average_order_value": 2874.96,
+      "total_realized_revenue": 1009111.8,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "VN",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 326,
+      "average_order_value": 2721.99,
+      "total_realized_revenue": 887370.3,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "EG",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 313,
+      "average_order_value": 2824.64,
+      "total_realized_revenue": 884111.2,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "AU",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 276,
+      "average_order_value": 2598.87,
+      "total_realized_revenue": 717286.8,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "GB",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 258,
+      "average_order_value": 2783.24,
+      "total_realized_revenue": 718076.7,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "MA",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 215,
+      "average_order_value": 3384.25,
+      "total_realized_revenue": 727613.6,
+      "avg_discount_given": 0.0
+    },
+    {
+      "a.destination": "HK",
+      "coupon_applied": 0,
+      "coupon_code": "NONE",
+      "order_volume": 183,
+      "average_order_value": 2971.0,
+      "total_realized_revenue": 543693.9,
+      "avg_discount_given": 0.0
+    }
+  ],
+  "full_results_count": 12,
+  "summary": "Query executed successfully against ClickHouse default database in 247.04ms, returning 12 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Multi-table JOIN evaluating promotional impact (K6 SUMMER20 campaign context) on realized revenue and AOV across visa destinations."
+}

@@ -1,0 +1,82 @@
+{
+  "name": "test2",
+  "database": "rca_ts2",
+  "seed": 29,
+  "day0": "2026-06-01",
+  "days": 40,
+  "bases": 25,
+  "daily_requests": 2000000,
+  "growth_per_day": 0.003,
+  "weekend_factor": 0.8,
+  "note": "harder shapes \u2014 a 2-D interaction invisible at 1-D, a ramp-in rather than a step, and a sub-floor global dip that must stay silent.",
+  "incidents": [
+    {
+      "id": "T2-1",
+      "metric": "fill_rate",
+      "dim": "region",
+      "value": "EU",
+      "co_dim": "os_version",
+      "co_value": "Android 14",
+      "win": [
+        "2026-06-24",
+        "2026-06-26"
+      ],
+      "drop": 0.5,
+      "expect": "detected",
+      "why": "Simpson's case: -50% inside a 9.6%-of-traffic cell dilutes to -16.1% at region=EU and -13.2% at os_version=Android 14 (measured). Both 1-D views must be ruled out in favour of the cross-cut, and peeling the cell out must leave each with a ~0% residual."
+    },
+    {
+      "id": "T2-2",
+      "metric": "ecpm",
+      "dim": "category",
+      "value": "finance",
+      "win": [
+        "2026-07-01",
+        "2026-07-02"
+      ],
+      "drop": 0.4,
+      "expect": "detected",
+      "why": "demand-side price drop in one app category; baseline days overlap T2-1's window, so it also exercises contamination exclusion."
+    },
+    {
+      "id": "T2-3",
+      "metric": "fill_rate",
+      "dim": "device_model",
+      "value": "Pixel 8",
+      "win": [
+        "2026-07-07",
+        "2026-07-09"
+      ],
+      "drop": 0.35,
+      "shape": "ramp",
+      "expect": "detected",
+      "why": "gradual degradation (-11.7% / -23.3% / -35%) rather than a step \u2014 a step-only detector clips the window."
+    },
+    {
+      "id": "T2-C1",
+      "metric": "ecpm",
+      "dim": "__global__",
+      "value": null,
+      "win": [
+        "2026-06-22",
+        "2026-06-22"
+      ],
+      "drop": 0.02,
+      "expect": "suppressed",
+      "why": "-2% everywhere is under the 5% relative floor for ratio metrics. Firing on it is noise, not an incident. Measured cell-level eCPM noise on a clean slice is p99 1.9% / max 4.3%, so -4% sat too close to the floor to be a stable control; -2% leaves real headroom."
+    },
+    {
+      "id": "T2-C2",
+      "metric": "ctr",
+      "dim": "country",
+      "value": "IN",
+      "win": [
+        "2026-07-04",
+        "2026-07-05"
+      ],
+      "drop": 0.4,
+      "expect": "suppressed",
+      "why": "CTR halves in the largest APAC market and revenue does not move a cent — this is a CPM model, clicks buy nothing. Scope is revenue via fill_rate + eCPM, so firing here is fabricating an incident."
+    }
+  ]
+}

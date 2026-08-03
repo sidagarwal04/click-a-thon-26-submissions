@@ -1,0 +1,92 @@
+{
+  "feature_slug": "unseen",
+  "table_fqn": "atlys.f_unseen_events",
+  "event_column": "event",
+  "event_types": [
+    "coupon_field_shown",
+    "coupon_entered",
+    "coupon_applied",
+    "coupon_rejected",
+    "discount_shown",
+    "checkout_with_coupon"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "coupon_field_shown",
+    "coupon_entered",
+    "coupon_applied",
+    "coupon_rejected",
+    "discount_shown",
+    "checkout_with_coupon"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "device_type",
+    "os",
+    "geoip_country_code",
+    "city",
+    "destination",
+    "client_lib",
+    "app_version",
+    "coupon_code"
+  ],
+  "measures": [
+    {
+      "column": "cart_value",
+      "kind": "money",
+      "scoped_to_events": [],
+      "unit": "currency"
+    },
+    {
+      "column": "discount_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "coupon_applied",
+        "discount_shown",
+        "checkout_with_coupon"
+      ],
+      "unit": "currency"
+    },
+    {
+      "column": "final_value",
+      "kind": "money",
+      "scoped_to_events": [
+        "checkout_with_coupon"
+      ],
+      "unit": "currency"
+    }
+  ],
+  "flags": [],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "user_id",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked",
+        "application_started",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "user_id",
+      "evidence": "business_def.relationship.destination_card_clicked_user_id documents user_id -> all tables; f_unseen_events carries user_id on 100% of rows same as the 8 legacy tables, unlike sharer/recipient features which had to fall back to segment-only joins."
+    },
+    {
+      "from_column": "application_id",
+      "matches": "shared_key",
+      "targets": [
+        "application_started",
+        "document_uploaded",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "application_id",
+      "evidence": "application_id present on 100% of f_unseen_events rows (2,100 distinct), matching application_started.application_id -> downstream tables per business_def.relationship.application_started_application_id."
+    }
+  ]
+}

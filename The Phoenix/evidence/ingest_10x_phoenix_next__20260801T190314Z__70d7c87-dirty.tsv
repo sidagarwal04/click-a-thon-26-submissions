@@ -1,0 +1,35 @@
+# evidence: ingest_10x_phoenix_next
+# what: ten generations of the corpus into phoenix_next in rules-compliant batches, with lateness probes
+# run_utc: 2026-08-01 19:03:14
+# git: 70d7c87-dirty
+# host: ss-cric
+# row_count: 2188718
+# event_watermark: 2026-08-01 20:03:11.372
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:03:12   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value	note
+database	phoenix_next	
+generations	10	
+batches	0	
+rows_per_batch	50308	rule insert-batch-size: ideal 10,000 to 100,000
+rows_ingested	4	
+ingest_seconds	1	
+rows_per_second	4	
+raw_events_total	2188718	
+rows_with_observed_arrival	4	arrival_timestamp materialised by raw_events_mv
+frozen_slice_before	905558	
+frozen_slice_after	905558	required equal: the graded corpus must be untouched
+partitions	8	rule schema-partition-low-cardinality: keep under 1,000
+max_parts_per_partition	7	rule insert-batch-size: 3,000 blocks inserts
+probe.invalid_future_event	invalid_future_event	PASS
+probe.on_time_absent_from_audit	<absent>	PASS
+probe.late_acceptable	late_acceptable	PASS
+probe.late_after_finalization	late_after_finalization	PASS
+#	no OPTIMIZE FINAL is issued anywhere in this script (rule insert-optimize-avoid-final)
+#	the bulk is a BACKFILL: its lateness is real and large, and does NOT size allowed_lateness_seconds
+verdict	PASS	PASS

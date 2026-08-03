@@ -1,0 +1,22 @@
+# evidence: peak_not_a_rollup
+# what: peak minutes differ across filter tuples, and the overall peak is neither the max nor the sum of per-platform peaks
+# run_utc: 2026-08-01 16:37:59
+# git: 2b1442f-dirty
+# host: ss-cric
+# row_count: 2055714
+# event_watermark: 2026-08-01 16:37:57.842
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 16:38:00   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+assertion	observed	verdict
+overall_peak_differs_from_sum_of_parts	2828 vs sum parts 2917	PASS
+overall_peak_exceeds_max_of_parts	2828 vs max part 1743	PASS
+peak_minute_differs_platform_slice	2026-07-26 10:56:00 vs 2026-07-26 11:02:00	PASS
+peak_minute_differs_video_type_live	2026-07-26 10:56:00 vs 2026-07-26 10:45:00	PASS
+#
+# assertions	4
+# failures	0

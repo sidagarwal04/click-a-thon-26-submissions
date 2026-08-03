@@ -1,0 +1,602 @@
+SCALE EVIDENCE — the model at 1x, 10x and 100x the provided file
+generated 2026-08-01T17:27:41Z   commit 4dabfa3 (sql+tools DIRTY)
+host: 26.7.1.1315  cores 10  mem 7.82 GiB
+scales: 1 10 100   seed 20260801   server memory budget 5.45 GiB
+--------------------------------------------------------------------------
+WHAT IS BEING SCALED
+  N x the AUDIENCE inside the SAME 99-hour window: N x as many sessions,
+  drawn from the same session-start-MINUTE histogram, so peak CONCURRENCY
+  is itself N x.
+  That is what "100x" means for this problem. Scaling the calendar is the
+  easy axis — an extra day is an extra partition and prunes away. Scaling
+  the audience is what stresses the per-session arrays in the derivation,
+  the uniqExact states in the stateless tier, and delta cardinality.
+
+  Generated server-side by tools/scale-load.sql (INSERT ... SELECT FROM
+  numbers_mt). Every draw is cityHash64(session, salt), so a scale is
+  reproducible byte-for-byte from (S, SEED).
+--------------------------------------------------------------------------
+WHY THIS RUN EXISTS — re-measured after ADR 0016 (2026-08-01)
+  The previous run (2026-08-01T15:18Z, commit 8af15cb) measured the
+  pre-ADR-0016 model: three build stages, and NO user tier at all — its
+  scratch databases never instantiated cc_user_minute. ADR 0016 changed
+  real things underneath those numbers:
+    * cc_user_minute: AggregatingMergeTree + mv_user_minute (set union)
+      -> ReplacingMergeTree(computed_at) + explicit backfill INSERT.
+      Different engine, different merge behaviour, different read cost.
+    * retraction is an explicit empty-state row at a newer version, so
+      corrected buckets become ROWS, not absences — row counts only grow.
+    * the publisher gained 'hours' and 'users' phases: a publish run does
+      strictly more work than the run whose timings were published.
+  So this run builds all four tiers, reconciles the user tier against the
+  interval expansion at every scale, and times a one-straggler publish
+  (all six phases) at every scale. A frozen copy of the pre-ADR-0016
+  headline figures is printed at the end for the diff.
+--------------------------------------------------------------------------
+PHASE 0 — 1x REAL baseline (the provided file, not synthetic)
+  loaded 905,558 events from /Users/barun/Developers/personal/clickathon-project/data/ch-hackathon-raw-data.csv
+  vocabularies fitted from the real file (tools/scale-gen.sql)
+--------------------------------------------------------------------------
+PHASE 0b — build the model on the REAL file (the anchor for everything below)
+--------------------------------------------------------------------------
+  [intervals]  295 ms  ·  peak mem 344.79 MiB  ·  read 905,558 rows  ·  wrote 30,323 rows
+  [users]  113 ms  ·  peak mem 114.05 MiB  ·  read 30,323 rows  ·  wrote 91,692 rows
+  [deltas]  191 ms  ·  peak mem 80.53 MiB  ·  read 61,538 rows  ·  wrote 28,156 rows
+  [houragg]  118 ms  ·  peak mem 40.46 MiB  ·  read 28,156 rows  ·  wrote 26,186 rows
+
+  STORAGE — system.parts, active parts only. OPTIMIZE FINAL is deliberately
+  NOT run first: these are the numbers a live service actually has on disk.
+  table                            rows      on disk   uncompressed     ratio    parts   partns
+  ev_raw                905.56 thousan    6.56 MiB    152.01 MiB   23.19x       7       7
+  session_intervals     30.32 thousand    1.74 MiB      5.26 MiB    3.03x       1       1
+  cc_minute_stateless   91.29 thousand  387.15 KiB      3.40 MiB    8.98x       7       7
+  cc_user_minute        91.69 thousand  378.77 KiB      4.15 MiB   11.21x       7       7
+  content_dim           33.46 thousand  366.73 KiB    884.60 KiB    2.41x       1       1
+  gen_content           33.46 thousand  264.46 KiB    392.16 KiB    1.48x       1       1
+  gen_start             65.54 thousand  261.82 KiB    512.00 KiB    1.96x       1       1
+  cc_minute_delta       28.07 thousand  237.14 KiB      1.13 MiB    4.87x       7       7
+  cc_hour_agg           26.25 thousand  201.67 KiB      1.05 MiB    5.34x       1       1
+  gen_ev                 4.10 thousand   17.45 KiB    186.22 KiB   10.67x       1       1
+  gen_lut                       226.00    3.84 KiB      9.94 KiB    2.59x       1       1
+
+  the five widest columns of ev_raw at this scale (system.columns; the
+  tables set min_bytes_for_wide_part=0 so per-column accounting is real)
+    event_timestamp                    DateTime64(3)    3.21 MiB      6.91 MiB    2.15x
+    user_id                                   String    1.20 MiB     62.18 MiB   51.83x
+    video_session_id                          String    1.19 MiB     62.18 MiB   52.06x
+    event                     LowCardinality(String)  357.18 KiB    888.57 KiB    2.49x
+    session_start_epoch                DateTime64(3)  158.95 KiB      6.91 MiB   44.51x
+
+  DICTIONARY MEMORY — one of the four named 'what breaks first' candidates.
+  dict_content is keyed on the CATALOG (content_dim, 33,464 rows), not on
+  the audience, so this number is expected to be identical at every scale.
+  The definition is copied from sql/80_content.sql, same COMPLEX_KEY_HASHED
+  layout, repointed at this scratch database (that file hard-codes DB
+  'sonyliv' — a known defect, and not one this task is allowed to fix).
+    LOADED  ·  33464 elements  ·  17.00 MiB allocated  ·  0.255 load factor  ·  0.017 s to load
+
+  MERGE PRESSURE — system.part_log. 'Too many parts' is the classic way a
+  high-ingest ClickHouse table falls over, so the part counts above are only
+  half the story; this is the other half.
+  event                     n          bytes     slowest ms       peak mem
+  NewPart                517    181.38 MiB           601        0.00 B
+
+  SERVING QUERIES — median of 3 runs, and the BYTES each one reads.
+  Reconstructed from the statement's grains (.claude/commands/bench.md
+  permits this); NOT the official benchmark set.
+  query                                                  ms      rows read     bytes read     result
+  Q1 peak, whole feed, minute grain                     6.0         28,073     328.98 KiB       2917
+  Q2 peak, one platform, one hour, minute grain         5.9         24,576     448.00 KiB       1837
+  Q3 peak, day grain, hour tier                         2.8          8,192     240.00 KiB       2917
+  Q4 time-weighted average, day grain, hour tier        2.9          8,192     240.00 KiB       92.1
+  Q5 top-10 content by peak, hour tier                  2.6          8,192     144.00 KiB         10
+  Q6 peak filtered on a TAIL dimension (audio_language)      4.5         28,060     356.18 KiB       1774
+  Q7 dashboard: minute curve for the peak hour          5.5         34,814     343.99 KiB         60
+  Q8 peak concurrent USERS, whole feed (FINAL merge)      8.5         91,692      17.84 MiB       2844
+
+  headline: peak 2917 at 2026-07-26 10:56:00  (the repo number is 2917 @ 2026-07-26 10:56, evidence/reconcile.txt — this run reproduces it or it is not the same model)
+--------------------------------------------------------------------------
+SCALE 1x — 10,866 sessions, target ~905,558 events, 3,357 content ids
+--------------------------------------------------------------------------
+  [gen]  tools/scale-load.sql  S=10,866 SEED=20260801 NC=3,357
+  [gen]  889,454 events  ·  2534 ms  ·  peak mem 544.96 MiB
+  [intervals]  585 ms  ·  peak mem 251.14 MiB  ·  read 889,454 rows  ·  wrote 29,354 rows
+  [users]  139 ms  ·  peak mem 113.41 MiB  ·  read 29,109 rows  ·  wrote 121,887 rows
+  [deltas]  208 ms  ·  peak mem 83.44 MiB  ·  read 58,708 rows  ·  wrote 44,035 rows
+  [houragg]  196 ms  ·  peak mem 51.30 MiB  ·  read 44,035 rows  ·  wrote 28,458 rows
+
+  GENERATOR FIDELITY — the provided file vs the synthetic stream at 1x.
+  Every constant in tools/scale-load.sql was fitted to the left column;
+  this is the check that the fit survived contact with the generator.
+  metric                                            PROVIDED FILE           SYNTHETIC 1x
+  events                                                  905558                889454
+  sessions                                                 10866                 10866
+  users                                                     9618                  9556
+  distinct content_id                                       3357                  2697
+  events/session  p50                                         53                    52
+  events/session  mean                                      83.3                  81.9
+  events in the top 2 hours %                              88.25                 85.27
+  distinct hour buckets                                       99                    96
+  top content share of events %                                9                  9.61
+  inter-arrival p50/p90/p99 s                          [0,40,45]             [0,41,41]
+  gaps > 150 s per session                                0.3762                0.3609
+  pause events per session                                 2.516                 2.368
+  resume events per session                                2.925                 2.859
+  sessions with >1 audio value                              8796                 10349
+  distinct app_version                                        65                    62
+  session span p50 / mean s                            714 / 986            649 / 1169
+  --- derived by the MODEL ---                                                        
+  session_intervals rows                                   30323                 29109
+  counted watch hours                                     1978.1                2397.2
+  PEAK concurrency                                          2917                  2627
+  cc_minute_delta rows                                     28073                 42877
+    ... as % of the ADR 0008 ceiling                        76.2                    96
+
+  STORAGE — system.parts, active parts only. OPTIMIZE FINAL is deliberately
+  NOT run first: these are the numbers a live service actually has on disk.
+  table                            rows      on disk   uncompressed     ratio    parts   partns
+  ev_raw                889.45 thousan    7.80 MiB    149.31 MiB   19.15x       7       7
+  session_intervals     29.11 thousand    1.72 MiB      5.05 MiB    2.94x       1       1
+  cc_user_minute        121.89 thousan  448.31 KiB      5.29 MiB   12.08x       7       7
+  cc_minute_stateless   126.73 thousan  415.91 KiB      4.54 MiB   11.19x       7       7
+  cc_minute_delta       42.88 thousand  366.78 KiB      1.72 MiB    4.81x       7       7
+  content_dim           33.46 thousand  366.73 KiB    884.60 KiB    2.41x       1       1
+  gen_content           33.46 thousand  264.46 KiB    392.16 KiB    1.48x       1       1
+  gen_start             65.54 thousand  261.82 KiB    512.00 KiB    1.96x       1       1
+  cc_hour_agg           28.49 thousand  238.64 KiB      1.14 MiB     4.9x       1       1
+  gen_ev                 4.10 thousand   17.45 KiB    186.22 KiB   10.67x       1       1
+  gen_lut                       226.00    3.84 KiB      9.94 KiB    2.59x       1       1
+
+  the five widest columns of ev_raw at this scale (system.columns; the
+  tables set min_bytes_for_wide_part=0 so per-column accounting is real)
+    event_timestamp                    DateTime64(3)    3.90 MiB      6.79 MiB    1.74x
+    user_id                                   String    1.20 MiB     61.07 MiB   50.79x
+    video_session_id                          String    1.18 MiB     61.07 MiB   51.86x
+    event                     LowCardinality(String)  810.41 KiB    873.15 KiB    1.08x
+    event_type                LowCardinality(String)  203.46 KiB    871.14 KiB    4.28x
+
+  DICTIONARY MEMORY — one of the four named 'what breaks first' candidates.
+  dict_content is keyed on the CATALOG (content_dim, 33,464 rows), not on
+  the audience, so this number is expected to be identical at every scale.
+  The definition is copied from sql/80_content.sql, same COMPLEX_KEY_HASHED
+  layout, repointed at this scratch database (that file hard-codes DB
+  'sonyliv' — a known defect, and not one this task is allowed to fix).
+    LOADED  ·  33464 elements  ·  17.00 MiB allocated  ·  0.255 load factor  ·  0.01 s to load
+
+  MERGE PRESSURE — system.part_log. 'Too many parts' is the classic way a
+  high-ingest ClickHouse table falls over, so the part counts above are only
+  half the story; this is the other half.
+  event                     n          bytes     slowest ms       peak mem
+  NewPart                477    187.46 MiB           935        0.00 B
+  RemovePart               4      5.17 MiB             0        0.00 B
+  MutatePart               2      1.73 MiB             8      4.77 MiB
+  MutatePartStart          2        0.00 B             0        0.00 B
+  MergeParts               1      3.10 KiB            16     26.88 MiB
+  MergePartsStart          1        0.00 B             0        0.00 B
+
+  SERVING QUERIES — median of 3 runs, and the BYTES each one reads.
+  Reconstructed from the statement's grains (.claude/commands/bench.md
+  permits this); NOT the official benchmark set.
+  query                                                  ms      rows read     bytes read     result
+  Q1 peak, whole feed, minute grain                     3.7         42,877     502.46 KiB       2627
+  Q2 peak, one platform, one hour, minute grain         4.9         40,960     656.00 KiB       1870
+  Q3 peak, day grain, hour tier                         3.1          8,192     240.00 KiB       2627
+  Q4 time-weighted average, day grain, hour tier        2.8          8,192     240.00 KiB     114.75
+  Q5 top-10 content by peak, hour tier                  2.5          8,192     144.00 KiB         10
+  Q6 peak filtered on a TAIL dimension (audio_language)      4.1         42,873     544.29 KiB       1746
+  Q7 dashboard: minute curve for the peak hour          6.6         49,506     401.38 KiB         60
+  Q8 peak concurrent USERS, whole feed (FINAL merge)     21.4        121,887      23.71 MiB       2458
+
+  reconcile (delta serving layer vs interval expansion, every minute): PASS  3516 minutes compared, peak 2627
+  reconcile (user tier vs interval expansion, every minute): PASS  3516 minutes compared, user peak 2458
+
+  PUBLISH RUN AT 1x — one straggler through all SIX phases (ADR 0016).
+  straggler: session 0003AD59A60DA203…  heartbeat at 2026-07-26 10:47:39.000 (bridges a published gap)
+    == run 1785605285733  ·  1 session(s) claimed  ·  cursor 1970-01-01 00:00:00.000 -> 2026-08-01 17:28:01.622
+       negated   8 corrective delta rows   49 ms
+       derived   4 intervals   126 ms   (window 2026-07-26 10:40:44.000 .. 2026-07-26 11:15:13.000)
+       pruned    superseded intervals   106 ms
+       emitted   8 delta rows   51 ms
+       hours     24204 hour-cube rows re-derived   159 ms
+       users     61466 user-minute buckets re-derived   93 ms
+       committed cursor now 2026-08-01 17:28:01.622
+
+  per-phase cost of the one-session correction (cc_publish_runs):
+    negated         49 ms               8 rows
+    derived        126 ms               4 rows
+    pruned         106 ms               0 rows
+    emitted         51 ms               8 rows
+    hours          159 ms           24204 rows
+    users           93 ms           61466 rows
+    TOTAL          584 ms   (hours+users: 252 ms — the phases the 3.4 s claim never contained)
+
+  what the two NEW phases read (system.query_log):
+    hours              41331 rows    887.97 KiB     40.71 MiB peak mem
+    users             145017 rows      4.74 MiB     87.14 MiB peak mem
+
+  user-tier geometry (ADR 0016: corrections are ROWS, so counts only grow):
+    physical rows 121,887 -> 183,353  (+61,466 superseding versions from ONE publish)
+    logical keys  121,887 -> 121,889  (FINAL collapses the versions; a rebuild's TRUNCATE clears them)
+  reconcile after the publish (minute tier vs intervals): PASS  3516 minutes
+--------------------------------------------------------------------------
+SCALE 10x — 108,660 sessions, target ~9,055,580 events, 10,616 content ids
+--------------------------------------------------------------------------
+  [gen]  tools/scale-load.sql  S=108,660 SEED=20260801 NC=10,616
+  [gen]  8,986,595 events  ·  19429 ms  ·  peak mem 1.45 GiB
+  [intervals]  6324 ms  ·  peak mem 3.79 GiB  ·  read 8,986,595 rows  ·  wrote 291,564 rows
+  [users]  883 ms  ·  peak mem 921.76 MiB  ·  read 291,564 rows  ·  wrote 996,334 rows
+  [deltas]  1058 ms  ·  peak mem 261.96 MiB  ·  read 588,936 rows  ·  wrote 428,190 rows
+  [houragg]  789 ms  ·  peak mem 381.45 MiB  ·  read 428,190 rows  ·  wrote 177,982 rows
+
+  STORAGE — system.parts, active parts only. OPTIMIZE FINAL is deliberately
+  NOT run first: these are the numbers a live service actually has on disk.
+  table                            rows      on disk   uncompressed     ratio    parts   partns
+  ev_raw                  8.99 million   78.55 MiB      1.47 GiB    19.2x      24       7
+  session_intervals     291.56 thousan   17.22 MiB     50.61 MiB    2.94x       1       1
+  cc_user_minute        996.33 thousan    4.33 MiB     48.28 MiB   11.14x       7       7
+  cc_minute_stateless     1.16 million    3.96 MiB     44.20 MiB   11.17x      13       7
+  cc_minute_delta       416.46 thousan    3.45 MiB     16.69 MiB    4.84x       7       7
+  cc_hour_agg           178.17 thousan    1.83 MiB      7.14 MiB     3.9x       1       1
+  content_dim           33.46 thousand  366.73 KiB    884.60 KiB    2.41x       1       1
+  gen_content           33.46 thousand  264.46 KiB    392.16 KiB    1.48x       1       1
+  gen_start             65.54 thousand  261.82 KiB    512.00 KiB    1.96x       1       1
+  gen_ev                 4.10 thousand   17.45 KiB    186.22 KiB   10.67x       1       1
+  gen_lut                       226.00    3.84 KiB      9.94 KiB    2.59x       1       1
+
+  the five widest columns of ev_raw at this scale (system.columns; the
+  tables set min_bytes_for_wide_part=0 so per-column accounting is real)
+    event_timestamp                    DateTime64(3)   39.38 MiB     68.56 MiB    1.74x
+    user_id                                   String   12.13 MiB    617.06 MiB   50.89x
+    video_session_id                          String   11.80 MiB    617.06 MiB   52.29x
+    event                     LowCardinality(String)    7.98 MiB      8.60 MiB    1.08x
+    event_type                LowCardinality(String)    2.00 MiB      8.59 MiB     4.3x
+
+  DICTIONARY MEMORY — one of the four named 'what breaks first' candidates.
+  dict_content is keyed on the CATALOG (content_dim, 33,464 rows), not on
+  the audience, so this number is expected to be identical at every scale.
+  The definition is copied from sql/80_content.sql, same COMPLEX_KEY_HASHED
+  layout, repointed at this scratch database (that file hard-codes DB
+  'sonyliv' — a known defect, and not one this task is allowed to fix).
+    LOADED  ·  33464 elements  ·  17.00 MiB allocated  ·  0.255 load factor  ·  0.023 s to load
+
+  MERGE PRESSURE — system.part_log. 'Too many parts' is the classic way a
+  high-ingest ClickHouse table falls over, so the part counts above are only
+  half the story; this is the other half.
+  event                     n          bytes     slowest ms       peak mem
+  NewPart                867      1.04 GiB          1601        0.00 B
+  MergeParts              70    577.09 MiB          7227    106.28 MiB
+  MergePartsStart         70        0.00 B             0        0.00 B
+
+  SERVING QUERIES — median of 3 runs, and the BYTES each one reads.
+  Reconstructed from the statement's grains (.claude/commands/bench.md
+  permits this); NOT the official benchmark set.
+  query                                                  ms      rows read     bytes read     result
+  Q1 peak, whole feed, minute grain                     9.2        416,461       4.77 MiB      25607
+  Q2 peak, one platform, one hour, minute grain         7.0        286,720       3.69 MiB      17875
+  Q3 peak, day grain, hour tier                         3.7          8,192     240.00 KiB      25607
+  Q4 time-weighted average, day grain, hour tier        5.8          8,192     240.00 KiB     1165.4
+  Q5 top-10 content by peak, hour tier                  3.0         32,768     576.00 KiB         10
+  Q6 peak filtered on a TAIL dimension (audio_language)      6.4        416,461       5.16 MiB      16879
+  Q7 dashboard: minute curve for the peak hour          6.2        410,646       1.77 MiB         60
+  Q8 peak concurrent USERS, whole feed (FINAL merge)     79.7        996,334     193.84 MiB      23982
+
+  reconcile (delta serving layer vs interval expansion, every minute): PASS  5334 minutes compared, peak 25607
+  reconcile (user tier vs interval expansion, every minute): PASS  5334 minutes compared, user peak 23982
+
+  PUBLISH RUN AT 10x — one straggler through all SIX phases (ADR 0016).
+  straggler: session 0003AD59A60DA203…  heartbeat at 2026-07-26 10:47:39.000 (bridges a published gap)
+    == run 1785605319919  ·  1 session(s) claimed  ·  cursor 1970-01-01 00:00:00.000 -> 2026-08-01 17:28:35.814
+       negated   8 corrective delta rows   46 ms
+       derived   4 intervals   71 ms   (window 2026-07-26 10:40:44.000 .. 2026-07-26 11:15:13.000)
+       pruned    superseded intervals   72 ms
+       emitted   8 delta rows   47 ms
+       hours     143472 hour-cube rows re-derived   619 ms
+       users     459392 user-minute buckets re-derived   393 ms
+       committed cursor now 2026-08-01 17:28:35.814
+
+  per-phase cost of the one-session correction (cc_publish_runs):
+    negated         46 ms               8 rows
+    derived         71 ms               4 rows
+    pruned          72 ms               0 rows
+    emitted         47 ms               8 rows
+    hours          619 ms          143472 rows
+    users          393 ms          459392 rows
+    TOTAL         1248 ms   (hours+users: 1012 ms — the phases the 3.4 s claim never contained)
+
+  what the two NEW phases read (system.query_log):
+    hours             402471 rows      8.44 MiB    267.40 MiB peak mem
+    users            1243916 rows     40.65 MiB    600.55 MiB peak mem
+
+  user-tier geometry (ADR 0016: corrections are ROWS, so counts only grow):
+    physical rows 996,334 -> 1,455,726  (+459,392 superseding versions from ONE publish)
+    logical keys  996,334 -> 996,336  (FINAL collapses the versions; a rebuild's TRUNCATE clears them)
+  reconcile after the publish (minute tier vs intervals): PASS  5334 minutes
+--------------------------------------------------------------------------
+SCALE 100x — 1,086,600 sessions, target ~90,555,800 events, 33,464 content ids
+--------------------------------------------------------------------------
+  [gen]  tools/scale-load.sql  S=1,086,600 SEED=20260801 NC=33,464
+  [gen]  89,850,838 events  ·  125919 ms  ·  peak mem 1.68 GiB
+  [intervals]  *** FAILED at 100x, at default settings ***
+         Received exception from server (version 26.7.1): Code: 241. DB::Exception: Received from localhost:9000. DB::Exception: (total) memory limit exceeded: would use 5.42 GiB (attempt to allocate chunk of 280.59 MiB), current RSS: 3.83 GiB, maximum: 5.40 GiB. OvercommitTracker decision: Query was selecte
+  [intervals]  retrying with spill
+  [intervals]  spill did NOT rescue it:
+         Received exception from server (version 26.7.1): Code: 241. DB::Exception: Received from localhost:9000. DB::Exception: (total) memory limit exceeded: would use 5.34 GiB (attempt to allocate chunk of 512.00 MiB), current RSS: 5.03 GiB, maximum: 5.43 GiB. OvercommitTracker decision: Query was selecte
+  [intervals]  retrying with spill+2threads
+  [intervals]  spill+2threads OK  122123 ms  ·  peak mem 3.57 GiB  ·  wrote 2,918,332 rows  ·  SPILLED 613.43 MiB of aggregation state to disk (1.44 GiB read back)
+  [users]  10488 ms  ·  peak mem 2.39 GiB  ·  read 2,992,060 rows  ·  wrote 7,208,292 rows  ·  SPILLED 361.38 MiB of aggregation state to disk (69.07 MiB read back)
+  [deltas]  9875 ms  ·  peak mem 2.08 GiB  ·  read 6,042,754 rows  ·  wrote 4,086,387 rows  ·  SPILLED 59.07 MiB of aggregation state to disk (64.92 MiB read back)
+  [houragg]  11876 ms  ·  peak mem 2.06 GiB  ·  read 4,086,387 rows  ·  wrote 1,054,762 rows  ·  SPILLED 155.01 MiB of aggregation state to disk (27.02 MiB read back)
+
+  STORAGE — system.parts, active parts only. OPTIMIZE FINAL is deliberately
+  NOT run first: these are the numbers a live service actually has on disk.
+  table                            rows      on disk   uncompressed     ratio    parts   partns
+  ev_raw                 89.85 million  785.21 MiB     14.73 GiB   19.21x      25       7
+  session_intervals       2.92 million  172.34 MiB    506.57 MiB    2.94x       3       1
+  cc_user_minute          7.21 million   66.42 MiB    422.21 MiB    6.36x      14       7
+  cc_minute_stateless    10.10 million   42.54 MiB    420.21 MiB    9.88x      22       7
+  cc_minute_delta         3.98 million   39.72 MiB    159.39 MiB    4.01x      28       7
+  cc_hour_agg             1.06 million   11.25 MiB     42.30 MiB    3.76x       2       1
+  content_dim           33.46 thousand  366.73 KiB    884.60 KiB    2.41x       1       1
+  gen_content           33.46 thousand  264.46 KiB    392.16 KiB    1.48x       1       1
+  gen_start             65.54 thousand  261.82 KiB    512.00 KiB    1.96x       1       1
+  gen_ev                 4.10 thousand   17.45 KiB    186.22 KiB   10.67x       1       1
+  gen_lut                       226.00    3.84 KiB      9.94 KiB    2.59x       1       1
+
+  the five widest columns of ev_raw at this scale (system.columns; the
+  tables set min_bytes_for_wide_part=0 so per-column accounting is real)
+    event_timestamp                    DateTime64(3)  393.50 MiB    685.51 MiB    1.74x
+    user_id                                   String  121.54 MiB      6.02 GiB   50.76x
+    video_session_id                          String  117.67 MiB      6.02 GiB   52.43x
+    event                     LowCardinality(String)   79.88 MiB     85.87 MiB    1.07x
+    event_type                LowCardinality(String)   19.91 MiB     85.86 MiB    4.31x
+
+  DICTIONARY MEMORY — one of the four named 'what breaks first' candidates.
+  dict_content is keyed on the CATALOG (content_dim, 33,464 rows), not on
+  the audience, so this number is expected to be identical at every scale.
+  The definition is copied from sql/80_content.sql, same COMPLEX_KEY_HASHED
+  layout, repointed at this scratch database (that file hard-codes DB
+  'sonyliv' — a known defect, and not one this task is allowed to fix).
+    LOADED  ·  33464 elements  ·  17.00 MiB allocated  ·  0.255 load factor  ·  0.015 s to load
+
+  MERGE PRESSURE — system.part_log. 'Too many parts' is the classic way a
+  high-ingest ClickHouse table falls over, so the part counts above are only
+  half the story; this is the other half.
+  event                     n          bytes     slowest ms       peak mem
+  NewPart               6219     10.35 GiB         10990        0.00 B
+  RemovePart            1241      3.60 GiB             0        0.00 B
+  MergePartsStart       1059        0.00 B             0        0.00 B
+  MergeParts            1058     11.70 GiB         35722    181.34 MiB
+
+  SERVING QUERIES — median of 3 runs, and the BYTES each one reads.
+  Reconstructed from the statement's grains (.claude/commands/bench.md
+  permits this); NOT the official benchmark set.
+  query                                                  ms      rows read     bytes read     result
+  Q1 peak, whole feed, minute grain                    14.6      3,977,734      45.52 MiB     257588
+  Q2 peak, one platform, one hour, minute grain        14.5      2,605,056      32.37 MiB     178968
+  Q3 peak, day grain, hour tier                         2.5          8,192     240.00 KiB     257588
+  Q4 time-weighted average, day grain, hour tier        4.0          8,192     240.00 KiB   11628.74
+  Q5 top-10 content by peak, hour tier                  9.6        213,324       6.10 MiB         10
+  Q6 peak filtered on a TAIL dimension (audio_language)     13.4      3,977,734      49.32 MiB     170518
+  Q7 dashboard: minute curve for the peak hour         10.1      3,841,840      14.86 MiB         60
+  Q8 peak concurrent USERS, whole feed (FINAL merge)    884.2      7,241,060       1.50 GiB     240594
+
+  reconcile (delta serving layer vs interval expansion, every minute): PASS  6813 minutes compared, peak 257588
+  reconcile (user tier vs interval expansion, every minute): PASS  6813 minutes compared, user peak 240594
+
+  PUBLISH RUN AT 100x — one straggler through all SIX phases (ADR 0016).
+  straggler: session 00007B744D27DAD2…  heartbeat at 2026-07-26 11:01:37.000 (bridges a published gap)
+    == run 1785605662816  ·  1 session(s) claimed  ·  cursor 1970-01-01 00:00:00.000 -> 2026-08-01 17:34:18.710
+       negated   3 corrective delta rows   52 ms
+       derived   2 intervals   64 ms   (window 2026-07-26 10:55:37.000 .. 2026-07-26 11:05:39.000)
+       pruned    superseded intervals   83 ms
+       emitted   3 delta rows   47 ms
+       hours     748506 hour-cube rows re-derived   5227 ms
+       users     1141452 user-minute buckets re-derived   2024 ms
+       committed cursor now 2026-08-01 17:34:18.710
+
+  per-phase cost of the one-session correction (cc_publish_runs):
+    negated         52 ms               3 rows
+    derived         64 ms               2 rows
+    pruned          83 ms               0 rows
+    emitted         47 ms               3 rows
+    hours         5227 ms          748506 rows
+    users         2024 ms         1141452 rows
+    TOTAL         7497 ms   (hours+users: 7251 ms — the phases the 3.4 s claim never contained)
+
+  what the two NEW phases read (system.query_log):
+    hours            3833655 rows     80.43 MiB      2.45 GiB peak mem
+    users            9718433 rows    621.54 MiB      1.43 GiB peak mem
+
+  user-tier geometry (ADR 0016: corrections are ROWS, so counts only grow):
+    physical rows 7,208,292 -> 8,349,744  (+1,141,452 superseding versions from ONE publish)
+    logical keys  7,208,292 -> 7,208,292  (FINAL collapses the versions; a rebuild's TRUNCATE clears them)
+  reconcile after the publish (minute tier vs intervals): PASS  6813 minutes
+
+  MEMORY SWEEP — the interval derivation at 100x, by thread count.
+  This is the stage that binds. Everything else in the pipeline reads
+  rows; this one holds an array per session in memory.
+
+  (settled: waited 0 s for merges on scale_x100, caches dropped, allocator purged;
+   server RSS now 1.97 GiB of a 5.45 GiB budget)
+
+  NOTE ON THE BUDGET. max_server_memory_usage is 0.9 x currently-available
+  RAM, and this is a laptop, so the ceiling itself moved between 4.98 and
+  5.64 GiB across runs. A row that FAILED here at 10 threads has completed
+  on a colder server at 4.48 GiB / 73.4 s. That instability IS the finding:
+  at 100x this stage wants the same order of memory as the whole server,
+  so whether it completes depends on what else the server has been doing.
+  max_threads              ms    peak memory        spilled       rows out
+  10                   FAILED   (total) memory limit exceeded: would use 3.96 GiB (attempt to allocate chunk of 512.00 MiB), cur
+  4                    FAILED   (total) memory limit exceeded: would use 5.57 GiB (attempt to allocate chunk of 512.00 MiB), cur
+  2                    215595       3.52 GiB     601.96 MiB      2,918,332
+  server total budget: 5.45 GiB
+--------------------------------------------------------------------------
+SUMMARY — row counts against the ADR 0008 ceiling
+--------------------------------------------------------------------------
+scale      sessions         events    intervals cc_minute_delta      ceiling   hour_agg    user_bkts
+1x-real       10,866        905,558       30,323         28,073       36,828     26,254       91,692
+1x           10,866        889,454       29,109         42,877       44,646     28,486      121,887
+10x         108,660      8,986,595      291,564        416,461      446,705    178,174      996,334
+100x      1,086,600     89,850,838    2,918,332      3,977,734    4,480,388  1,056,012    7,208,292
+--------------------------------------------------------------------------
+BUILD COST — per stage, straight out of system.query_log
+--------------------------------------------------------------------------
+scale    stage                      ms    peak memory
+1x       intervals                 585     251.14 MiB
+1x       users                     139     113.41 MiB
+1x       deltas                    208      83.44 MiB
+1x       houragg                   196      51.30 MiB
+10x      intervals                6324       3.79 GiB
+10x      users                     883     921.76 MiB
+10x      deltas                   1058     261.96 MiB
+10x      houragg                   789     381.45 MiB
+100x     intervals              FAILED              -
+100x     intervals+spill        FAILED              -
+100x     intervals+spill+2threads       122123       3.57 GiB
+100x     users                   10488       2.39 GiB
+100x     deltas                   9875       2.08 GiB
+100x     houragg                 11876       2.06 GiB
+
+GROWTH EXPONENT — fit t = a*N^k on the BEST configuration that completed
+  at each scale. Where a stage needed a retry tier to fit, the fitted
+  point is that tier — so this reads 'what the pipeline achieved', and
+  the BUILD COST table above says what it took to get there.
+  stage          k (time) k (memory)  scales fitted          verdict
+  deltas             0.84       0.70        1x-100x           LINEAR
+  houragg            0.89       0.81        1x-100x           LINEAR
+  intervals          1.16       0.58        1x-100x     SUPER-LINEAR
+  users              0.94       0.67        1x-100x           LINEAR
+
+server hard ceiling: max_server_memory_usage = 5.40 GiB
+  (a 10-core docker ClickHouse, NOT a production box — read the memory
+   column as a shape, and the ceiling as where that shape hits a wall)
+--------------------------------------------------------------------------
+ADR 0008 claims cc_minute_delta holds at most one open + one close row per
+(merged run, hour), i.e. sum(starts)+sum(ends) — the 'ceiling' column. The
+gap between the two columns is what a new dimension could still cost.
+--------------------------------------------------------------------------
+WHAT BREAKS FIRST — the four candidates, each as the number that shows it
+--------------------------------------------------------------------------
+scale         max parts     merges  slowest merge     dict bytes   stateless tier      user tier
+1x                    7          1          16 ms      17.00 MiB       415.91 KiB     448.31 KiB
+10x                  24         70        7227 ms      17.00 MiB         3.96 MiB       4.33 MiB
+100x                 28      1,058       35722 ms      17.00 MiB        42.54 MiB      66.42 MiB
+
+  max parts       — the classic 'too many parts' failure; the limit is
+                    parts_to_throw_insert = 3000 per partition
+  dict bytes      — dict_content is keyed on the CATALOG, not the audience
+  stateless tier  — cc_minute_stateless, the uniqExact(video_session_id)
+                    states; the one structure whose size is set by DISTINCT
+                    SESSIONS rather than by intervals
+  user tier       — cc_user_minute (ADR 0016), uniqExact(user_id) states
+                    under ReplacingMergeTree: set by DISTINCT USERS x the
+                    dims fan-out, and every read of it pays FINAL
+--------------------------------------------------------------------------
+PUBLISH COST vs SCALE — one straggler, six phases (ADR 0016)
+--------------------------------------------------------------------------
+  The public claim this table interrogates: 'straggler correction = one
+  session in 3.4 s' (docs/ARCHITECTURE.md), measured on CLOUD at 1x when
+  the publisher had FOUR phases. These runs are on the local docker box,
+  so compare shapes across scales, not absolute ms against Cloud.
+  scale      total ms   hours ms   users ms  users read rows derive read rows
+  1x              584        159         93          145,017          114,690
+  10x            1248        619        393        1,243,916          491,522
+  100x           7497       5227       2024        9,718,433        1,253,378
+--------------------------------------------------------------------------
+VERDICT vs THE PRE-ADR-0016 RUN — every figure, moved or not
+--------------------------------------------------------------------------
+  Written against the 2026-08-01T17:27Z run of this script. If you
+  regenerate at a later commit, re-read these callouts against your
+  fresh numbers before quoting them.
+
+  UNCHANGED — the ADR 0016 engine change was FREE here, which is itself
+  a design claim:
+    deltas build      1058 ms / 262 MiB at 10x, 9875 ms / 2.08 GiB at 100x — identical
+    houragg build     789 ms at 10x, 11876 ms / 2.06 GiB at 100x — identical
+    growth exponents  deltas k=0.84, houragg k=0.89 — identical
+    serving Q1-Q7     within noise at every scale; bytes read at 100x
+                      actually FELL ~3 pct (fewer delta rows after ADR 0009
+                      same-second-resume merging: 3.98M vs 4.09M)
+    breaks-first set  max parts 28, dict 17.00 MiB, stateless 42.54 MiB —
+                      all where they were
+    ADR 0008 ceiling  deltas at 88.8 pct of ceiling at 100x (was 88.7) — holds
+
+  MOVED — none of it caused by ADR 0016; the re-measure caught ADR 0009:
+    intervals 10x     peak mem 1.47 -> 3.79 GiB (+158 pct); ms 6092 -> 6324 (noise)
+    intervals 100x    'spill' alone NO LONGER rescues it (before: 53.9 s /
+                      4.23 GiB); now needs spill+2threads: 122.1 s / 3.57 GiB
+    sweep 100x        t=4 now FAILS (was 75.5 s / 4.43 GiB); t=2 completes
+                      215.6 s / 3.52 GiB (was 55.1 s / 2.67 GiB) — 3.9x slower
+    growth exponent   intervals k(time) 0.98 -> 1.16, LINEAR -> SUPER-LINEAR
+    cause             sql/30_build_intervals.sql now groupArrays a TUPLE per
+                      event (ADR 0009 deterministic attribution) where it held
+                      bare timestamps. EXPLAINER.md's sweep quote (t=2 at
+                      2.59 GiB / 50.5 s) is stale.
+    model row counts  1x-real intervals 30,769 -> 30,323; real-file peak
+                      2,887 -> 2,917 — matches evidence/reconcile.txt; the
+                      old scale run was measuring the pre-fix model
+
+  NEW — measured for the first time (the old run never built the tier):
+    users build       139 ms/113 MiB -> 883 ms/922 MiB -> 10.5 s/2.39 GiB
+                      (361 MiB spilled); k=0.94 LINEAR — second-heaviest stage
+    user tier disk    66.42 MiB at 100x — now the LARGEST derived aggregate
+                      on disk (stateless is 42.54 MiB)
+    Q8 user peak      8.5 ms/17.8 MiB -> 79.7 ms/194 MiB -> 884 ms/1.50 GiB —
+                      the ONLY serving query that grows with the tier; every
+                      other query stays under 15 ms at 100x
+    publish, 6 phases 584 -> 1,248 -> 7,497 ms; hours+users are 43 -> 81 ->
+                      97 pct of the run; the four delta phases stay flat
+                      (~230-330 ms at every scale — window-bound, as designed)
+    hours phase mem   2.45 GiB peak at 100x for ONE session's correction —
+                      45 pct of this box's budget; linear from 267 MiB at 10x,
+                      so it meets the ceiling between 100x and 200x HERE
+    tier churn        one publish appends +1.14M physical rows to
+                      cc_user_minute at 100x (16 pct of the tier) as
+                      superseding versions, until merges collapse them
+
+  WHAT BREAKS FIRST — the answer moved in TWO ways:
+    1. Batch path: still the interval derivation's memory, but WORSE than
+       published (ADR 0009's wider per-event tuple, super-linear time fit).
+    2. Incremental path, NEW: the publisher's hours+users phases. Their
+       cost is audience x window — NOT straggler count. At 100x, one
+       session's correction re-derives 748,506 hour-cube rows (71 pct of
+       the whole cube) and 1.14M user buckets in 7.5 s at 2.45 GiB peak.
+       The publisher, not the rebuild, is the first thing to break at
+       scale beyond 100x on a box this size.
+
+  THE QUOTED CLAIM. 'Straggler correction: 1 session in 3.4 s'
+  (docs/ARCHITECTURE.md) does NOT survive ADR 0016. On Cloud at 1x the
+  same correction through six phases is already 5,215 ms
+  (evidence/publish.txt PHASE 5: 681+566+1424+1284 legacy + 599 hours +
+  661 users), and this table shows the cost is audience-proportional.
+  The claim that DOES survive: the four delta phases scale with
+  stragglers, not history — they are flat at every scale above. The
+  honest public sentence is: 'delta correction is window-bounded and
+  flat; tier maintenance rides along and scales with the audience.'
+--------------------------------------------------------------------------
+FROZEN BEFORE — the pre-ADR-0016 run these numbers are diffed against
+--------------------------------------------------------------------------
+  generated 2026-08-01T15:18Z, commit 8af15cb, same box (docker CH, 10
+  cores, ~5.6 GiB budget), same seed 20260801. Copied verbatim so a
+  regeneration of this file keeps the comparison. That run had NO user
+  tier (cc_user_minute was never instantiated) and NO publish probe.
+
+  BUILD COST then:
+    1x    intervals   585 ms  251.14 MiB   |  10x  intervals   6092 ms  1.47 GiB
+    1x    deltas      208 ms   83.44 MiB   |  10x  deltas      1058 ms  261.96 MiB
+    1x    houragg     196 ms   51.30 MiB   |  10x  houragg      789 ms  381.45 MiB
+    100x  intervals   FAILED (memory limit: would use 2.80 GiB, RSS 5.18/5.51 GiB)
+    100x  intervals+spill  53890 ms  4.23 GiB  (574.85 MiB spilled)
+    100x  deltas            9875 ms  2.08 GiB
+    100x  houragg          11876 ms  2.06 GiB
+  MEMORY SWEEP at 100x then: t=10 FAILED · t=4 75487 ms / 4.43 GiB · t=2 55094 ms / 2.67 GiB
+  ROW COUNTS then: 1x-real 30,769 iv / 28,149 dl / 26,166 ha · 10x 294,468 / 428,190 / 177,982
+                   100x 2,947,649 iv / 4,086,387 dl / 1,054,762 ha
+  SERVING at 100x then: Q1 11.2ms/46.76MiB · Q2 12.9ms/33.28MiB · Q3 2.1ms/176KiB
+                        Q4 2.3ms/176KiB · Q5 9.5ms/6.10MiB · Q6 17.2ms/50.66MiB · Q7 10.1ms/15.19MiB
+  WHAT BREAKS FIRST then: parts 28 · merges 930 · slowest merge 35722 ms ·
+                          dict 17.00 MiB · stateless tier 42.70 MiB — and the
+                          binding stage was the INTERVAL DERIVATION's memory.
+--------------------------------------------------------------------------
+scratch databases dropped · sonyliv never written
+regenerate: tools/scale-test.sh 1 10 100

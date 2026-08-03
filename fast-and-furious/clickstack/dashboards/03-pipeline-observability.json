@@ -1,0 +1,155 @@
+{
+  "name": "SonyLIV — Pipeline & query observability",
+  "tags": [
+    "sonyliv",
+    "pipeline",
+    "observability"
+  ],
+  "tiles": [
+    {
+      "name": "Ingest lag p50/p95/p99 (s)",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(_ingested_at) AS ts, round(quantile(0.50)(dateDiff('millisecond', event_timestamp, _ingested_at)) / 1000.0, 3) AS p50, round(quantile(0.95)(dateDiff('millisecond', event_timestamp, _ingested_at)) / 1000.0, 3) AS p95, round(quantile(0.99)(dateDiff('millisecond', event_timestamp, _ingested_at)) / 1000.0, 3) AS p99 FROM __DATABASE__.events_raw WHERE $__timeFilter(_ingested_at) AND _source_file NOT LIKE 'csv:%' GROUP BY ts ORDER BY ts"
+      }
+    },
+    {
+      "name": "Rows/s by producer",
+      "x": 12,
+      "y": 0,
+      "w": 12,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(_ingested_at) AS ts, _source_file AS producer, round(count() / $__interval_s, 1) AS rows_per_second FROM __DATABASE__.events_raw WHERE $__timeFilter(_ingested_at) GROUP BY ts, producer ORDER BY ts"
+      }
+    },
+    {
+      "name": "Read volume by query",
+      "x": 0,
+      "y": 8,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "WITH (SELECT count() FROM clusterAllReplicas(default, system.query_log) WHERE type = 'QueryFinish' AND ($__timeFilter(event_time) AND event_time < $__toTime) AND positionCaseInsensitive(query, 'system.query_log') = 0 AND positionCaseInsensitive(query, 'serving_') > 0) AS in_range SELECT if(in_range > 0, 'selected range', 'full log — selected range predates it') AS scope, normalized_query_hash AS query_hash, any(substring(query, 1, 110)) AS query_sample, count() AS runs, formatReadableQuantity(round(avg(read_rows))) AS avg_read_rows, formatReadableSize(round(avg(read_bytes))) AS avg_read_bytes, round(quantile(0.50)(query_duration_ms)) AS p50_ms, round(quantile(0.99)(query_duration_ms)) AS p99_ms, formatReadableSize(max(memory_usage)) AS peak_memory FROM clusterAllReplicas(default, system.query_log) WHERE type = 'QueryFinish' AND (in_range = 0 OR ($__timeFilter(event_time) AND event_time < $__toTime)) AND positionCaseInsensitive(query, 'system.query_log') = 0 AND positionCaseInsensitive(query, 'serving_') > 0 GROUP BY scope, query_hash ORDER BY avg(read_rows) DESC LIMIT 30"
+      }
+    },
+    {
+      "name": "Recent queries",
+      "x": 0,
+      "y": 17,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "WITH (SELECT count() FROM clusterAllReplicas(default, system.query_log) WHERE type = 'QueryFinish' AND ($__timeFilter(event_time) AND event_time < $__toTime) AND positionCaseInsensitive(query, 'system.query_log') = 0) AS in_range SELECT if(in_range > 0, 'selected range', 'full log — selected range predates it') AS scope, event_time, round(query_duration_ms) AS duration_ms, read_rows, round(read_bytes / 1048576.0, 3) AS read_mb, result_rows, round(memory_usage / 1048576.0, 1) AS peak_mem_mb, substring(normalizeQuery(query), 1, 240) AS query, query_id FROM clusterAllReplicas(default, system.query_log) WHERE type = 'QueryFinish' AND (in_range = 0 OR ($__timeFilter(event_time) AND event_time < $__toTime)) AND positionCaseInsensitive(query, 'system.query_log') = 0 ORDER BY event_time DESC LIMIT 200"
+      }
+    },
+    {
+      "name": "Rollup duration (ms)",
+      "x": 0,
+      "y": 26,
+      "w": 12,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(built_at) AS ts, layer, max(build_ms) AS build_ms FROM __DATABASE__.serving_watermark_history WHERE $__timeFilter(built_at) GROUP BY ts, layer ORDER BY ts"
+      }
+    },
+    {
+      "name": "Sessions dirtied/min",
+      "x": 12,
+      "y": 26,
+      "w": 12,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(last_ingested_at) AS ts, uniqExact(session_key) AS sessions_dirtied FROM __DATABASE__.dirty_sessions WHERE $__timeFilter(last_ingested_at) GROUP BY ts ORDER BY ts"
+      }
+    },
+    {
+      "name": "Layer freshness",
+      "x": 0,
+      "y": 34,
+      "w": 6,
+      "h": 6,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT layer, watermark_ts, dateDiff('second', watermark_ts, now64(3)) AS behind_seconds, rows_out, build_ms, policy_version FROM __DATABASE__.serving_watermark FINAL ORDER BY layer"
+      }
+    },
+    {
+      "name": "Dedup collapse",
+      "x": 6,
+      "y": 34,
+      "w": 6,
+      "h": 6,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT (SELECT count() FROM __DATABASE__.events_raw) AS landed_rows, (SELECT count() FROM __DATABASE__.events_dedup) AS resolved_rows, landed_rows - resolved_rows AS collapsed, round(100.0 * (landed_rows - resolved_rows) / nullIf(landed_rows, 0), 4) AS collapsed_pct, (SELECT count() FROM __DATABASE__.ingest_rejects) AS rejected_rows"
+      }
+    },
+    {
+      "name": "Storage",
+      "x": 12,
+      "y": 34,
+      "w": 6,
+      "h": 6,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT table, formatReadableQuantity(sum(rows)) AS rows, formatReadableSize(sum(bytes_on_disk)) AS on_disk, round(sum(data_uncompressed_bytes) / nullIf(sum(data_compressed_bytes), 0), 1) AS compression_x, count() AS active_parts, any(replicas) AS replicas FROM (SELECT table, name, any(rows) AS rows, any(bytes_on_disk) AS bytes_on_disk, any(data_uncompressed_bytes) AS data_uncompressed_bytes, any(data_compressed_bytes) AS data_compressed_bytes, uniqExact(hostName()) AS replicas FROM clusterAllReplicas(default, system.parts) WHERE database = '__DATABASE__' AND active GROUP BY table, name) GROUP BY table ORDER BY sum(bytes_on_disk) DESC"
+      }
+    },
+    {
+      "name": "Query log coverage",
+      "x": 18,
+      "y": 34,
+      "w": 6,
+      "h": 6,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT min(event_time) AS log_starts_utc, max(event_time) AS log_ends_utc, dateDiff('minute', min(event_time), max(event_time)) AS span_minutes, count() AS queries_logged, (SELECT formatReadableTimeDelta(max(uptime())) FROM clusterAllReplicas(default, system.one)) AS replica_uptime FROM clusterAllReplicas(default, system.query_log)"
+      }
+    },
+    {
+      "name": "Notes",
+      "x": 0,
+      "y": 40,
+      "w": 24,
+      "h": 6,
+      "config": {
+        "displayType": "markdown",
+        "markdown": "Observes the pipeline rather than the product — `docs/DECISIONS.md` D3.\n\n**Read volume** is the tile to check first; query read volume is a judged criterion. A tile reads a few thousand pre-aggregated rows instead of scanning 905,558 events.\n\n`system.query_log` is per-node and is read through `clusterAllReplicas`: 8,519 rows single-node against 36,895 cluster-wide. `system.parts` is the opposite — SharedMergeTree shares object storage, so every replica reports identical parts and a naive cluster-wide sum double counts (2.20M rows against 1.06M actual). The storage tile deduplicates by part name. Both need `GRANT READ ON REMOTE`.\n\n**Ingest lag** is `_ingested_at - event_timestamp`; the bulk CSV backfill is excluded. A rising p99 with a flat p50 is late arrivals, expected at 7.0% — alert on the watermark falling behind, not on their existence.\n\n**Sessions dirtied** drives the incremental recompute, so a pass is proportional to what changed rather than to the size of history.\n\n**`system.query_log` starts when the replica last started.** It is a per-node system table on Cloud, so a restart or autoscale event discards everything before it — the TTL is 180 days and almost never the reason a window is empty. Measured here: both replicas came up at 22:23:40 and the oldest logged query is 22:23:46.\n\nBecause of that, a range older than the log can only ever render empty, so these tiles do not fail silently on it: each counts how many rows its own predicates match inside the selected range, and when that is zero it falls back to the whole log. The **scope** column says which happened — `selected range`, or `full log — selected range predates it`. *Query log coverage* reports the span the log actually holds."
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+clickhouse-connect>=0.7
+langfuse>=2.36
+requests>=2.31
+python-dotenv>=1.0
+# mcp-clickhouse pins mcp~=1.29 via fastmcp; don't independently pin a newer mcp
+# here or the two packages fight over which version wins depending on install
+# order (bit us once — a later install silently downgraded 2.0.0 -> 1.29.0 and
+# broke both our MCP servers, which import different class names per version).
+mcp[cli]==1.29.0
+mcp-clickhouse>=0.4
+pandas>=2.0
+hyperdx-opentelemetry>=0.1.0
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-exporter-otlp>=1.20.0
+# Missing on a clean install caused hyperdx_integration.py's LoggingInstrumentor
+# import to raise ModuleNotFoundError, which crashed the ENTIRE orchestrator import
+# chain (tracing -> orchestrator.pipeline -> ingest_spec) despite ClickStack being
+# documented as optional — see the lazy-import fix in tracing/hyperdx_integration.py.
+opentelemetry-instrumentation-logging>=0.45b0

@@ -1,0 +1,345 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.hint {
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  max-width: 92ch;
+}
+
+.hint code {
+  color: var(--cool);
+}
+
+.clear {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.clear:hover {
+  color: var(--alert);
+  border-color: var(--line-bright);
+}
+
+/* Same bordered-panel/scroll convention as OpenSessions' .tableWrap, so switching tabs does not
+   jump the page height around. */
+.listWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  height: 70vh;
+  min-height: 32rem;
+  overflow-y: auto;
+  padding: 0.9rem 1rem;
+}
+
+.empty {
+  margin: auto;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.rowUser,
+.rowAssistant {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 70ch;
+}
+
+.rowUser {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.rowAssistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.role {
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0 0.2rem;
+}
+
+.rowUser .role {
+  color: var(--signal);
+}
+
+.rowAssistant .role {
+  color: var(--cool);
+}
+
+.bubble {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+}
+
+.rowUser .bubble {
+  border-color: color-mix(in srgb, var(--signal) 35%, var(--line));
+}
+
+.rowAssistant .bubble {
+  border-color: color-mix(in srgb, var(--cool) 35%, var(--line));
+}
+
+/* Markdown block spacing: agent replies render through react-markdown, so paragraphs/lists get
+   their own rhythm instead of the browser's default (huge) margins. */
+.bubble :global(p) {
+  margin: 0 0 0.5rem;
+}
+
+.bubble :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.bubble :global(ul),
+.bubble :global(ol) {
+  margin: 0 0 0.5rem;
+  padding-left: 1.2rem;
+}
+
+.bubble :global(li) {
+  margin-bottom: 0.2rem;
+}
+
+.bubble :global(strong) {
+  color: var(--phosphor);
+  font-weight: 600;
+}
+
+.bubble :global(code) {
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  color: var(--cool);
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+}
+
+.thinking {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.error {
+  font-size: 0.78rem;
+  color: var(--alert);
+}
+
+.inputRow {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.8rem;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--line-bright);
+}
+
+.input:disabled {
+  opacity: 0.6;
+}
+
+.send {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.send:hover:not(:disabled) {
+  color: var(--phosphor);
+  border-color: var(--line-bright);
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* BRING-YOUR-OWN-KEY BAR.
+   Sits between the scope note and the thread, so the cost question is answered before anyone
+   types. Collapsed by default: on a machine where the server already holds a key this is noise,
+   and the toggle label doubles as the status readout. */
+.keyBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.keyToggle {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--signal);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.keyToggle:hover,
+.keyToggle:focus-visible {
+  opacity: 0.8;
+}
+
+.keyPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.keyLabel {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.keyInput {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.42rem 0.5rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+}
+
+.keyInput:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -1px;
+}
+
+/* The disclaimer is body copy, not fine print. It is the reason someone is willing to paste a
+   credential into a hackathon demo, so it gets readable size and line height. */
+.keyNote {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--muted, #8b8b8b);
+}
+
+.keyClear {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.55rem;
+  font: inherit;
+  font-size: 0.7rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.keyClear:hover {
+  background: var(--bg-hover, rgba(127, 127, 127, 0.12));
+}
+
+/* Provider picker: one segmented control, three allowlisted providers. Same chassis as the
+   dataset switch, because they are the same kind of decision. */
+.providerRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.providerButton {
+  background: var(--bg);
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 0.38rem 0.4rem;
+  font: inherit;
+  font-size: 0.74rem;
+  color: inherit;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.providerButton:last-child {
+  border-right: 0;
+}
+
+.providerButton:hover {
+  background: var(--bg-hover, rgba(127, 127, 127, 0.12));
+}
+
+.providerButton[aria-pressed='true'] {
+  background: var(--signal);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.providerButton:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -2px;
+}
+
+.keyNote a {
+  color: var(--signal);
+}

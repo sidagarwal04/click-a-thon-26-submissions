@@ -1,0 +1,35 @@
+# evidence: reset_live_phoenix_next
+# what: live slice reset to the validated corpus, frozen slice unchanged
+# run_utc: 2026-08-02 01:46:49
+# git: 9e82f15-dirty
+# host: ss-cric
+# row_count: 905558
+# event_watermark: 2026-07-26 11:30:04.847
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 17:34:51   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+database	phoenix_next
+boundary	2026-08-01
+frozen_before	2026-08-01
+partitions_dropped	20260801 20260802 
+live_raw_rows_removed	8204469
+frozen.raw_events.before	905558
+frozen.raw_events.after	905558
+frozen.foreground_intervals.before	598752
+frozen.foreground_intervals.after	598752
+frozen.session_runs.before	17585
+frozen.session_runs.after	17585
+frozen.user_runs.before	16582
+frozen.user_runs.after	16582
+frozen.peak_concurrency.before	2828
+frozen.peak_concurrency.after	2828
+invariant.negative_run_groups	0
+invariant.duplicate_run_groups	0
+live_rows_remaining	0
+tables_without_partition_key	none	(required empty)
+verdict	PASS

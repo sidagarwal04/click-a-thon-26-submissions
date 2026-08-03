@@ -1,0 +1,43 @@
+version: "3.9"
+
+networks:
+  atlys-obs:
+    external: true   # shared with otel-pipeline stack
+
+services:
+  vector:
+    build: .
+    container_name: atlys-vector
+    restart: "no"
+    volumes:
+      - /Users/in46002785/Documents/container-workspace/tillthelastrow/Atlys/data:/app/data:ro
+    environment:
+      - VECTOR_LOG=info
+    networks:
+      - atlys-obs
+    depends_on:
+      - atlys-otelcol
+
+  atlys-otelcol:
+    image: otel/opentelemetry-collector-contrib:0.103.0
+    container_name: atlys-otelcol
+    restart: unless-stopped
+    volumes:
+      - /Users/in46002785/Documents/container-workspace/tillthelastrow/Atlys/otel-pipeline/collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      - CH_USER=default
+      - CH_PASSWORD=IAe_cPA4PukDz
+      - CH_DATABASE=atlys
+      - HYPERDX_API_KEY=265808f1f1fe4c2fb707d202a0962556
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "24224:24224"
+    networks:
+      - atlys-obs
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

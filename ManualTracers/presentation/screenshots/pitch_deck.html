@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>From Alert to Answer — Pitch Deck</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --ch: #ffc107;
+      --agent: #26c6da;
+      --llm: #b39ddb;
+      --accent: #66bb6a;
+      --border: #2d3748;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .deck { height: 100vh; position: relative; }
+
+    .slide {
+      display: none;
+      height: 100vh;
+      padding: 3rem 4rem 5rem;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 1100px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .slide.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-num {
+      position: fixed;
+      top: 1.5rem;
+      right: 2rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      z-index: 10;
+    }
+
+    .nav-hint {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      color: var(--muted);
+      z-index: 10;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--ch);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1rem 0 0.5rem;
+      color: var(--agent);
+    }
+
+    .subtitle {
+      font-size: 1.35rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .tagline {
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--muted);
+      margin-top: 1rem;
+      max-width: 36rem;
+    }
+
+    p { line-height: 1.6; margin-bottom: 0.75rem; font-size: 1.05rem; }
+
+    ul, ol {
+      margin: 0.75rem 0 0.75rem 1.5rem;
+      line-height: 1.7;
+      font-size: 1.05rem;
+    }
+
+    li { margin-bottom: 0.35rem; }
+
+    strong { color: #fff; }
+
+    .meta {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .pill {
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .pill-ch { background: rgba(255, 193, 7, 0.15); color: var(--ch); border: 1px solid rgba(255, 193, 7, 0.35); }
+    .pill-agent { background: rgba(38, 198, 218, 0.15); color: var(--agent); border: 1px solid rgba(38, 198, 218, 0.35); }
+    .pill-llm { background: rgba(179, 157, 219, 0.15); color: var(--llm); border: 1px solid rgba(179, 157, 219, 0.35); }
+
+    .flow {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+      font-size: 0.95rem;
+      color: var(--agent);
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.75rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--ch);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(26, 35, 50, 0.5); }
+
+    .highlight { color: var(--accent); font-weight: 600; }
+
+    .note {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(179, 157, 219, 0.08);
+      border: 1px solid rgba(179, 157, 219, 0.2);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .speaker {
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin: 1rem 0;
+    }
+
+    code {
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      color: var(--agent);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .screenshot {
+      max-width: 100%;
+      max-height: 280px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 0.75rem;
+      object-fit: contain;
+      background: var(--surface);
+    }
+
+    .title-slide h1 { font-size: 3.25rem; }
+    .title-slide .event { color: var(--ch); font-size: 1rem; margin-bottom: 0.5rem; }
+
+    .close-line {
+      margin-top: 1.25rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .qa-item { margin-bottom: 1rem; }
+    .qa-item strong { display: block; color: var(--ch); margin-bottom: 0.25rem; }
+
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      margin: 1rem auto 0;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .video-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .video-link {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--agent);
+      text-decoration: none;
+    }
+
+    .video-link:hover { text-decoration: underline; }
+
+    @media print {
+      body { overflow: visible; background: #fff; color: #111; }
+      .slide {
+        display: flex !important;
+        page-break-after: always;
+        height: auto;
+        min-height: 100vh;
+        padding: 2rem;
+      }
+      .slide-num, .nav-hint { display: none; }
+      h2 { color: #333; }
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-num" id="slideNum">1 / 13</div>
+  <div class="nav-hint">← → arrow keys · Home / End</div>
+
+  <div class="deck" id="deck">
+
+    <!-- Slide 1: Title -->
+    <section class="slide active title-slide">
+      <p class="event">InMobi Click-a-thon 2026</p>
+      <h1>From Alert to Answer</h1>
+      <p class="subtitle">Automated Root-Cause Analyst for Ad Metrics</p>
+      <div class="pill-row">
+        <span class="pill pill-ch">ClickHouse computes</span>
+        <span class="pill pill-llm">LLM narrates</span>
+        <span class="pill pill-agent">Every claim backed by a number</span>
+      </div>
+      <p class="tagline">A metric moves. In seconds, the system names the segment, cites the numbers, and shows its work.</p>
+      <img src="screenshots/rca-dashboard.png" alt="RCA Dashboard" class="screenshot">
+    </section>
+
+    <!-- Slide 2: Problem -->
+    <section class="slide">
+      <h2>The Problem</h2>
+      <p>When revenue or fill rate drops, analysts spend <strong>hours</strong> slicing dashboards by app, device, OS, region, and advertiser.</p>
+      <p>The data was there from minute one. The bottleneck is the <strong>manual investigation</strong>.</p>
+      <p class="close-line">Our goal: automate the "why" in <strong>seconds</strong>, not days.</p>
+    </section>
+
+    <!-- Slide 3: How It Works -->
+    <section class="slide">
+      <h2>How It Works</h2>
+      <div class="flow">Ad events → ClickHouse → ClickStack alerts → RCA Agent → Report + UI</div>
+      <table>
+        <thead><tr><th>Layer</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Data</strong></td><td>9M events, one enriched table (<code>ad_events_enriched</code>)</td></tr>
+          <tr><td><strong>Semantic layer</strong></td><td><code>metric_def</code> + <code>metric_dim_map</code>: formulas and drill paths live in ClickHouse</td></tr>
+          <tr><td><strong>Detection</strong></td><td>ClickStack dashboard <strong>RCA Detection</strong>, 8 alerts on 8 tiles</td></tr>
+          <tr><td><strong>RCA Agent</strong></td><td>Fixed investigation ladder: reproduce → decompose → scan → holdout → cross-check</td></tr>
+          <tr><td><strong>Output</strong></td><td>Grounded narrative + Langfuse trace + RCA UI</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Core principle:</strong> ClickHouse computes. The LLM only narrates. The model never sees raw rows or does arithmetic.</p>
+    </section>
+
+    <!-- Slide 4: ClickStack -->
+    <section class="slide">
+      <h2>ClickStack Detection</h2>
+      <p><strong>Dashboard:</strong> RCA Detection &nbsp;|&nbsp; <strong>Webhook:</strong> RCA Agent Receiver → <code>POST /webhooks/alerts</code></p>
+      <table>
+        <thead><tr><th>Tile</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Global</strong></td><td>Did the metric itself move? (revenue, requests, fill_rate, ecpm)</td></tr>
+          <tr><td><strong>Marginal sentinel</strong></td><td>Did any of 62 depth-1 slices move, even if global did not?</td></tr>
+          <tr><td><strong>Freshness</strong></td><td>Is data still arriving?</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Why marginal matters:</strong> iOS 18.1 fill-rate drop (z ≈ 10.6) never fired the global tile. Only the marginal sentinel caught it.</p>
+      <div class="two-col">
+        <div>
+          <p class="speaker">Live alert states: revenue global · ALERT, fill_rate marginal · ALERT, requests marginal · ALERT</p>
+        </div>
+        <div>
+          <img src="screenshots/alerting.png" alt="ClickStack Alerts" class="screenshot">
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 5: Ladder -->
+    <section class="slide">
+      <h2>The Investigation Ladder</h2>
+      <p>Fixed steps. No model picks the next query.</p>
+      <ol>
+        <li><strong>Reproduce:</strong> recompute the global series live (don't trust the alert)</li>
+        <li><strong>Decompose:</strong> which funnel stage moved? (requests × fill × render × eCPM)</li>
+        <li><strong>Scan:</strong> score all 62 dimension slices in one ARRAY JOIN query</li>
+        <li><strong>Holdout:</strong> recompute on the complement; kills bleed-through</li>
+        <li><strong>Cross-check:</strong> confirm fault level (e.g. OS, not device model)</li>
+      </ol>
+      <p class="note">Example: five dimensions lit up for Android 15. One survived holdout. Four were ruled out.</p>
+    </section>
+
+    <!-- Slide 6: Results -->
+    <section class="slide">
+      <h2>Results (Training Data)</h2>
+      <table>
+        <thead>
+          <tr><th>Incident</th><th>Segment</th><th>Actual</th><th>Expected</th><th>Peak z</th><th>Global alert?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Jun 23–25</td><td><code>os_version=Android 15</code></td><td>0.434</td><td>0.782</td><td class="highlight">28.1</td><td>Yes</td></tr>
+          <tr><td>Jun 29–30</td><td><code>os_version=iOS 18.1</code></td><td>0.683</td><td>0.780</td><td>10.6</td><td class="highlight">No</td></tr>
+          <tr><td>Jun 23–25</td><td>Global fill rate</td><td>0.750</td><td>0.785</td><td>11.4</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+      <h3>Android 15 walk-through</h3>
+      <ul>
+        <li>Scan flagged: Android 15, EU, tier_2, Galaxy A54, banner</li>
+        <li>Holdout: removing Android 15 → residual near zero → <strong>localized</strong></li>
+        <li>Ruled out: EU, tier_2, Galaxy A54 (bleed-through from correlated devices)</li>
+      </ul>
+      <p><strong>Performance:</strong> ~2 s end-to-end · ~9 ClickHouse queries per revenue investigation</p>
+    </section>
+
+    <!-- Slide 7: Trustworthiness -->
+    <section class="slide">
+      <h2>Trustworthiness</h2>
+      <div class="two-col">
+        <div>
+          <table>
+            <thead><tr><th>Rule</th><th>How we enforce it</th></tr></thead>
+            <tbody>
+              <tr><td>Numbers from ClickHouse only</td><td>Ledger built from query results, not LLM</td></tr>
+              <tr><td>No hallucinated figures</td><td><code>grounding.py</code> checks every number in prose</td></tr>
+              <tr><td>One bad number → discard</td><td>Entire LLM output replaced with template from ledger</td></tr>
+              <tr><td>Full audit trail</td><td>Langfuse span per step: SQL, query_id, rows read, elapsed</td></tr>
+            </tbody>
+          </table>
+          <p class="note">A missing narrative is cheaper than a fabricated one.</p>
+        </div>
+        <div>
+          <img src="screenshots/langfuse.png" alt="Langfuse Trace" class="screenshot">
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 8: Live Stack -->
+    <section class="slide">
+      <h2>Live Stack</h2>
+      <table>
+        <thead><tr><th>Service</th><th>Port</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>rca-agent</code></td><td>8000</td><td>Webhook + investigation</td></tr>
+          <tr><td><code>rca-api</code></td><td>3002</td><td>Serves reports to UI</td></tr>
+          <tr><td><code>rca-ui</code></td><td>8090</td><td>Diagnosis viewer</td></tr>
+        </tbody>
+      </table>
+      <pre>docker compose up -d --build
+curl -X POST localhost:8000/webhooks/alerts \
+  -H "Content-Type: application/json" \
+  -d '{"title":"fill_rate alert","body":"metric_id=fill_rate scope=global"}'</pre>
+      <p>Open <code>http://localhost:8090</code> → report appears in seconds.</p>
+    </section>
+
+    <!-- Slide 9: Demo Video -->
+    <section class="slide">
+      <h2>Demo Video</h2>
+      <p>End-to-end walkthrough: alert fires → RCA agent investigates → diagnosis in the UI.</p>
+      <div class="video-wrap">
+        <iframe
+          src="https://drive.google.com/file/d/1A2brJGT-EhH8W4R9eLnJ0rVwms5zzaxY/preview"
+          title="Manual Tracers Demo"
+          allow="autoplay; encrypted-media"
+          allowfullscreen>
+        </iframe>
+      </div>
+      <a class="video-link" href="https://drive.google.com/file/d/1A2brJGT-EhH8W4R9eLnJ0rVwms5zzaxY/view" target="_blank" rel="noopener noreferrer">
+        Open in Google Drive ↗
+      </a>
+    </section>
+
+    <!-- Slide 10: Unseen -->
+    <section class="slide">
+      <h2>Unseen Incident</h2>
+      <p>Built for data we have <strong>never seen</strong>:</p>
+      <ul>
+        <li>No hardcoded dates, segments, or thresholds</li>
+        <li>Same registry, same ladder, new dataset → new diagnosis</li>
+        <li>Trace proves the system generated it. <strong>No trace, no credit.</strong></li>
+      </ul>
+      <p><strong>Playbook:</strong> replay → compress clock → re-provision alerts → wait or curl trigger → capture report + Langfuse trace.</p>
+    </section>
+
+    <!-- Slide 11: Didn't Build -->
+    <section class="slide">
+      <h2>What We Deliberately Didn't Build</h2>
+      <ul>
+        <li>No per-metric agents: one registry-driven agent</li>
+        <li>No LLM-written SQL: fixed parameterised queries only</li>
+        <li>No pre-aggregated rollup: one definition, executed everywhere</li>
+        <li>No polished auth or PagerDuty: judges score the investigation loop</li>
+      </ul>
+      <p class="close-line">Every "no" trades scaffolding for analytical depth and traceability.</p>
+    </section>
+
+    <!-- Slide 12: Summary -->
+    <section class="slide">
+      <h2>Summary</h2>
+      <table>
+        <thead><tr><th>Criterion</th><th>Our answer</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fast</strong></td><td>Diagnosis in ~2 seconds</td></tr>
+          <tr><td><strong>Localized</strong></td><td>Names the segment; holdout proves it</td></tr>
+          <tr><td><strong>Trustworthy</strong></td><td>Every number computed and grounding-checked</td></tr>
+          <tr><td><strong>Honest</strong></td><td>Shows what was checked and ruled out</td></tr>
+          <tr><td><strong>Traceable</strong></td><td>Langfuse trace with every SQL step</td></tr>
+        </tbody>
+      </table>
+      <p class="close-line">Alert to answer. Seconds, not days. Every claim backed by a number.</p>
+    </section>
+
+    <!-- Slide 13: Q&A -->
+    <section class="slide">
+      <h2>Judge Q&amp;A</h2>
+      <div class="qa-item">
+        <strong>"How do you stop hallucinations?"</strong>
+        Grounding check. One unmatched number → throw away LLM output → template from ledger.
+      </div>
+      <div class="qa-item">
+        <strong>"Why not let the LLM write SQL?"</strong>
+        Can't trace intent, slower, can return plausible wrong numbers. Fixed ladder is verifiable.
+      </div>
+      <div class="qa-item">
+        <strong>"Why marginal tiles?"</strong>
+        Global-only alerting missed iOS 18.1 entirely. One extra query per metric closes the blind spot.
+      </div>
+      <div class="qa-item">
+        <strong>"False positives?"</strong>
+        We name them honestly, e.g. Android 15 recovery flagged at z=6.3 (baseline contamination). Fix designed, not yet built.
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const slideNum = document.getElementById('slideNum');
+    let current = 0;
+
+    function show(i) {
+      current = Math.max(0, Math.min(i, slides.length - 1));
+      slides.forEach((s, j) => s.classList.toggle('active', j === current));
+      slideNum.textContent = `${current + 1} / ${slides.length}`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); show(current + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); show(current - 1); }
+      if (e.key === 'Home') { e.preventDefault(); show(0); }
+      if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

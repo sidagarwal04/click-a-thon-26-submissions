@@ -1,0 +1,62 @@
+[
+  {
+    "name": "sonyliv-live-total",
+    "section": "SonyLIV concurrency",
+    "kind": "log",
+    "connection": "__CONNECTION_ID__",
+    "from": {
+      "databaseName": "__DATABASE__",
+      "tableName": "serving_live_total"
+    },
+    "timestampValueExpression": "bucket_start",
+    "defaultTableSelectExpression": "bucket_start, bucket_peak, ending_concurrency, avg_concurrency"
+  },
+  {
+    "name": "sonyliv-live-content",
+    "section": "SonyLIV concurrency",
+    "kind": "log",
+    "connection": "__CONNECTION_ID__",
+    "from": {
+      "databaseName": "__DATABASE__",
+      "tableName": "serving_live_content"
+    },
+    "timestampValueExpression": "bucket_start",
+    "defaultTableSelectExpression": "bucket_start, title, video_type, category, ending_concurrency, avg_concurrency"
+  },
+  {
+    "name": "sonyliv-minute",
+    "section": "SonyLIV concurrency",
+    "kind": "log",
+    "connection": "__CONNECTION_ID__",
+    "from": {
+      "databaseName": "__DATABASE__",
+      "tableName": "serving_minute_current"
+    },
+    "timestampValueExpression": "minute_start",
+    "defaultTableSelectExpression": "minute_start, grouping, dim_values, platform, app_version, video_type, category, title, minute_peak, avg_concurrency"
+  },
+  {
+    "name": "sonyliv-events",
+    "section": "SonyLIV pipeline",
+    "kind": "log",
+    "connection": "__CONNECTION_ID__",
+    "from": {
+      "databaseName": "__DATABASE__",
+      "tableName": "events_dedup"
+    },
+    "timestampValueExpression": "event_ts",
+    "defaultTableSelectExpression": "event_ts, video_session_id, event_type, event, signal, platform, content_id"
+  },
+  {
+    "name": "sonyliv-minute-grouped",
+    "section": "SonyLIV concurrency",
+    "kind": "log",
+    "connection": "__CONNECTION_ID__",
+    "from": {
+      "databaseName": "__DATABASE__",
+      "tableName": "serving_minute_current"
+    },
+    "timestampValueExpression": "minute_start",
+    "defaultTableSelectExpression": "minute_start, grouping, dim_values, minute_peak, avg_concurrency"
+  }
+]

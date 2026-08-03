@@ -1,0 +1,145 @@
+export const instrumentationTrackingEvents = {
+  bronzeIngest: {
+    observationName: "01_bronze_ingest",
+    stageId: "01_bronze_ingest",
+    stageName: "Bronze Ingest",
+    agent: "bronze_ingestor",
+    sourceLayer: "spec_files",
+    targetLayer: "bronze",
+    clickHouseWrites: ["bronze.feature_specs", "bronze.feature_events"],
+    artifactFiles: ["bronze_report.json"],
+    trackedInputs: ["job_id", "feature_slug", "spec_path", "events_path"],
+    trackedOutputs: [
+      "spec_rows_inserted",
+      "event_rows_inserted",
+      "bronze_validation",
+    ],
+    description:
+      "Persist raw spec.md and raw events.ndjson rows into the bronze ClickHouse layer.",
+  },
+  eventProfiler: {
+    observationName: "02_event_profiler",
+    stageId: "02_event_profiler",
+    stageName: "Event Profiler",
+    agent: "event_profiler",
+    sourceLayer: "bronze",
+    targetLayer: "profile",
+    clickHouseWrites: [],
+    artifactFiles: ["event_profile.json"],
+    trackedInputs: ["feature_slug", "raw_event_rows"],
+    trackedOutputs: ["row_count", "event_counts", "field_count"],
+    description:
+      "Summarize raw event names, fields, types, and sample values before schema generation.",
+  },
+  specParser: {
+    observationName: "03_spec_parser",
+    generationName: "groq.feature_manifest",
+    stageId: "03_spec_parser",
+    stageName: "Spec Parser",
+    agent: "spec_parser_agent",
+    sourceLayer: "profile",
+    targetLayer: "manifest",
+    clickHouseWrites: [],
+    artifactFiles: ["feature_manifest.json"],
+    trackedInputs: ["feature_slug", "event_names", "context_features"],
+    trackedOutputs: [
+      "feature_name",
+      "workflow_type",
+      "primary_entity",
+      "success_event",
+      "metric_hints",
+    ],
+    description:
+      "Use product context and the event profile to produce a feature manifest.",
+  },
+  schemaGenerator: {
+    observationName: "04_schema_generator",
+    stageId: "04_schema_generator",
+    stageName: "Schema Generator",
+    agent: "schema_generator",
+    sourceLayer: "manifest",
+    targetLayer: "silver_schema",
+    clickHouseWrites: [],
+    artifactFiles: [
+      "schema_design_loop.json",
+      "schema_plan.json",
+      "schema.sql",
+      "materialized_views.sql",
+      "mapping.json",
+      "repair_loop.json",
+    ],
+    trackedInputs: [
+      "feature_slug",
+      "workflow_type",
+      "primary_entity",
+      "field_count",
+    ],
+    trackedOutputs: [
+      "table",
+      "engine",
+      "partition_by",
+      "order_by",
+      "column_count",
+    ],
+    description:
+      "Run the schema design loop, then emit the silver schema, materialized view plan, and raw-to-silver mapping.",
+  },
+  schemaCritic: {
+    observationName: "05_schema_critic",
+    stageId: "05_schema_critic",
+    stageName: "Schema Critic",
+    agent: "schema_critic",
+    sourceLayer: "silver_schema",
+    targetLayer: "schema_review",
+    clickHouseWrites: [],
+    artifactFiles: ["schema_review.md"],
+    trackedInputs: ["table", "order_by", "column_count"],
+    trackedOutputs: ["verdict"],
+    description:
+      "Review generated schema quality and block execution when guardrails still fail.",
+  },
+  silverLoader: {
+    observationName: "06_silver_loader",
+    stageId: "06_silver_loader",
+    stageName: "Silver Loader",
+    agent: "silver_loader",
+    sourceLayer: "bronze",
+    targetLayer: "silver",
+    clickHouseWrites: ["silver.<feature_slug>_events"],
+    artifactFiles: ["load_report.json"],
+    trackedInputs: ["table", "row_count", "clickhouse_url"],
+    trackedOutputs: ["inserted_rows", "validation_passed", "validation"],
+    description: "Create the silver table and load normalized feature events.",
+  },
+  contextUpdater: {
+    observationName: "07_context_agent",
+    stageId: "07_context_agent",
+    stageName: "Context Agent",
+    agent: "context_agent_v0",
+    sourceLayer: "silver",
+    targetLayer: "context",
+    clickHouseWrites: ["context.feature_registry", "context.fact_registry"],
+    artifactFiles: ["context_diff.md", "updated_context.json"],
+    trackedInputs: [
+      "feature_slug",
+      "table_name",
+      "event_names",
+      "validation_passed",
+    ],
+    trackedOutputs: ["generated_features", "contradictions"],
+    description:
+      "Persist validated table, entity, event, and metric context for later specs.",
+  },
+} as const;
+
+export const instrumentationPipelineStages = Object.values(
+  instrumentationTrackingEvents,
+).map((event) => ({
+  id: event.stageId,
+  name: event.stageName,
+  description: event.description,
+}));
+
+export const completedInstrumentationStageIds = Object.values(
+  instrumentationTrackingEvents,
+).map((event) => event.stageId);

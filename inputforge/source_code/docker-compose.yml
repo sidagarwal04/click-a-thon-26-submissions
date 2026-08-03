@@ -1,0 +1,142 @@
+# Local observability stack for Sentinel. It is intentionally development-only:
+# replace every default credential before exposing any service beyond localhost.
+services:
+  langfuse-web:
+    image: docker.io/langfuse/langfuse:4
+    restart: unless-stopped
+    depends_on: &langfuse-depends-on
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "${LANGFUSE_PORT:-3001}:3000"
+    environment: &langfuse-env
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: local-langfuse-nextauth-secret
+      DATABASE_URL: postgresql://langfuse:langfuse@postgres:5432/langfuse
+      SALT: local-langfuse-salt
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: langfuse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_MIGRATION_V4_NATIVE_OTEL_BEHAVIOUR: direct
+      LANGFUSE_INIT_ORG_ID: sentinel
+      LANGFUSE_INIT_ORG_NAME: Sentinel
+      LANGFUSE_INIT_PROJECT_ID: sentinel
+      LANGFUSE_INIT_PROJECT_NAME: Sentinel
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: lf_pk_sentinel_local
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: lf_sk_sentinel_local
+      LANGFUSE_INIT_USER_EMAIL: admin@sentinel.local
+      LANGFUSE_INIT_USER_NAME: Sentinel Admin
+      LANGFUSE_INIT_USER_PASSWORD: sentinel-local-password
+
+  langfuse-worker:
+    image: docker.io/langfuse/langfuse-worker:4
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    environment: *langfuse-env
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    restart: unless-stopped
+    depends_on:
+      - langfuse-web
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    environment:
+      LANGFUSE_PUBLIC_KEY: lf_pk_sentinel_local
+      LANGFUSE_SECRET_KEY: lf_sk_sentinel_local
+    ports:
+      - "${LANGFUSE_OTLP_GRPC_PORT:-14317}:4317"
+      - "${LANGFUSE_OTLP_HTTP_PORT:-14318}:4318"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.12
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: langfuse
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass langfuse --maxmemory-policy noeviction
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "langfuse", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: cgr.dev/chainguard/minio
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  langfuse_postgres_data:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
+  langfuse_redis_data:
+  langfuse_minio_data:

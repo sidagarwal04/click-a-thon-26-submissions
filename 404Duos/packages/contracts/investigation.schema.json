@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://insightiq.local/contracts/investigation.schema.json",
+  "title": "Investigation",
+  "description": "Evidence payload shared by the React dashboard and Node API investigation engine.",
+  "type": "object",
+  "required": [
+    "id",
+    "status",
+    "alert",
+    "decomposition",
+    "segments",
+    "ruledOut",
+    "diagnosis",
+    "trace"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "complete", "failed"]
+    },
+    "alert": {
+      "type": "object",
+      "required": [
+        "id",
+        "metric",
+        "direction",
+        "pctChange",
+        "windowStart",
+        "windowEnd",
+        "baselineKind",
+        "severity"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "metric": {
+          "type": "string",
+          "enum": [
+            "revenue",
+            "fill_rate",
+            "requests",
+            "impressions",
+            "ctr",
+            "ecpm",
+            "rpr"
+          ]
+        },
+        "direction": { "type": "string", "enum": ["up", "down"] },
+        "pctChange": { "type": "number" },
+        "windowStart": { "type": "string", "format": "date-time" },
+        "windowEnd": { "type": "string", "format": "date-time" },
+        "baselineKind": {
+          "type": "string",
+          "enum": ["same_weekday_trailing", "trailing_7d", "trailing_14d"]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        }
+      }
+    },
+    "decomposition": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["factor", "label", "status", "baseline", "observed", "deltaPct"],
+        "properties": {
+          "factor": {
+            "type": "string",
+            "enum": ["requests", "fill_rate", "render_rate", "ecpm", "ctr"]
+          },
+          "label": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["culprit", "ruled_out", "neutral"]
+          },
+          "baseline": { "type": "number" },
+          "observed": { "type": "number" },
+          "deltaPct": { "type": "number" }
+        }
+      }
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dimension",
+          "value",
+          "metric",
+          "deltaPct",
+          "contributionPct"
+        ],
+        "properties": {
+          "dimension": { "type": "string" },
+          "value": { "type": "string" },
+          "metric": { "type": "string" },
+          "deltaPct": { "type": "number" },
+          "contributionPct": { "type": "number" }
+        }
+      }
+    },
+    "ruledOut": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason", "detail"],
+        "properties": {
+          "reason": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "diagnosis": {
+      "type": "object",
+      "required": ["text", "citations"],
+      "properties": {
+        "text": { "type": "string" },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "value"],
+            "properties": {
+              "label": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "trace": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step", "detail", "durationMs"],
+        "properties": {
+          "step": { "type": "string" },
+          "detail": { "type": "string" },
+          "durationMs": { "type": "number" }
+        }
+      }
+    }
+  }
+}

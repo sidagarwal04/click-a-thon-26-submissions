@@ -1,0 +1,81 @@
+{
+  "spec": "09_auth_completed",
+  "database": "atlys",
+  "base_table": "atlys.auth_completed",
+  "event_types": ["auth_completed"],
+  "materialized_views": [
+    {
+      "name": "atlys.auth_completed_metrics_mv",
+      "backing_table": "atlys.auth_completed_metrics_agg",
+      "engine": "AggregatingMergeTree",
+      "grain": ["day", "auth_method", "device_type", "os", "geoip_country_code", "acquisition_channel", "is_new_user"],
+      "serves_metrics": ["M1", "M2", "M3", "M5"]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "name": "auth_completions",
+      "pm_question": "How many authentications are completed, and how does that trend over time / by auth method?",
+      "formula": "count of auth_completed events",
+      "numerator": "countMerge(completions)",
+      "denominator": null,
+      "dimensions": ["day", "auth_method", "device_type", "os", "geoip_country_code", "acquisition_channel", "is_new_user"],
+      "served_by_mv": "atlys.auth_completed_metrics_mv",
+      "confirmed_by_user": false
+    },
+    {
+      "id": "M2",
+      "name": "new_user_completion_share",
+      "pm_question": "What share of completed auths are new users (signups) vs returning?",
+      "formula": "sum(new_user_completions) / count(completions)",
+      "numerator": "sumMerge(new_user_completions)",
+      "denominator": "countMerge(completions)",
+      "dimensions": ["day", "auth_method", "device_type", "os", "geoip_country_code", "acquisition_channel"],
+      "served_by_mv": "atlys.auth_completed_metrics_mv",
+      "confirmed_by_user": false
+    },
+    {
+      "id": "M3",
+      "name": "completions_by_acquisition_channel",
+      "pm_question": "How do completed auths break down by acquisition channel?",
+      "formula": "count of completions grouped by derived acquisition_channel",
+      "numerator": "countMerge(completions)",
+      "denominator": null,
+      "dimensions": ["day", "acquisition_channel", "auth_method", "is_new_user"],
+      "derived_dimension": {
+        "name": "acquisition_channel",
+        "logic": "gclid != '' -> paid_google; else fbclid != '' -> paid_meta; else organic"
+      },
+      "served_by_mv": "atlys.auth_completed_metrics_mv",
+      "confirmed_by_user": true
+    },
+    {
+      "id": "M4",
+      "name": "auth_completion_rate",
+      "pm_question": "What is the auth completion rate (completed vs started)?",
+      "formula": "count(auth_completed) / count(auth_started)  [cross-event, denominator lives in a different spec/event]",
+      "numerator": "count of auth_completed",
+      "denominator": "count of auth_started (not in this spec)",
+      "dimensions": ["day", "auth_method", "device_type", "os", "geoip_country_code"],
+      "served_by_mv": null,
+      "notes": "Cross-event metric: requires auth_started events which are not part of this spec's NDJSON. Not served by an MV here; compute at query time by joining against the auth_started source once onboarded.",
+      "confirmed_by_user": false
+    },
+    {
+      "id": "M5",
+      "name": "avg_attempts_per_completion",
+      "pm_question": "How many attempts does it take on average to complete auth, and what fraction required a retry?",
+      "formula": "sum(total_attempts) / count(completions); retry share = sum(retried_completions) / count(completions)",
+      "numerator": "sumMerge(total_attempts)",
+      "denominator": "countMerge(completions)",
+      "auxiliary": {
+        "retry_share_numerator": "sumMerge(retried_completions)",
+        "retry_share_denominator": "countMerge(completions)"
+      },
+      "dimensions": ["day", "auth_method", "device_type", "os", "geoip_country_code", "acquisition_channel"],
+      "served_by_mv": "atlys.auth_completed_metrics_mv",
+      "confirmed_by_user": false
+    }
+  ]
+}

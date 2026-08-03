@@ -1,0 +1,32 @@
+name: pushlog
+# Keeps PUSHLOG.md current automatically: on every push to main, regenerate it from git history
+# and commit it back. [skip ci] on the bot commit prevents a trigger loop; pushlog.sh filters the
+# bot's own commits out of the log. If main has branch protection that blocks direct pushes,
+# disable this workflow and run `bash scripts/pushlog.sh` manually instead.
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: pushlog          # serialize runs so two pushes can't race on the commit
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so the log is complete
+      - name: Regenerate PUSHLOG.md
+        run: bash scripts/pushlog.sh
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet -- PUSHLOG.md; then
+            git config user.name  "pushlog-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add PUSHLOG.md
+            git commit -m "chore: update PUSHLOG [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi

@@ -1,0 +1,29 @@
+# evidence: repartition_derived_phoenix_next
+# what: derived tables given a daily partition key, derivation held constant
+# run_utc: 2026-08-01 23:11:08
+# git: 9c4fec7-dirty
+# host: ss-cric
+# row_count: 2816115
+# event_watermark: 2026-08-02 07:17:58.866
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 23:06:15   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+database	phoenix_next
+tables_repartitioned	session_minute_runs user_minute_runs concurrency_deltas user_concurrency_deltas concurrency_boundary_deltas 
+frozen.raw_events.before	905558
+frozen.raw_events.after	905558
+frozen.foreground_intervals.before	598752
+frozen.foreground_intervals.after	598752
+frozen.session_runs.before	17585
+frozen.session_runs.after	17585
+frozen.user_runs.before	16582
+frozen.user_runs.after	16582
+frozen.peak_concurrency.before	2828
+frozen.peak_concurrency.after	2828
+core_tables_still_unpartitioned	0	(required 0)
+verdict	PASS

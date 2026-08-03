@@ -1,0 +1,43 @@
+# evidence: answers_phoenix_unseen
+# what: peak and average concurrency at minute, hour and day grain across filter shapes, with per-query latency from system.query_log
+# run_utc: 2026-08-02 03:02:42
+# git: 6d595ae-dirty
+# host: ss-cric
+# row_count: 7000000
+# event_watermark: 2026-08-03 11:26:15.032
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 7000000   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 02:35:57   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+shape	grain	peak_concurrency	peak_minute	avg_all_minutes	avg_active_minutes	minutes_with_audience	minutes_total	buckets	query_ms	read_rows	read_bytes	query_id_prefix
+unfiltered	minute	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_unfiltered_60
+unfiltered	hour	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_unfiltered_3600
+unfiltered	day	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_unfiltered_86400
+platform	minute	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform_60
+platform	hour	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform_3600
+platform	day	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform_86400
+country	minute	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_country_60
+country	hour	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_country_3600
+country	day	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_country_86400
+content	minute	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_content_60
+content	hour	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_content_3600
+content	day	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_content_86400
+platform+country	minute	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform+country_60
+platform+country	hour	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform+country_3600
+platform+country	day	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform+country_86400
+platform+content	minute	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform+content_60
+platform+content	hour	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform+content_3600
+platform+content	day	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	answers_platform+content_86400
+#
+# database	phoenix_unseen
+# window	2014-12-31 00:00:00 -> 2026-08-04 00:00:00
+# query	sql/queries/serving/peak_average.sql
+# grains	minute (60s), hour (3600s), day (86400s)
+# top_platform	ANDROID_PHONE
+# top_country	india
+# top_content_id	2078157818
+# latency_source	system.query_log query_duration_ms, NOT a client-side stopwatch
+# service	26.2.1.525

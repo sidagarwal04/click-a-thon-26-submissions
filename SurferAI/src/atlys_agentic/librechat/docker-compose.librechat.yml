@@ -1,0 +1,32 @@
+services:
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    ports:
+      - "3080:3080"
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3080
+      - CONFIG_PATH=/app/librechat.yaml
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - CREDS_KEY=f3ca3c5b36260f7572d559477c2554fe0ec4357c6661675b42b01a12e54d21b0
+      - CREDS_IV=e6a394f1c3835cd79d1b1ff825029b38
+      - JWT_SECRET=1618629f864f33b3a619047b40d3d4919bc335f8b3824ef75249b1a2e5c97a6d
+      - JWT_REFRESH_SECRET=7f4c0296b960518f8d689d7b40d3d4919bc335f8b3824ef75249b1a2e5c97a6d
+      - ALLOW_REGISTRATION=true
+      - CHECK_EMAIL_VERIFICATION=false
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

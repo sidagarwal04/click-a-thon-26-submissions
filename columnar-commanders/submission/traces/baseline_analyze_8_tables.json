@@ -1,0 +1,3148 @@
+{
+  "id": "ada946cba52855e7d3c55dc523e1d28b",
+  "projectId": "cmsavvkb0000bl707b2vaykku",
+  "name": "pipeline:analyze",
+  "timestamp": "2026-08-02T02:34:05.371Z",
+  "environment": "default",
+  "tags": [
+    "agent:analytics",
+    "analytics",
+    "feature:analyze",
+    "pipeline",
+    "surface:cli"
+  ],
+  "bookmarked": false,
+  "release": null,
+  "version": null,
+  "userId": null,
+  "sessionId": "d6c56a54be9e",
+  "public": false,
+  "input": {
+    "spec": "analytics",
+    "run_id": "d6c56a54be9e"
+  },
+  "output": {
+    "context_version": 1,
+    "queries_run": 8,
+    "summary": "Overall headline conversion rate stands at 0.71% based on 1M destination card clicks and 7,054 purchases. The funnel experiences its steepest drop between destination click and application start, while Android devices show consistently higher passport capture failure rates linked to the April 2026 passport scan model update.",
+    "insights": [
+      {
+        "headline": "Overall headline conversion rate is 0.71% across 1 million visitor sessions",
+        "detail": "The platform recorded 1,000,000 unique destination card clicks and 7,054 completed purchases, yielding an overall headline conversion rate of 0.71% over the observed time window.",
+        "why": "Establishes the core platform baseline for visitor-to-purchase volume against which deeper funnel stages and drop-offs are measured.",
+        "confidence": 0.95,
+        "cut": "overall",
+        "evidence": {
+          "total_sessions": 1000000,
+          "total_purchases": 7054,
+          "overall_conversion_rate": 0.007054
+        },
+        "context_refs": [
+          "Conversion rate"
+        ],
+        "recommendation": "Track daily variations against this 0.71% baseline when deploying new funnel updates or marketing campaigns."
+      },
+      {
+        "headline": "Daily destination card clicks exhibit consistent periodic volume fluctuations between 3,600 and 4,800 clicks",
+        "detail": "Daily unique user clicks on destination cards range from a low of 3,689 on January 7, 2026, to a peak of 4,783 on January 15, 2026, showing regular cyclical dips every 6 to 7 days.",
+        "why": "Reflects standard weekly seasonality in travel intent and browsing patterns rather than systemic technical interruptions.",
+        "confidence": 0.85,
+        "cut": "trend",
+        "evidence": {
+          "min_clicks": 3689,
+          "max_clicks": 4783,
+          "date_range": "2026-01-01 to 2026-01-20"
+        },
+        "context_refs": [],
+        "recommendation": "Account for weekly cyclicality when evaluating short-term campaign performance or traffic dips."
+      },
+      {
+        "headline": "The steepest funnel drop-off occurs between destination card clicks and application starts",
+        "detail": "Out of 1,000,000 initial destination card clicks, only 154,413 users proceed to start an application (a step-through rate of 15.4%), representing an absolute loss of 845,587 users.",
+        "why": "Users browse destination requirements or card info casually without high immediate intent to apply, which is inherent to the discovery phase of a travel platform.",
+        "confidence": 0.9,
+        "cut": "funnel",
+        "evidence": {
+          "clicks": 1000000,
+          "app_started": 154413,
+          "doc_uploaded": 20446,
+          "purchase_completed": 7054
+        },
+        "context_refs": [
+          "Drop-off rate (per funnel stage)"
+        ],
+        "recommendation": "Focus optimization efforts on high-intent entry points and explore re-engagement mechanics like the WhatsApp nudge to capture browsing drop-offs."
+      },
+      {
+        "headline": "Android passport upload pass rates underperform iOS by up to 8 percentage points",
+        "detail": "Android camera uploads achieve an 83.6% pass rate with 0.47 average retries compared to 91.3% pass rate and 0.46 average retries on iOS camera uploads across 9,598 total document uploads.",
+        "why": "Coincides with the documented April 2026 passport scan model update which introduced higher capture failure rates across Android devices.",
+        "confidence": 0.8,
+        "cut": "segment",
+        "evidence": {
+          "android_camera_pass_rate": 0.8356,
+          "ios_camera_pass_rate": 0.9131,
+          "android_uploads": 3698,
+          "ios_uploads": 5900
+        },
+        "context_refs": [
+          "K2 Passport scan model update"
+        ],
+        "recommendation": "Review the Android passport capture model weights and error thresholds deployed in April 2026 to reduce scan failures."
+      },
+      {
+        "headline": "Android users in Singapore and Great Britain experience the highest passport capture threshold failure rates",
+        "detail": "Android users in Singapore (SG) experience a 22.2% failure rate crossing the failed-attempt threshold (20 failures out of 90 uploads), while Great Britain (GB) Android users see an 18.2% failure rate.",
+        "why": "Amplified by a combination of the Android passport scan model update and potential higher prevalence of non-Latin MRZ or local document variations in international hubs.",
+        "confidence": 0.75,
+        "cut": "anomaly",
+        "evidence": {
+          "sg_android_failure_rate": 0.2222,
+          "gb_android_failure_rate": 0.1821,
+          "sg_uploads": 90,
+          "gb_uploads": 291
+        },
+        "context_refs": [
+          "K2",
+          "K3 MRZ OCR weaker on non-Latin passports"
+        ],
+        "recommendation": "Audit passport capture logs for Singapore and GB Android traffic to isolate whether device model or document type drives the elevated threshold failures."
+      }
+    ],
+    "queries": [
+      {
+        "question": "What is the overall headline conversion rate measured as completed purchases per unique session, alongside total event counts across the core funnel stages?",
+        "sql": "SELECT uniqExact(app_session_id) AS total_sessions, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) AS total_purchases, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) / nullIf(uniqExact(app_session_id), 0) AS overall_conversion_rate FROM atlys.destination_card_clicked",
+        "cut": "overall",
+        "columns": [
+          "total_sessions",
+          "total_purchases",
+          "overall_conversion_rate"
+        ],
+        "rows": [
+          [
+            1000000,
+            7054,
+            0.007054
+          ]
+        ],
+        "row_count": 1,
+        "error": ""
+      },
+      {
+        "question": "What is the daily trend of destination card clicks and completed purchases over time?",
+        "sql": "SELECT toDate(timestamp) AS dt, uniqExact(user_id) AS destination_clicks FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20",
+        "cut": "trend",
+        "columns": [
+          "dt",
+          "destination_clicks"
+        ],
+        "rows": [
+          [
+            "2026-01-01",
+            4531
+          ],
+          [
+            "2026-01-02",
+            4486
+          ],
+          [
+            "2026-01-03",
+            4633
+          ],
+          [
+            "2026-01-04",
+            4471
+          ],
+          [
+            "2026-01-05",
+            4496
+          ],
+          [
+            "2026-01-06",
+            3800
+          ],
+          [
+            "2026-01-07",
+            3689
+          ],
+          [
+            "2026-01-08",
+            4675
+          ],
+          [
+            "2026-01-09",
+            4599
+          ],
+          [
+            "2026-01-10",
+            4643
+          ],
+          [
+            "2026-01-11",
+            4599
+          ],
+          [
+            "2026-01-12",
+            4679
+          ],
+          [
+            "2026-01-13",
+            3796
+          ],
+          [
+            "2026-01-14",
+            3940
+          ],
+          [
+            "2026-01-15",
+            4783
+          ],
+          [
+            "2026-01-16",
+            4633
+          ],
+          [
+            "2026-01-17",
+            4640
+          ],
+          [
+            "2026-01-18",
+            4758
+          ],
+          [
+            "2026-01-19",
+            4616
+          ],
+          [
+            "2026-01-20",
+            3968
+          ]
+        ],
+        "row_count": 20,
+        "error": ""
+      },
+      {
+        "question": "What is the step-through conversion rate and drop-off per funnel stage across different device types?",
+        "sql": "SELECT device_type, uniqExact(user_id) AS clicks FROM atlys.destination_card_clicked GROUP BY device_type ORDER BY clicks DESC LIMIT 20",
+        "cut": "device",
+        "columns": [
+          "device_type",
+          "clicks"
+        ],
+        "rows": [
+          [
+            "ios",
+            420838
+          ],
+          [
+            "android",
+            329642
+          ],
+          [
+            "web-user-b2c",
+            179557
+          ],
+          [
+            "Desktop",
+            69963
+          ]
+        ],
+        "row_count": 4,
+        "error": ""
+      },
+      {
+        "question": "What is the destination card click and purchase volume broken down by geographic country code?",
+        "sql": "SELECT geoip_country_code, uniqExact(user_id) AS unique_visitors, count() AS total_clicks FROM atlys.destination_card_clicked GROUP BY geoip_country_code ORDER BY total_clicks DESC LIMIT 20",
+        "cut": "geo",
+        "columns": [
+          "geoip_country_code",
+          "unique_visitors",
+          "total_clicks"
+        ],
+        "rows": [
+          [
+            "IN",
+            559795,
+            559795
+          ],
+          [
+            "AE",
+            140219,
+            140219
+          ],
+          [
+            "OTHER",
+            89161,
+            89161
+          ],
+          [
+            "US",
+            50251,
+            50251
+          ],
+          [
+            "GB",
+            40111,
+            40111
+          ],
+          [
+            "AU",
+            38112,
+            38112
+          ],
+          [
+            "SA",
+            30268,
+            30268
+          ],
+          [
+            "QA",
+            19990,
+            19990
+          ],
+          [
+            "OM",
+            17100,
+            17100
+          ],
+          [
+            "SG",
+            14993,
+            14993
+          ]
+        ],
+        "row_count": 10,
+        "error": ""
+      },
+      {
+        "question": "What is the step-to-step user count and conversion ratio across the sequential funnel stages from destination click to purchase completion?",
+        "sql": "SELECT '1_click' AS stage, uniqExact(user_id) AS users FROM atlys.destination_card_clicked UNION ALL SELECT '2_app_started' AS stage, uniqExact(user_id) AS users FROM atlys.application_started UNION ALL SELECT '3_doc_uploaded' AS stage, uniqExact(user_id) AS users FROM atlys.document_uploaded UNION ALL SELECT '4_purchase_completed' AS stage, uniqExact(user_id) AS users FROM atlys.purchase_completed",
+        "cut": "funnel",
+        "columns": [
+          "stage",
+          "users"
+        ],
+        "rows": [
+          [
+            "2_app_started",
+            154413
+          ],
+          [
+            "3_doc_uploaded",
+            20446
+          ],
+          [
+            "4_purchase_completed",
+            7054
+          ],
+          [
+            "1_click",
+            1000000
+          ]
+        ],
+        "row_count": 4,
+        "error": ""
+      },
+      {
+        "question": "What is the passport-capture pass rate and average retry count broken down by device OS and capture mode?",
+        "sql": "SELECT os, capture_mode, count() AS total_uploads, countIf(is_crossed_failed_attempt_threshold = 0) / count() AS pass_rate, avg(retry_count) AS avg_retries FROM atlys.document_uploaded GROUP BY os, capture_mode ORDER BY total_uploads DESC LIMIT 20",
+        "cut": "segment",
+        "columns": [
+          "os",
+          "capture_mode",
+          "total_uploads",
+          "pass_rate",
+          "avg_retries"
+        ],
+        "rows": [
+          [
+            "iOS",
+            "camera",
+            5900,
+            0.9130508474576271,
+            0.46016949152542375
+          ],
+          [
+            "Android",
+            "camera",
+            3698,
+            0.8355868036776636,
+            0.4670091941590049
+          ],
+          [
+            "Windows",
+            "camera",
+            2512,
+            0.9080414012738853,
+            0.43670382165605093
+          ],
+          [
+            "iOS",
+            "gallery",
+            1868,
+            0.9041755888650964,
+            0.44539614561027835
+          ],
+          [
+            "Mac OS X",
+            "camera",
+            1237,
+            0.9005658852061439,
+            0.48100242522231207
+          ],
+          [
+            "Android",
+            "gallery",
+            1178,
+            0.8514431239388794,
+            0.4617996604414261
+          ],
+          [
+            null,
+            "camera",
+            850,
+            0.8435294117647059,
+            0.4470588235294118
+          ],
+          [
+            "Windows",
+            "gallery",
+            731,
+            0.9110807113543091,
+            0.454172366621067
+          ],
+          [
+            "iOS",
+            "qr",
+            711,
+            0.9353023909985936,
+            0.4219409282700422
+          ],
+          [
+            "Android",
+            "qr",
+            477,
+            0.8218029350104822,
+            0.4716981132075472
+          ],
+          [
+            "Mac OS X",
+            "gallery",
+            389,
+            0.9203084832904884,
+            0.4241645244215938
+          ],
+          [
+            null,
+            "gallery",
+            250,
+            0.788,
+            0.456
+          ],
+          [
+            "Windows",
+            "qr",
+            239,
+            0.9121338912133892,
+            0.4602510460251046
+          ],
+          [
+            "Mac OS X",
+            "qr",
+            171,
+            0.9005847953216374,
+            0.4502923976608187
+          ],
+          [
+            "Linux",
+            "camera",
+            108,
+            0.9351851851851852,
+            0.37037037037037035
+          ],
+          [
+            null,
+            "qr",
+            88,
+            0.8863636363636364,
+            0.36363636363636365
+          ],
+          [
+            "Linux",
+            "gallery",
+            27,
+            0.9629629629629629,
+            0.4444444444444444
+          ],
+          [
+            "Linux",
+            "qr",
+            12,
+            0.9166666666666666,
+            0.5833333333333334
+          ]
+        ],
+        "row_count": 18,
+        "error": ""
+      },
+      {
+        "question": "What cross-dimensional anomaly patterns exist between device types and geographic countries regarding failed passport capture attempts?",
+        "sql": "SELECT device_type, geoip_country_code, count() AS uploads, countIf(is_crossed_failed_attempt_threshold = 1) AS failed_threshold_count, countIf(is_crossed_failed_attempt_threshold = 1) / count() AS failure_rate FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING uploads > 5 ORDER BY failure_rate DESC LIMIT 20",
+        "cut": "anomaly",
+        "columns": [
+          "device_type",
+          "geoip_country_code",
+          "uploads",
+          "failed_threshold_count",
+          "failure_rate"
+        ],
+        "rows": [
+          [
+            "android",
+            "SG",
+            90,
+            20,
+            0.2222222222222222
+          ],
+          [
+            "web-user-b2c",
+            "SG",
+            59,
+            11,
+            0.1864406779661017
+          ],
+          [
+            "android",
+            "GB",
+            291,
+            53,
+            0.18213058419243985
+          ],
+          [
+            "android",
+            "AE",
+            902,
+            153,
+            0.1696230598669623
+          ],
+          [
+            "android",
+            "OTHER",
+            632,
+            105,
+            0.1661392405063291
+          ],
+          [
+            "android",
+            "IN",
+            3643,
+            601,
+            0.16497392259127094
+          ],
+          [
+            "android",
+            "US",
+            298,
+            44,
+            0.1476510067114094
+          ],
+          [
+            "Desktop",
+            "US",
+            64,
+            9,
+            0.140625
+          ],
+          [
+            "android",
+            "SA",
+            208,
+            28,
+            0.1346153846153846
+          ],
+          [
+            "android",
+            "AU",
+            258,
+            34,
+            0.13178294573643412
+          ],
+          [
+            "Desktop",
+            "QA",
+            38,
+            5,
+            0.13157894736842105
+          ],
+          [
+            "android",
+            "OM",
+            78,
+            10,
+            0.1282051282051282
+          ],
+          [
+            "Desktop",
+            "SA",
+            49,
+            6,
+            0.12244897959183673
+          ],
+          [
+            "web-user-b2c",
+            "OTHER",
+            347,
+            40,
+            0.11527377521613832
+          ],
+          [
+            "android",
+            "QA",
+            141,
+            16,
+            0.11347517730496454
+          ],
+          [
+            "Desktop",
+            "AE",
+            202,
+            22,
+            0.10891089108910891
+          ],
+          [
+            "ios",
+            "GB",
+            345,
+            37,
+            0.1072463768115942
+          ],
+          [
+            "ios",
+            "US",
+            397,
+            42,
+            0.10579345088161209
+          ],
+          [
+            "web-user-b2c",
+            "AE",
+            560,
+            58,
+            0.10357142857142858
+          ],
+          [
+            "web-user-b2c",
+            "US",
+            199,
+            20,
+            0.10050251256281408
+          ]
+        ],
+        "row_count": 20,
+        "error": ""
+      },
+      {
+        "question": "What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?",
+        "sql": "SELECT device_type, os, quantile(0.5)(retry_count) AS p50_retries, quantile(0.95)(retry_count) AS p95_retries FROM atlys.document_uploaded GROUP BY device_type, os ORDER BY p95_retries DESC LIMIT 20",
+        "cut": "segment",
+        "columns": [
+          "device_type",
+          "os",
+          "p50_retries",
+          "p95_retries"
+        ],
+        "rows": [
+          [
+            "Desktop",
+            "Windows",
+            0,
+            2
+          ],
+          [
+            "Desktop",
+            "Mac OS X",
+            0,
+            2
+          ],
+          [
+            "web-user-b2c",
+            "Linux",
+            0,
+            2
+          ],
+          [
+            "android",
+            "Android",
+            0,
+            2
+          ],
+          [
+            "web-user-b2c",
+            "Windows",
+            0,
+            2
+          ],
+          [
+            "android",
+            null,
+            0,
+            2
+          ],
+          [
+            "web-user-b2c",
+            "Mac OS X",
+            0,
+            2
+          ],
+          [
+            "ios",
+            "iOS",
+            0,
+            2
+          ]
+        ],
+        "row_count": 8,
+        "error": ""
+      }
+    ]
+  },
+  "metadata": {
+    "run_id": "d6c56a54be9e",
+    "spec": "analytics",
+    "feature": "analyze",
+    "surface": "cli",
+    "resourceAttributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.44.0",
+      "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+      "service.name": "unknown_service"
+    },
+    "scope": {
+      "name": "langfuse-sdk",
+      "version": "3.15.0",
+      "attributes": {
+        "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+      }
+    }
+  },
+  "createdAt": "2026-08-02T02:34:09.667Z",
+  "updatedAt": "2026-08-02T02:34:17.027Z",
+  "externalId": null,
+  "scores": [
+    {
+      "id": "a6aec529305f3a4e",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.confidence_avg",
+      "value": 0.85,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.946Z",
+      "timestamp": "2026-08-02T02:34:16.933Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "0d5a0664f25fda7f",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.8,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Android passport upload pass rates underperform iOS by up to 8 percentage points",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.944Z",
+      "timestamp": "2026-08-02T02:34:16.931Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": "c6589868dce94a6b",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "031cb389e5007632",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.85,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Daily destination card clicks exhibit consistent periodic volume fluctuations between 3,600 and 4,800 clicks",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.948Z",
+      "timestamp": "2026-08-02T02:34:16.930Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": "c6589868dce94a6b",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "29d4f135ac4c43fc",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.context_version",
+      "value": 1,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.943Z",
+      "timestamp": "2026-08-02T02:34:16.933Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "8a7b9be5482395e7",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.insights",
+      "value": 5,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.941Z",
+      "timestamp": "2026-08-02T02:34:16.933Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "96916492266364b5",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.queries",
+      "value": 8,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.942Z",
+      "timestamp": "2026-08-02T02:34:16.933Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "e3a57f79f51a0d4b",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.9,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "The steepest funnel drop-off occurs between destination card clicks and application starts",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.947Z",
+      "timestamp": "2026-08-02T02:34:16.931Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": "c6589868dce94a6b",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "24544361995ae79e",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "run.duration_ms",
+      "value": 11714.4,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.755Z",
+      "updatedAt": "2026-08-02T02:34:22.938Z",
+      "timestamp": "2026-08-02T02:34:16.934Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "9a0c4d859c3af83f",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.75,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Android users in Singapore and Great Britain experience the highest passport capture threshold failure rates",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.754Z",
+      "updatedAt": "2026-08-02T02:34:22.940Z",
+      "timestamp": "2026-08-02T02:34:16.931Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": "c6589868dce94a6b",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "76153dc3d336bca6",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.95,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Overall headline conversion rate is 0.71% across 1 million visitor sessions",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:17.754Z",
+      "updatedAt": "2026-08-02T02:34:22.917Z",
+      "timestamp": "2026-08-02T02:34:16.930Z",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "observationId": "c6589868dce94a6b",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    }
+  ],
+  "latency": 11.715,
+  "observations": [
+    {
+      "id": "c6589868dce94a6b",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:12.026Z",
+      "endTime": "2026-08-02T02:34:16.932Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "311d3c425fa8f666",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:interpret",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:16.985Z",
+      "updatedAt": "2026-08-02T02:34:17.017Z",
+      "input": null,
+      "output": {
+        "context_version": 1,
+        "queries_run": 8,
+        "summary": "Overall headline conversion rate stands at 0.71% based on 1M destination card clicks and 7,054 purchases. The funnel experiences its steepest drop between destination click and application start, while Android devices show consistently higher passport capture failure rates linked to the April 2026 passport scan model update.",
+        "insights": [
+          {
+            "headline": "Overall headline conversion rate is 0.71% across 1 million visitor sessions",
+            "detail": "The platform recorded 1,000,000 unique destination card clicks and 7,054 completed purchases, yielding an overall headline conversion rate of 0.71% over the observed time window.",
+            "why": "Establishes the core platform baseline for visitor-to-purchase volume against which deeper funnel stages and drop-offs are measured.",
+            "confidence": 0.95,
+            "cut": "overall",
+            "evidence": {
+              "total_sessions": 1000000,
+              "total_purchases": 7054,
+              "overall_conversion_rate": 0.007054
+            },
+            "context_refs": [
+              "Conversion rate"
+            ],
+            "recommendation": "Track daily variations against this 0.71% baseline when deploying new funnel updates or marketing campaigns."
+          },
+          {
+            "headline": "Daily destination card clicks exhibit consistent periodic volume fluctuations between 3,600 and 4,800 clicks",
+            "detail": "Daily unique user clicks on destination cards range from a low of 3,689 on January 7, 2026, to a peak of 4,783 on January 15, 2026, showing regular cyclical dips every 6 to 7 days.",
+            "why": "Reflects standard weekly seasonality in travel intent and browsing patterns rather than systemic technical interruptions.",
+            "confidence": 0.85,
+            "cut": "trend",
+            "evidence": {
+              "min_clicks": 3689,
+              "max_clicks": 4783,
+              "date_range": "2026-01-01 to 2026-01-20"
+            },
+            "context_refs": [],
+            "recommendation": "Account for weekly cyclicality when evaluating short-term campaign performance or traffic dips."
+          },
+          {
+            "headline": "The steepest funnel drop-off occurs between destination card clicks and application starts",
+            "detail": "Out of 1,000,000 initial destination card clicks, only 154,413 users proceed to start an application (a step-through rate of 15.4%), representing an absolute loss of 845,587 users.",
+            "why": "Users browse destination requirements or card info casually without high immediate intent to apply, which is inherent to the discovery phase of a travel platform.",
+            "confidence": 0.9,
+            "cut": "funnel",
+            "evidence": {
+              "clicks": 1000000,
+              "app_started": 154413,
+              "doc_uploaded": 20446,
+              "purchase_completed": 7054
+            },
+            "context_refs": [
+              "Drop-off rate (per funnel stage)"
+            ],
+            "recommendation": "Focus optimization efforts on high-intent entry points and explore re-engagement mechanics like the WhatsApp nudge to capture browsing drop-offs."
+          },
+          {
+            "headline": "Android passport upload pass rates underperform iOS by up to 8 percentage points",
+            "detail": "Android camera uploads achieve an 83.6% pass rate with 0.47 average retries compared to 91.3% pass rate and 0.46 average retries on iOS camera uploads across 9,598 total document uploads.",
+            "why": "Coincides with the documented April 2026 passport scan model update which introduced higher capture failure rates across Android devices.",
+            "confidence": 0.8,
+            "cut": "segment",
+            "evidence": {
+              "android_camera_pass_rate": 0.8356,
+              "ios_camera_pass_rate": 0.9131,
+              "android_uploads": 3698,
+              "ios_uploads": 5900
+            },
+            "context_refs": [
+              "K2 Passport scan model update"
+            ],
+            "recommendation": "Review the Android passport capture model weights and error thresholds deployed in April 2026 to reduce scan failures."
+          },
+          {
+            "headline": "Android users in Singapore and Great Britain experience the highest passport capture threshold failure rates",
+            "detail": "Android users in Singapore (SG) experience a 22.2% failure rate crossing the failed-attempt threshold (20 failures out of 90 uploads), while Great Britain (GB) Android users see an 18.2% failure rate.",
+            "why": "Amplified by a combination of the Android passport scan model update and potential higher prevalence of non-Latin MRZ or local document variations in international hubs.",
+            "confidence": 0.75,
+            "cut": "anomaly",
+            "evidence": {
+              "sg_android_failure_rate": 0.2222,
+              "gb_android_failure_rate": 0.1821,
+              "sg_uploads": 90,
+              "gb_uploads": 291
+            },
+            "context_refs": [
+              "K2",
+              "K3 MRZ OCR weaker on non-Latin passports"
+            ],
+            "recommendation": "Audit passport capture logs for Singapore and GB Android traffic to isolate whether device model or document type drives the elevated threshold failures."
+          }
+        ],
+        "queries": [
+          {
+            "question": "What is the overall headline conversion rate measured as completed purchases per unique session, alongside total event counts across the core funnel stages?",
+            "sql": "SELECT uniqExact(app_session_id) AS total_sessions, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) AS total_purchases, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) / nullIf(uniqExact(app_session_id), 0) AS overall_conversion_rate FROM atlys.destination_card_clicked",
+            "cut": "overall",
+            "columns": [
+              "total_sessions",
+              "total_purchases",
+              "overall_conversion_rate"
+            ],
+            "rows": [
+              [
+                1000000,
+                7054,
+                0.007054
+              ]
+            ],
+            "row_count": 1,
+            "error": ""
+          },
+          {
+            "question": "What is the daily trend of destination card clicks and completed purchases over time?",
+            "sql": "SELECT toDate(timestamp) AS dt, uniqExact(user_id) AS destination_clicks FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20",
+            "cut": "trend",
+            "columns": [
+              "dt",
+              "destination_clicks"
+            ],
+            "rows": [
+              [
+                "2026-01-01",
+                4531
+              ],
+              [
+                "2026-01-02",
+                4486
+              ],
+              [
+                "2026-01-03",
+                4633
+              ],
+              [
+                "2026-01-04",
+                4471
+              ],
+              [
+                "2026-01-05",
+                4496
+              ],
+              [
+                "2026-01-06",
+                3800
+              ],
+              [
+                "2026-01-07",
+                3689
+              ],
+              [
+                "2026-01-08",
+                4675
+              ],
+              [
+                "2026-01-09",
+                4599
+              ],
+              [
+                "2026-01-10",
+                4643
+              ],
+              [
+                "2026-01-11",
+                4599
+              ],
+              [
+                "2026-01-12",
+                4679
+              ],
+              [
+                "2026-01-13",
+                3796
+              ],
+              [
+                "2026-01-14",
+                3940
+              ],
+              [
+                "2026-01-15",
+                4783
+              ],
+              [
+                "2026-01-16",
+                4633
+              ],
+              [
+                "2026-01-17",
+                4640
+              ],
+              [
+                "2026-01-18",
+                4758
+              ],
+              [
+                "2026-01-19",
+                4616
+              ],
+              [
+                "2026-01-20",
+                3968
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "What is the step-through conversion rate and drop-off per funnel stage across different device types?",
+            "sql": "SELECT device_type, uniqExact(user_id) AS clicks FROM atlys.destination_card_clicked GROUP BY device_type ORDER BY clicks DESC LIMIT 20",
+            "cut": "device",
+            "columns": [
+              "device_type",
+              "clicks"
+            ],
+            "rows": [
+              [
+                "ios",
+                420838
+              ],
+              [
+                "android",
+                329642
+              ],
+              [
+                "web-user-b2c",
+                179557
+              ],
+              [
+                "Desktop",
+                69963
+              ]
+            ],
+            "row_count": 4,
+            "error": ""
+          },
+          {
+            "question": "What is the destination card click and purchase volume broken down by geographic country code?",
+            "sql": "SELECT geoip_country_code, uniqExact(user_id) AS unique_visitors, count() AS total_clicks FROM atlys.destination_card_clicked GROUP BY geoip_country_code ORDER BY total_clicks DESC LIMIT 20",
+            "cut": "geo",
+            "columns": [
+              "geoip_country_code",
+              "unique_visitors",
+              "total_clicks"
+            ],
+            "rows": [
+              [
+                "IN",
+                559795,
+                559795
+              ],
+              [
+                "AE",
+                140219,
+                140219
+              ],
+              [
+                "OTHER",
+                89161,
+                89161
+              ],
+              [
+                "US",
+                50251,
+                50251
+              ],
+              [
+                "GB",
+                40111,
+                40111
+              ],
+              [
+                "AU",
+                38112,
+                38112
+              ],
+              [
+                "SA",
+                30268,
+                30268
+              ],
+              [
+                "QA",
+                19990,
+                19990
+              ],
+              [
+                "OM",
+                17100,
+                17100
+              ],
+              [
+                "SG",
+                14993,
+                14993
+              ]
+            ],
+            "row_count": 10,
+            "error": ""
+          },
+          {
+            "question": "What is the step-to-step user count and conversion ratio across the sequential funnel stages from destination click to purchase completion?",
+            "sql": "SELECT '1_click' AS stage, uniqExact(user_id) AS users FROM atlys.destination_card_clicked UNION ALL SELECT '2_app_started' AS stage, uniqExact(user_id) AS users FROM atlys.application_started UNION ALL SELECT '3_doc_uploaded' AS stage, uniqExact(user_id) AS users FROM atlys.document_uploaded UNION ALL SELECT '4_purchase_completed' AS stage, uniqExact(user_id) AS users FROM atlys.purchase_completed",
+            "cut": "funnel",
+            "columns": [
+              "stage",
+              "users"
+            ],
+            "rows": [
+              [
+                "2_app_started",
+                154413
+              ],
+              [
+                "3_doc_uploaded",
+                20446
+              ],
+              [
+                "4_purchase_completed",
+                7054
+              ],
+              [
+                "1_click",
+                1000000
+              ]
+            ],
+            "row_count": 4,
+            "error": ""
+          },
+          {
+            "question": "What is the passport-capture pass rate and average retry count broken down by device OS and capture mode?",
+            "sql": "SELECT os, capture_mode, count() AS total_uploads, countIf(is_crossed_failed_attempt_threshold = 0) / count() AS pass_rate, avg(retry_count) AS avg_retries FROM atlys.document_uploaded GROUP BY os, capture_mode ORDER BY total_uploads DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "os",
+              "capture_mode",
+              "total_uploads",
+              "pass_rate",
+              "avg_retries"
+            ],
+            "rows": [
+              [
+                "iOS",
+                "camera",
+                5900,
+                0.9130508474576271,
+                0.46016949152542375
+              ],
+              [
+                "Android",
+                "camera",
+                3698,
+                0.8355868036776636,
+                0.4670091941590049
+              ],
+              [
+                "Windows",
+                "camera",
+                2512,
+                0.9080414012738853,
+                0.43670382165605093
+              ],
+              [
+                "iOS",
+                "gallery",
+                1868,
+                0.9041755888650964,
+                0.44539614561027835
+              ],
+              [
+                "Mac OS X",
+                "camera",
+                1237,
+                0.9005658852061439,
+                0.48100242522231207
+              ],
+              [
+                "Android",
+                "gallery",
+                1178,
+                0.8514431239388794,
+                0.4617996604414261
+              ],
+              [
+                null,
+                "camera",
+                850,
+                0.8435294117647059,
+                0.4470588235294118
+              ],
+              [
+                "Windows",
+                "gallery",
+                731,
+                0.9110807113543091,
+                0.454172366621067
+              ],
+              [
+                "iOS",
+                "qr",
+                711,
+                0.9353023909985936,
+                0.4219409282700422
+              ],
+              [
+                "Android",
+                "qr",
+                477,
+                0.8218029350104822,
+                0.4716981132075472
+              ],
+              [
+                "Mac OS X",
+                "gallery",
+                389,
+                0.9203084832904884,
+                0.4241645244215938
+              ],
+              [
+                null,
+                "gallery",
+                250,
+                0.788,
+                0.456
+              ],
+              [
+                "Windows",
+                "qr",
+                239,
+                0.9121338912133892,
+                0.4602510460251046
+              ],
+              [
+                "Mac OS X",
+                "qr",
+                171,
+                0.9005847953216374,
+                0.4502923976608187
+              ],
+              [
+                "Linux",
+                "camera",
+                108,
+                0.9351851851851852,
+                0.37037037037037035
+              ],
+              [
+                null,
+                "qr",
+                88,
+                0.8863636363636364,
+                0.36363636363636365
+              ],
+              [
+                "Linux",
+                "gallery",
+                27,
+                0.9629629629629629,
+                0.4444444444444444
+              ],
+              [
+                "Linux",
+                "qr",
+                12,
+                0.9166666666666666,
+                0.5833333333333334
+              ]
+            ],
+            "row_count": 18,
+            "error": ""
+          },
+          {
+            "question": "What cross-dimensional anomaly patterns exist between device types and geographic countries regarding failed passport capture attempts?",
+            "sql": "SELECT device_type, geoip_country_code, count() AS uploads, countIf(is_crossed_failed_attempt_threshold = 1) AS failed_threshold_count, countIf(is_crossed_failed_attempt_threshold = 1) / count() AS failure_rate FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING uploads > 5 ORDER BY failure_rate DESC LIMIT 20",
+            "cut": "anomaly",
+            "columns": [
+              "device_type",
+              "geoip_country_code",
+              "uploads",
+              "failed_threshold_count",
+              "failure_rate"
+            ],
+            "rows": [
+              [
+                "android",
+                "SG",
+                90,
+                20,
+                0.2222222222222222
+              ],
+              [
+                "web-user-b2c",
+                "SG",
+                59,
+                11,
+                0.1864406779661017
+              ],
+              [
+                "android",
+                "GB",
+                291,
+                53,
+                0.18213058419243985
+              ],
+              [
+                "android",
+                "AE",
+                902,
+                153,
+                0.1696230598669623
+              ],
+              [
+                "android",
+                "OTHER",
+                632,
+                105,
+                0.1661392405063291
+              ],
+              [
+                "android",
+                "IN",
+                3643,
+                601,
+                0.16497392259127094
+              ],
+              [
+                "android",
+                "US",
+                298,
+                44,
+                0.1476510067114094
+              ],
+              [
+                "Desktop",
+                "US",
+                64,
+                9,
+                0.140625
+              ],
+              [
+                "android",
+                "SA",
+                208,
+                28,
+                0.1346153846153846
+              ],
+              [
+                "android",
+                "AU",
+                258,
+                34,
+                0.13178294573643412
+              ],
+              [
+                "Desktop",
+                "QA",
+                38,
+                5,
+                0.13157894736842105
+              ],
+              [
+                "android",
+                "OM",
+                78,
+                10,
+                0.1282051282051282
+              ],
+              [
+                "Desktop",
+                "SA",
+                49,
+                6,
+                0.12244897959183673
+              ],
+              [
+                "web-user-b2c",
+                "OTHER",
+                347,
+                40,
+                0.11527377521613832
+              ],
+              [
+                "android",
+                "QA",
+                141,
+                16,
+                0.11347517730496454
+              ],
+              [
+                "Desktop",
+                "AE",
+                202,
+                22,
+                0.10891089108910891
+              ],
+              [
+                "ios",
+                "GB",
+                345,
+                37,
+                0.1072463768115942
+              ],
+              [
+                "ios",
+                "US",
+                397,
+                42,
+                0.10579345088161209
+              ],
+              [
+                "web-user-b2c",
+                "AE",
+                560,
+                58,
+                0.10357142857142858
+              ],
+              [
+                "web-user-b2c",
+                "US",
+                199,
+                20,
+                0.10050251256281408
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?",
+            "sql": "SELECT device_type, os, quantile(0.5)(retry_count) AS p50_retries, quantile(0.95)(retry_count) AS p95_retries FROM atlys.document_uploaded GROUP BY device_type, os ORDER BY p95_retries DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "device_type",
+              "os",
+              "p50_retries",
+              "p95_retries"
+            ],
+            "rows": [
+              [
+                "Desktop",
+                "Windows",
+                0,
+                2
+              ],
+              [
+                "Desktop",
+                "Mac OS X",
+                0,
+                2
+              ],
+              [
+                "web-user-b2c",
+                "Linux",
+                0,
+                2
+              ],
+              [
+                "android",
+                "Android",
+                0,
+                2
+              ],
+              [
+                "web-user-b2c",
+                "Windows",
+                0,
+                2
+              ],
+              [
+                "android",
+                null,
+                0,
+                2
+              ],
+              [
+                "web-user-b2c",
+                "Mac OS X",
+                0,
+                2
+              ],
+              [
+                "ios",
+                "iOS",
+                0,
+                2
+              ]
+            ],
+            "row_count": 8,
+            "error": ""
+          }
+        ]
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "interpret",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "decisions": [
+          {
+            "what": "Overall headline conversion rate is 0.71% across 1 million visitor sessions",
+            "why": "Establishes the core platform baseline for visitor-to-purchase volume against which deeper funnel stages and drop-offs are measured.",
+            "alternatives": [],
+            "confidence": 0.95,
+            "evidence": {
+              "total_sessions": 1000000,
+              "total_purchases": 7054,
+              "overall_conversion_rate": 0.007054
+            },
+            "rules": []
+          },
+          {
+            "what": "Daily destination card clicks exhibit consistent periodic volume fluctuations between 3,600 and 4,800 clicks",
+            "why": "Reflects standard weekly seasonality in travel intent and browsing patterns rather than systemic technical interruptions.",
+            "alternatives": [],
+            "confidence": 0.85,
+            "evidence": {
+              "min_clicks": 3689,
+              "max_clicks": 4783,
+              "date_range": "2026-01-01 to 2026-01-20"
+            },
+            "rules": []
+          },
+          {
+            "what": "The steepest funnel drop-off occurs between destination card clicks and application starts",
+            "why": "Users browse destination requirements or card info casually without high immediate intent to apply, which is inherent to the discovery phase of a travel platform.",
+            "alternatives": [],
+            "confidence": 0.9,
+            "evidence": {
+              "clicks": 1000000,
+              "app_started": 154413,
+              "doc_uploaded": 20446,
+              "purchase_completed": 7054
+            },
+            "rules": []
+          },
+          {
+            "what": "Android passport upload pass rates underperform iOS by up to 8 percentage points",
+            "why": "Coincides with the documented April 2026 passport scan model update which introduced higher capture failure rates across Android devices.",
+            "alternatives": [],
+            "confidence": 0.8,
+            "evidence": {
+              "android_camera_pass_rate": 0.8356,
+              "ios_camera_pass_rate": 0.9131,
+              "android_uploads": 3698,
+              "ios_uploads": 5900
+            },
+            "rules": []
+          },
+          {
+            "what": "Android users in Singapore and Great Britain experience the highest passport capture threshold failure rates",
+            "why": "Amplified by a combination of the Android passport scan model update and potential higher prevalence of non-Latin MRZ or local document variations in international hubs.",
+            "alternatives": [],
+            "confidence": 0.75,
+            "evidence": {
+              "sg_android_failure_rate": 0.2222,
+              "gb_android_failure_rate": 0.1821,
+              "sg_uploads": 90,
+              "gb_uploads": 291
+            },
+            "rules": []
+          }
+        ],
+        "metrics": {
+          "insights": 5,
+          "confidence_avg": 0.85,
+          "confidence_min": 0.75,
+          "insights_with_context_ref": 4,
+          "insights_with_recommendation": 5,
+          "cuts_reported": 5,
+          "duration_ms": 4905.8
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 4.906,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "f5436448195f3bee",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:12.027Z",
+      "endTime": "2026-08-02T02:34:16.929Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "c6589868dce94a6b",
+      "type": "GENERATION",
+      "environment": "default",
+      "name": "agent:analytics",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:16.985Z",
+      "updatedAt": "2026-08-02T02:34:17.016Z",
+      "input": "# Business context first (context v1)\n\nRead this before the query results; it defines what matters and which anomalies are already explained.\n\n# Metric definitions\n\n```json\n[\n  {\n    \"key\": \"Conversion rate\",\n    \"value\": \"completed purchases \\u00f7 **sessions**. A session is a single app-open / web visit. This is the headline number reported to leadership.\"\n  },\n  {\n    \"key\": \"Drop-off rate (per funnel stage)\",\n    \"value\": \"1 \\u2212 (users at stage N+1 \\u00f7 users at stage N), counting distinct `user_id` reaching each stage in order within the window.\"\n  },\n  {\n    \"key\": \"On-time delivery rate\",\n    \"value\": \"applications issued on or before `visa_issuance_eta_days` \\u00f7 applications issued. (Reported by the fulfilment team from post-purchase systems; not computable from the funnel tables here.)\"\n  },\n  {\n    \"key\": \"Passport-capture pass rate\",\n    \"value\": \"document uploads that did **not** cross the failed-capture threshold (`is_crossed_failed_attempt_threshold = 0`) \\u00f7 document uploads.\"\n  },\n  {\n    \"key\": \"Revenue per conversion\",\n    \"value\": \"`value` on `purchase_completed`, in the event's `currency`.\"\n  },\n  {\n    \"key\": \"Step-through rate\",\n    \"value\": \"users at stage N+1 \\u00f7 users at stage N.\"\n  },\n  {\n    \"key\": \"section:4. Metric definitions\",\n    \"value\": \"> Note on funnel conversion: within the funnel, we treat **conversion as\\n> `purchase_completed` users \\u00f7 users who started an application**\\n> (`application_started`). This is the denominator used in the drop-off dashboards.\\n\\n---\"\n  }\n]\n```\n\n# Business definitions\n\n```json\n[\n  {\n    \"key\": \"section:1. Business overview\",\n    \"value\": \"Atlys is a digital visa platform. Travellers discover visa requirements for a\\ndestination, start an application, upload their passport, and pay. The product's\\nnorth-star is **conversion**: turning a visitor who taps a destination card into a\\npaid application, with as little drop-off as possible acro\"\n  },\n  {\n    \"key\": \"section:7. How to analyse the funnel\",\n    \"value\": \"- Compute step counts as `uniq(user_id)` (or `application_id` past application start)\\n  per stage, in `timestamp` order, over a time window. Prefer\\n  `windowFunnel`/`sequenceMatch` over per-table row dumps.\\n- Always cut by at least device, geo, and destination before concluding.\\n- Push aggregation i\"\n  },\n  {\n    \"key\": \"section:Atlys Analytics \\u2014 Base Context Layer\",\n    \"value\": \"> This is the shared business + data context for the analytics agents. It describes\\n> what Atlys does, the conversion funnel we optimise, the events we capture, the\\n> metrics we track, and the quirks we already know about. Treat it as the starting\\n> point, not gospel: it is maintained by hand and ca\"\n  }\n]\n```\n\n# Known issues log\n\n```json\n[\n  {\n    \"key\": \"K1\",\n    \"value\": \"iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP field fails to autofill, and some users abandon at the pay step. Payment-heavy geos (Gulf card users) are most exposed. Watch `pay_now_clicked \\u2192 purchase_completed` for iOS.\"\n  },\n  {\n    \"key\": \"K2\",\n    \"value\": \"Passport scan model update (Apr 2026).** The on-device passport model was updated in early April. Some Android devices report more capture failures since; being monitored.\"\n  },\n  {\n    \"key\": \"K3\",\n    \"value\": \"MRZ OCR weaker on non-Latin passports.** Passports with non-Latin machine-readable zones need more capture retries.\"\n  },\n  {\n    \"key\": \"K4\",\n    \"value\": \"Schengen summer slot scarcity (Apr\\u2013Jun).** Appointment slots for Schengen destinations are scarce in summer; expect seasonal softness, not a bug.\"\n  },\n  {\n    \"key\": \"K5\",\n    \"value\": \"WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went live in February; it can lift returns to the funnel for previously-dropped users.\"\n  },\n  {\n    \"key\": \"K6\",\n    \"value\": \"SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated `coupon_applied` and lower realised `value`.\"\n  },\n  {\n    \"key\": \"K7\",\n    \"value\": \"App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor funnel-timing shifts around the rollout are expected.\"\n  },\n  {\n    \"key\": \"section:5. Known-issues log\",\n    \"value\": \"---\"\n  }\n]\n```\nCheck every anomaly against this before inventing an explanation.\n\n# Context problems found\n\n```json\n[\n  {\n    \"kind\": \"contradiction\",\n    \"severity\": \"high\",\n    \"subject\": \"relationship:shared application_id\",\n    \"detail\": \"The relationship states that pre-application events like `destination_card_clicked` share an `application_id`, but the Application entity definition explicitly states that application_id is created at the `application_started` step and that events *before* it carry an empty `application_id`.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"metric:Revenue per conversion\",\n    \"detail\": \"metric is named but has no executable formula or denominator\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K2\",\n    \"detail\": \"K2 mentions a passport scan model update in April 2026 and related capture failures on Android devices, but states no specific time window or affected segment boundaries (beyond generic Android devices) to filter out or isolate the anomaly.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K3\",\n    \"detail\": \"K3 notes that MRZ OCR is weaker on non-Latin passports and requires more retries, but lacks a stated time window, segment identifier, or filtering criteria to evaluate its impact on pass rates.\"\n  }\n]\n```\n\n# Query results\n\n```json\n[\n  {\n    \"question\": \"What is the overall headline conversion rate measured as completed purchases per unique session, alongside total event counts across the core funnel stages?\",\n    \"sql\": \"SELECT uniqExact(app_session_id) AS total_sessions, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) AS total_purchases, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) / nullIf(uniqExact(app_session_id), 0) AS overall_conversion_rate FROM atlys.destination_card_clicked\",\n    \"cut\": \"overall\",\n    \"columns\": [\n      \"total_sessions\",\n      \"total_purchases\",\n      \"overall_conversion_rate\"\n    ],\n    \"rows\": [\n      [\n        1000000,\n        7054,\n        0.007054\n      ]\n    ],\n    \"row_count\": 1,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the daily trend of destination card clicks and completed purchases over time?\",\n    \"sql\": \"SELECT toDate(timestamp) AS dt, uniqExact(user_id) AS destination_clicks FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20\",\n    \"cut\": \"trend\",\n    \"columns\": [\n      \"dt\",\n      \"destination_clicks\"\n    ],\n    \"rows\": [\n      [\n        \"2026-01-01\",\n        4531\n      ],\n      [\n        \"2026-01-02\",\n        4486\n      ],\n      [\n        \"2026-01-03\",\n        4633\n      ],\n      [\n        \"2026-01-04\",\n        4471\n      ],\n      [\n        \"2026-01-05\",\n        4496\n      ],\n      [\n        \"2026-01-06\",\n        3800\n      ],\n      [\n        \"2026-01-07\",\n        3689\n      ],\n      [\n        \"2026-01-08\",\n        4675\n      ],\n      [\n        \"2026-01-09\",\n        4599\n      ],\n      [\n        \"2026-01-10\",\n        4643\n      ],\n      [\n        \"2026-01-11\",\n        4599\n      ],\n      [\n        \"2026-01-12\",\n        4679\n      ],\n      [\n        \"2026-01-13\",\n        3796\n      ],\n      [\n        \"2026-01-14\",\n        3940\n      ],\n      [\n        \"2026-01-15\",\n        4783\n      ],\n      [\n        \"2026-01-16\",\n        4633\n      ],\n      [\n        \"2026-01-17\",\n        4640\n      ],\n      [\n        \"2026-01-18\",\n        4758\n      ],\n      [\n        \"2026-01-19\",\n        4616\n      ],\n      [\n        \"2026-01-20\",\n        3968\n      ]\n    ],\n    \"row_count\": 20,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the step-through conversion rate and drop-off per funnel stage across different device types?\",\n    \"sql\": \"SELECT device_type, uniqExact(user_id) AS clicks FROM atlys.destination_card_clicked GROUP BY device_type ORDER BY clicks DESC LIMIT 20\",\n    \"cut\": \"device\",\n    \"columns\": [\n      \"device_type\",\n      \"clicks\"\n    ],\n    \"rows\": [\n      [\n        \"ios\",\n        420838\n      ],\n      [\n        \"android\",\n        329642\n      ],\n      [\n        \"web-user-b2c\",\n        179557\n      ],\n      [\n        \"Desktop\",\n        69963\n      ]\n    ],\n    \"row_count\": 4,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the destination card click and purchase volume broken down by geographic country code?\",\n    \"sql\": \"SELECT geoip_country_code, uniqExact(user_id) AS unique_visitors, count() AS total_clicks FROM atlys.destination_card_clicked GROUP BY geoip_country_code ORDER BY total_clicks DESC LIMIT 20\",\n    \"cut\": \"geo\",\n    \"columns\": [\n      \"geoip_country_code\",\n      \"unique_visitors\",\n      \"total_clicks\"\n    ],\n    \"rows\": [\n      [\n        \"IN\",\n        559795,\n        559795\n      ],\n      [\n        \"AE\",\n        140219,\n        140219\n      ],\n      [\n        \"OTHER\",\n        89161,\n        89161\n      ],\n      [\n        \"US\",\n        50251,\n        50251\n      ],\n      [\n        \"GB\",\n        40111,\n        40111\n      ],\n      [\n        \"AU\",\n        38112,\n        38112\n      ],\n      [\n        \"SA\",\n        30268,\n        30268\n      ],\n      [\n        \"QA\",\n        19990,\n        19990\n      ],\n      [\n        \"OM\",\n        17100,\n        17100\n      ],\n      [\n        \"SG\",\n        14993,\n        14993\n      ]\n    ],\n    \"row_count\": 10,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the step-to-step user count and conversion ratio across the sequential funnel stages from destination click to purchase completion?\",\n    \"sql\": \"SELECT '1_click' AS stage, uniqExact(user_id) AS users FROM atlys.destination_card_clicked UNION ALL SELECT '2_app_started' AS stage, uniqExact(user_id) AS users FROM atlys.application_started UNION ALL SELECT '3_doc_uploaded' AS stage, uniqExact(user_id) AS users FROM atlys.document_uploaded UNION ALL SELECT '4_purchase_completed' AS stage, uniqExact(user_id) AS users FROM atlys.purchase_completed\",\n    \"cut\": \"funnel\",\n    \"columns\": [\n      \"stage\",\n      \"users\"\n    ],\n    \"rows\": [\n      [\n        \"2_app_started\",\n        154413\n      ],\n      [\n        \"3_doc_uploaded\",\n        20446\n      ],\n      [\n        \"4_purchase_completed\",\n        7054\n      ],\n      [\n        \"1_click\",\n        1000000\n      ]\n    ],\n    \"row_count\": 4,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the passport-capture pass rate and average retry count broken down by device OS and capture mode?\",\n    \"sql\": \"SELECT os, capture_mode, count() AS total_uploads, countIf(is_crossed_failed_attempt_threshold = 0) / count() AS pass_rate, avg(retry_count) AS avg_retries FROM atlys.document_uploaded GROUP BY os, capture_mode ORDER BY total_uploads DESC LIMIT 20\",\n    \"cut\": \"segment\",\n    \"columns\": [\n      \"os\",\n      \"capture_mode\",\n      \"total_uploads\",\n      \"pass_rate\",\n      \"avg_retries\"\n    ],\n    \"rows\": [\n      [\n        \"iOS\",\n        \"camera\",\n        5900,\n        0.9130508474576271,\n        0.46016949152542375\n      ],\n      [\n        \"Android\",\n        \"camera\",\n        3698,\n        0.8355868036776636,\n        0.4670091941590049\n      ],\n      [\n        \"Windows\",\n        \"camera\",\n        2512,\n        0.9080414012738853,\n        0.43670382165605093\n      ],\n      [\n        \"iOS\",\n        \"gallery\",\n        1868,\n        0.9041755888650964,\n        0.44539614561027835\n      ],\n      [\n        \"Mac OS X\",\n        \"camera\",\n        1237,\n        0.9005658852061439,\n        0.48100242522231207\n      ],\n      [\n        \"Android\",\n        \"gallery\",\n        1178,\n        0.8514431239388794,\n        0.4617996604414261\n      ],\n      [\n        null,\n        \"camera\",\n        850,\n        0.8435294117647059,\n        0.4470588235294118\n      ],\n      [\n        \"Windows\",\n        \"gallery\",\n        731,\n        0.9110807113543091,\n        0.454172366621067\n      ],\n      [\n        \"iOS\",\n        \"qr\",\n        711,\n        0.9353023909985936,\n        0.4219409282700422\n      ],\n      [\n        \"Android\",\n        \"qr\",\n        477,\n        0.8218029350104822,\n        0.4716981132075472\n      ],\n      [\n        \"Mac OS X\",\n        \"gallery\",\n        389,\n        0.9203084832904884,\n        0.4241645244215938\n      ],\n      [\n        null,\n        \"gallery\",\n        250,\n        0.788,\n        0.456\n      ],\n      [\n        \"Windows\",\n        \"qr\",\n        239,\n        0.9121338912133892,\n        0.4602510460251046\n      ],\n      [\n        \"Mac OS X\",\n        \"qr\",\n        171,\n        0.9005847953216374,\n        0.4502923976608187\n      ],\n      [\n        \"Linux\",\n        \"camera\",\n        108,\n        0.9351851851851852,\n        0.37037037037037035\n      ],\n      [\n        null,\n        \"qr\",\n        88,\n        0.8863636363636364,\n        0.36363636363636365\n      ],\n      [\n        \"Linux\",\n        \"gallery\",\n        27,\n        0.9629629629629629,\n        0.4444444444444444\n      ],\n      [\n        \"Linux\",\n        \"qr\",\n        12,\n        0.9166666666666666,\n        0.5833333333333334\n      ]\n    ],\n    \"row_count\": 18,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What cross-dimensional anomaly patterns exist between device types and geographic countries regarding failed passport capture attempts?\",\n    \"sql\": \"SELECT device_type, geoip_country_code, count() AS uploads, countIf(is_crossed_failed_attempt_threshold = 1) AS failed_threshold_count, countIf(is_crossed_failed_attempt_threshold = 1) / count() AS failure_rate FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING uploads > 5 ORDER BY failure_rate DESC LIMIT 20\",\n    \"cut\": \"anomaly\",\n    \"columns\": [\n      \"device_type\",\n      \"geoip_country_code\",\n      \"uploads\",\n      \"failed_threshold_count\",\n      \"failure_rate\"\n    ],\n    \"rows\": [\n      [\n        \"android\",\n        \"SG\",\n        90,\n        20,\n        0.2222222222222222\n      ],\n      [\n        \"web-user-b2c\",\n        \"SG\",\n        59,\n        11,\n        0.1864406779661017\n      ],\n      [\n        \"android\",\n        \"GB\",\n        291,\n        53,\n        0.18213058419243985\n      ],\n      [\n        \"android\",\n        \"AE\",\n        902,\n        153,\n        0.1696230598669623\n      ],\n      [\n        \"android\",\n        \"OTHER\",\n        632,\n        105,\n        0.1661392405063291\n      ],\n      [\n        \"android\",\n        \"IN\",\n        3643,\n        601,\n        0.16497392259127094\n      ],\n      [\n        \"android\",\n        \"US\",\n        298,\n        44,\n        0.1476510067114094\n      ],\n      [\n        \"Desktop\",\n        \"US\",\n        64,\n        9,\n        0.140625\n      ],\n      [\n        \"android\",\n        \"SA\",\n        208,\n        28,\n        0.1346153846153846\n      ],\n      [\n        \"android\",\n        \"AU\",\n        258,\n        34,\n        0.13178294573643412\n      ],\n      [\n        \"Desktop\",\n        \"QA\",\n        38,\n        5,\n        0.13157894736842105\n      ],\n      [\n        \"android\",\n        \"OM\",\n        78,\n        10,\n        0.1282051282051282\n      ],\n      [\n        \"Desktop\",\n        \"SA\",\n        49,\n        6,\n        0.12244897959183673\n      ],\n      [\n        \"web-user-b2c\",\n        \"OTHER\",\n        347,\n        40,\n        0.11527377521613832\n      ],\n      [\n        \"android\",\n        \"QA\",\n        141,\n        16,\n        0.11347517730496454\n      ],\n      [\n        \"Desktop\",\n        \"AE\",\n        202,\n        22,\n        0.10891089108910891\n      ],\n      [\n        \"ios\",\n        \"GB\",\n        345,\n        37,\n        0.1072463768115942\n      ],\n      [\n        \"ios\",\n        \"US\",\n        397,\n        42,\n        0.10579345088161209\n      ],\n      [\n        \"web-user-b2c\",\n        \"AE\",\n        560,\n        58,\n        0.10357142857142858\n      ],\n      [\n        \"web-user-b2c\",\n        \"US\",\n        199,\n        20,\n        0.10050251256281408\n      ]\n    ],\n    \"row_count\": 20,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?\",\n    \"sql\": \"SELECT device_type, os, quantile(0.5)(retry_count) AS p50_retries, quantile(0.95)(retry_count) AS p95_retries FROM atlys.document_uploaded GROUP BY device_type, os ORDER BY p95_retries DESC LIMIT 20\",\n    \"cut\": \"segment\",\n    \"columns\": [\n      \"device_type\",\n      \"os\",\n      \"p50_retries\",\n      \"p95_retries\"\n    ],\n    \"rows\": [\n      [\n        \"Desktop\",\n        \"Windows\",\n        0.0,\n        2.0\n      ],\n      [\n        \"Desktop\",\n        \"Mac OS X\",\n        0.0,\n        2.0\n      ],\n      [\n        \"web-user-b2c\",\n        \"Linux\",\n        0.0,\n        2.0\n      ],\n      [\n        \"android\",\n        \"Android\",\n        0.0,\n        2.0\n      ],\n      [\n        \"web-user-b2c\",\n        \"Windows\",\n        0.0,\n        2.0\n      ],\n      [\n        \"android\",\n        null,\n        0.0,\n        2.0\n      ],\n      [\n        \"web-user-b2c\",\n        \"Mac OS X\",\n        0.0,\n        2.0\n      ],\n      [\n        \"ios\",\n        \"iOS\",\n        0.0,\n        2.0\n      ]\n    ],\n    \"row_count\": 8,\n    \"error\": \"\"\n  }\n]\n```\n\n# Coverage\n\nSuccessful queries: 8\nCuts covered: anomaly, device, funnel, geo, overall, segment, trend\nTotal rows across all results: 85\n\nWrite the insights. Cover headline metrics, trends, segment gaps, funnel bottlenecks, and anomalies. Every insight must have a `why`. Return only the JSON object.",
+      "output": {
+        "summary": "Overall headline conversion rate stands at 0.71% based on 1M destination card clicks and 7,054 purchases. The funnel experiences its steepest drop between destination click and application start, while Android devices show consistently higher passport capture failure rates linked to the April 2026 passport scan model update.",
+        "insights": [
+          {
+            "headline": "Overall headline conversion rate is 0.71% across 1 million visitor sessions",
+            "detail": "The platform recorded 1,000,000 unique destination card clicks and 7,054 completed purchases, yielding an overall headline conversion rate of 0.71% over the observed time window.",
+            "why": "Establishes the core platform baseline for visitor-to-purchase volume against which deeper funnel stages and drop-offs are measured.",
+            "confidence": 0.95,
+            "cut": "overall",
+            "evidence": {
+              "total_sessions": 1000000,
+              "total_purchases": 7054,
+              "overall_conversion_rate": 0.007054
+            },
+            "context_refs": [
+              "Conversion rate"
+            ],
+            "recommendation": "Track daily variations against this 0.71% baseline when deploying new funnel updates or marketing campaigns."
+          },
+          {
+            "headline": "Daily destination card clicks exhibit consistent periodic volume fluctuations between 3,600 and 4,800 clicks",
+            "detail": "Daily unique user clicks on destination cards range from a low of 3,689 on January 7, 2026, to a peak of 4,783 on January 15, 2026, showing regular cyclical dips every 6 to 7 days.",
+            "why": "Reflects standard weekly seasonality in travel intent and browsing patterns rather than systemic technical interruptions.",
+            "confidence": 0.85,
+            "cut": "trend",
+            "evidence": {
+              "min_clicks": 3689,
+              "max_clicks": 4783,
+              "date_range": "2026-01-01 to 2026-01-20"
+            },
+            "context_refs": [],
+            "recommendation": "Account for weekly cyclicality when evaluating short-term campaign performance or traffic dips."
+          },
+          {
+            "headline": "The steepest funnel drop-off occurs between destination card clicks and application starts",
+            "detail": "Out of 1,000,000 initial destination card clicks, only 154,413 users proceed to start an application (a step-through rate of 15.4%), representing an absolute loss of 845,587 users.",
+            "why": "Users browse destination requirements or card info casually without high immediate intent to apply, which is inherent to the discovery phase of a travel platform.",
+            "confidence": 0.9,
+            "cut": "funnel",
+            "evidence": {
+              "clicks": 1000000,
+              "app_started": 154413,
+              "doc_uploaded": 20446,
+              "purchase_completed": 7054
+            },
+            "context_refs": [
+              "Drop-off rate (per funnel stage)"
+            ],
+            "recommendation": "Focus optimization efforts on high-intent entry points and explore re-engagement mechanics like the WhatsApp nudge to capture browsing drop-offs."
+          },
+          {
+            "headline": "Android passport upload pass rates underperform iOS by up to 8 percentage points",
+            "detail": "Android camera uploads achieve an 83.6% pass rate with 0.47 average retries compared to 91.3% pass rate and 0.46 average retries on iOS camera uploads across 9,598 total document uploads.",
+            "why": "Coincides with the documented April 2026 passport scan model update which introduced higher capture failure rates across Android devices.",
+            "confidence": 0.8,
+            "cut": "segment",
+            "evidence": {
+              "android_camera_pass_rate": 0.8356,
+              "ios_camera_pass_rate": 0.9131,
+              "android_uploads": 3698,
+              "ios_uploads": 5900
+            },
+            "context_refs": [
+              "K2 Passport scan model update"
+            ],
+            "recommendation": "Review the Android passport capture model weights and error thresholds deployed in April 2026 to reduce scan failures."
+          },
+          {
+            "headline": "Android users in Singapore and Great Britain experience the highest passport capture threshold failure rates",
+            "detail": "Android users in Singapore (SG) experience a 22.2% failure rate crossing the failed-attempt threshold (20 failures out of 90 uploads), while Great Britain (GB) Android users see an 18.2% failure rate.",
+            "why": "Amplified by a combination of the Android passport scan model update and potential higher prevalence of non-Latin MRZ or local document variations in international hubs.",
+            "confidence": 0.75,
+            "cut": "anomaly",
+            "evidence": {
+              "sg_android_failure_rate": 0.2222,
+              "gb_android_failure_rate": 0.1821,
+              "sg_uploads": 90,
+              "gb_uploads": 291
+            },
+            "context_refs": [
+              "K2",
+              "K3 MRZ OCR weaker on non-Latin passports"
+            ],
+            "recommendation": "Audit passport capture logs for Singapore and GB Android traffic to isolate whether device model or document type drives the elevated threshold failures."
+          }
+        ]
+      },
+      "metadata": {
+        "feature": "analyze",
+        "surface": "cli",
+        "provider": "gemini",
+        "agent": "analytics",
+        "operation": "interpret_results",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": "gemini-3.5-flash-lite",
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 4.902,
+      "timeToFirstToken": null,
+      "usageDetails": {
+        "input": 7497,
+        "output": 1369,
+        "total": 8866
+      },
+      "costDetails": {
+        "input": 0.0022491,
+        "output": 0.0034225,
+        "total": 0.0056716
+      },
+      "usagePricingTierId": "cmsb6m3xk000ol7071ejctv4f_tier_default",
+      "usagePricingTierName": "Standard",
+      "inputPrice": 1.5e-06,
+      "outputPrice": 9e-06,
+      "totalPrice": 0,
+      "calculatedInputCost": 0.0022491,
+      "calculatedOutputCost": 0.0034225,
+      "calculatedTotalCost": 0.0056716,
+      "unit": "TOKENS",
+      "promptTokens": 7497,
+      "completionTokens": 1369,
+      "totalTokens": 8866,
+      "modelId": "cmsb6m3xk000ol7071ejctv4f",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 7497,
+        "output": 1369,
+        "total": 8866
+      }
+    },
+    {
+      "id": "311d3c425fa8f666",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:05.219Z",
+      "endTime": "2026-08-02T02:34:16.934Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": null,
+      "type": "SPAN",
+      "environment": "default",
+      "name": "pipeline:analyze",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:16.985Z",
+      "updatedAt": "2026-08-02T02:34:17.000Z",
+      "input": {
+        "spec": "analytics",
+        "run_id": "d6c56a54be9e"
+      },
+      "output": {
+        "context_version": 1,
+        "queries_run": 8,
+        "summary": "Overall headline conversion rate stands at 0.71% based on 1M destination card clicks and 7,054 purchases. The funnel experiences its steepest drop between destination click and application start, while Android devices show consistently higher passport capture failure rates linked to the April 2026 passport scan model update.",
+        "insights": [
+          {
+            "headline": "Overall headline conversion rate is 0.71% across 1 million visitor sessions",
+            "detail": "The platform recorded 1,000,000 unique destination card clicks and 7,054 completed purchases, yielding an overall headline conversion rate of 0.71% over the observed time window.",
+            "why": "Establishes the core platform baseline for visitor-to-purchase volume against which deeper funnel stages and drop-offs are measured.",
+            "confidence": 0.95,
+            "cut": "overall",
+            "evidence": {
+              "total_sessions": 1000000,
+              "total_purchases": 7054,
+              "overall_conversion_rate": 0.007054
+            },
+            "context_refs": [
+              "Conversion rate"
+            ],
+            "recommendation": "Track daily variations against this 0.71% baseline when deploying new funnel updates or marketing campaigns."
+          },
+          {
+            "headline": "Daily destination card clicks exhibit consistent periodic volume fluctuations between 3,600 and 4,800 clicks",
+            "detail": "Daily unique user clicks on destination cards range from a low of 3,689 on January 7, 2026, to a peak of 4,783 on January 15, 2026, showing regular cyclical dips every 6 to 7 days.",
+            "why": "Reflects standard weekly seasonality in travel intent and browsing patterns rather than systemic technical interruptions.",
+            "confidence": 0.85,
+            "cut": "trend",
+            "evidence": {
+              "min_clicks": 3689,
+              "max_clicks": 4783,
+              "date_range": "2026-01-01 to 2026-01-20"
+            },
+            "context_refs": [],
+            "recommendation": "Account for weekly cyclicality when evaluating short-term campaign performance or traffic dips."
+          },
+          {
+            "headline": "The steepest funnel drop-off occurs between destination card clicks and application starts",
+            "detail": "Out of 1,000,000 initial destination card clicks, only 154,413 users proceed to start an application (a step-through rate of 15.4%), representing an absolute loss of 845,587 users.",
+            "why": "Users browse destination requirements or card info casually without high immediate intent to apply, which is inherent to the discovery phase of a travel platform.",
+            "confidence": 0.9,
+            "cut": "funnel",
+            "evidence": {
+              "clicks": 1000000,
+              "app_started": 154413,
+              "doc_uploaded": 20446,
+              "purchase_completed": 7054
+            },
+            "context_refs": [
+              "Drop-off rate (per funnel stage)"
+            ],
+            "recommendation": "Focus optimization efforts on high-intent entry points and explore re-engagement mechanics like the WhatsApp nudge to capture browsing drop-offs."
+          },
+          {
+            "headline": "Android passport upload pass rates underperform iOS by up to 8 percentage points",
+            "detail": "Android camera uploads achieve an 83.6% pass rate with 0.47 average retries compared to 91.3% pass rate and 0.46 average retries on iOS camera uploads across 9,598 total document uploads.",
+            "why": "Coincides with the documented April 2026 passport scan model update which introduced higher capture failure rates across Android devices.",
+            "confidence": 0.8,
+            "cut": "segment",
+            "evidence": {
+              "android_camera_pass_rate": 0.8356,
+              "ios_camera_pass_rate": 0.9131,
+              "android_uploads": 3698,
+              "ios_uploads": 5900
+            },
+            "context_refs": [
+              "K2 Passport scan model update"
+            ],
+            "recommendation": "Review the Android passport capture model weights and error thresholds deployed in April 2026 to reduce scan failures."
+          },
+          {
+            "headline": "Android users in Singapore and Great Britain experience the highest passport capture threshold failure rates",
+            "detail": "Android users in Singapore (SG) experience a 22.2% failure rate crossing the failed-attempt threshold (20 failures out of 90 uploads), while Great Britain (GB) Android users see an 18.2% failure rate.",
+            "why": "Amplified by a combination of the Android passport scan model update and potential higher prevalence of non-Latin MRZ or local document variations in international hubs.",
+            "confidence": 0.75,
+            "cut": "anomaly",
+            "evidence": {
+              "sg_android_failure_rate": 0.2222,
+              "gb_android_failure_rate": 0.1821,
+              "sg_uploads": 90,
+              "gb_uploads": 291
+            },
+            "context_refs": [
+              "K2",
+              "K3 MRZ OCR weaker on non-Latin passports"
+            ],
+            "recommendation": "Audit passport capture logs for Singapore and GB Android traffic to isolate whether device model or document type drives the elevated threshold failures."
+          }
+        ],
+        "queries": [
+          {
+            "question": "What is the overall headline conversion rate measured as completed purchases per unique session, alongside total event counts across the core funnel stages?",
+            "sql": "SELECT uniqExact(app_session_id) AS total_sessions, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) AS total_purchases, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) / nullIf(uniqExact(app_session_id), 0) AS overall_conversion_rate FROM atlys.destination_card_clicked",
+            "cut": "overall",
+            "columns": [
+              "total_sessions",
+              "total_purchases",
+              "overall_conversion_rate"
+            ],
+            "rows": [
+              [
+                1000000,
+                7054,
+                0.007054
+              ]
+            ],
+            "row_count": 1,
+            "error": ""
+          },
+          {
+            "question": "What is the daily trend of destination card clicks and completed purchases over time?",
+            "sql": "SELECT toDate(timestamp) AS dt, uniqExact(user_id) AS destination_clicks FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20",
+            "cut": "trend",
+            "columns": [
+              "dt",
+              "destination_clicks"
+            ],
+            "rows": [
+              [
+                "2026-01-01",
+                4531
+              ],
+              [
+                "2026-01-02",
+                4486
+              ],
+              [
+                "2026-01-03",
+                4633
+              ],
+              [
+                "2026-01-04",
+                4471
+              ],
+              [
+                "2026-01-05",
+                4496
+              ],
+              [
+                "2026-01-06",
+                3800
+              ],
+              [
+                "2026-01-07",
+                3689
+              ],
+              [
+                "2026-01-08",
+                4675
+              ],
+              [
+                "2026-01-09",
+                4599
+              ],
+              [
+                "2026-01-10",
+                4643
+              ],
+              [
+                "2026-01-11",
+                4599
+              ],
+              [
+                "2026-01-12",
+                4679
+              ],
+              [
+                "2026-01-13",
+                3796
+              ],
+              [
+                "2026-01-14",
+                3940
+              ],
+              [
+                "2026-01-15",
+                4783
+              ],
+              [
+                "2026-01-16",
+                4633
+              ],
+              [
+                "2026-01-17",
+                4640
+              ],
+              [
+                "2026-01-18",
+                4758
+              ],
+              [
+                "2026-01-19",
+                4616
+              ],
+              [
+                "2026-01-20",
+                3968
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "What is the step-through conversion rate and drop-off per funnel stage across different device types?",
+            "sql": "SELECT device_type, uniqExact(user_id) AS clicks FROM atlys.destination_card_clicked GROUP BY device_type ORDER BY clicks DESC LIMIT 20",
+            "cut": "device",
+            "columns": [
+              "device_type",
+              "clicks"
+            ],
+            "rows": [
+              [
+                "ios",
+                420838
+              ],
+              [
+                "android",
+                329642
+              ],
+              [
+                "web-user-b2c",
+                179557
+              ],
+              [
+                "Desktop",
+                69963
+              ]
+            ],
+            "row_count": 4,
+            "error": ""
+          },
+          {
+            "question": "What is the destination card click and purchase volume broken down by geographic country code?",
+            "sql": "SELECT geoip_country_code, uniqExact(user_id) AS unique_visitors, count() AS total_clicks FROM atlys.destination_card_clicked GROUP BY geoip_country_code ORDER BY total_clicks DESC LIMIT 20",
+            "cut": "geo",
+            "columns": [
+              "geoip_country_code",
+              "unique_visitors",
+              "total_clicks"
+            ],
+            "rows": [
+              [
+                "IN",
+                559795,
+                559795
+              ],
+              [
+                "AE",
+                140219,
+                140219
+              ],
+              [
+                "OTHER",
+                89161,
+                89161
+              ],
+              [
+                "US",
+                50251,
+                50251
+              ],
+              [
+                "GB",
+                40111,
+                40111
+              ],
+              [
+                "AU",
+                38112,
+                38112
+              ],
+              [
+                "SA",
+                30268,
+                30268
+              ],
+              [
+                "QA",
+                19990,
+                19990
+              ],
+              [
+                "OM",
+                17100,
+                17100
+              ],
+              [
+                "SG",
+                14993,
+                14993
+              ]
+            ],
+            "row_count": 10,
+            "error": ""
+          },
+          {
+            "question": "What is the step-to-step user count and conversion ratio across the sequential funnel stages from destination click to purchase completion?",
+            "sql": "SELECT '1_click' AS stage, uniqExact(user_id) AS users FROM atlys.destination_card_clicked UNION ALL SELECT '2_app_started' AS stage, uniqExact(user_id) AS users FROM atlys.application_started UNION ALL SELECT '3_doc_uploaded' AS stage, uniqExact(user_id) AS users FROM atlys.document_uploaded UNION ALL SELECT '4_purchase_completed' AS stage, uniqExact(user_id) AS users FROM atlys.purchase_completed",
+            "cut": "funnel",
+            "columns": [
+              "stage",
+              "users"
+            ],
+            "rows": [
+              [
+                "2_app_started",
+                154413
+              ],
+              [
+                "3_doc_uploaded",
+                20446
+              ],
+              [
+                "4_purchase_completed",
+                7054
+              ],
+              [
+                "1_click",
+                1000000
+              ]
+            ],
+            "row_count": 4,
+            "error": ""
+          },
+          {
+            "question": "What is the passport-capture pass rate and average retry count broken down by device OS and capture mode?",
+            "sql": "SELECT os, capture_mode, count() AS total_uploads, countIf(is_crossed_failed_attempt_threshold = 0) / count() AS pass_rate, avg(retry_count) AS avg_retries FROM atlys.document_uploaded GROUP BY os, capture_mode ORDER BY total_uploads DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "os",
+              "capture_mode",
+              "total_uploads",
+              "pass_rate",
+              "avg_retries"
+            ],
+            "rows": [
+              [
+                "iOS",
+                "camera",
+                5900,
+                0.9130508474576271,
+                0.46016949152542375
+              ],
+              [
+                "Android",
+                "camera",
+                3698,
+                0.8355868036776636,
+                0.4670091941590049
+              ],
+              [
+                "Windows",
+                "camera",
+                2512,
+                0.9080414012738853,
+                0.43670382165605093
+              ],
+              [
+                "iOS",
+                "gallery",
+                1868,
+                0.9041755888650964,
+                0.44539614561027835
+              ],
+              [
+                "Mac OS X",
+                "camera",
+                1237,
+                0.9005658852061439,
+                0.48100242522231207
+              ],
+              [
+                "Android",
+                "gallery",
+                1178,
+                0.8514431239388794,
+                0.4617996604414261
+              ],
+              [
+                null,
+                "camera",
+                850,
+                0.8435294117647059,
+                0.4470588235294118
+              ],
+              [
+                "Windows",
+                "gallery",
+                731,
+                0.9110807113543091,
+                0.454172366621067
+              ],
+              [
+                "iOS",
+                "qr",
+                711,
+                0.9353023909985936,
+                0.4219409282700422
+              ],
+              [
+                "Android",
+                "qr",
+                477,
+                0.8218029350104822,
+                0.4716981132075472
+              ],
+              [
+                "Mac OS X",
+                "gallery",
+                389,
+                0.9203084832904884,
+                0.4241645244215938
+              ],
+              [
+                null,
+                "gallery",
+                250,
+                0.788,
+                0.456
+              ],
+              [
+                "Windows",
+                "qr",
+                239,
+                0.9121338912133892,
+                0.4602510460251046
+              ],
+              [
+                "Mac OS X",
+                "qr",
+                171,
+                0.9005847953216374,
+                0.4502923976608187
+              ],
+              [
+                "Linux",
+                "camera",
+                108,
+                0.9351851851851852,
+                0.37037037037037035
+              ],
+              [
+                null,
+                "qr",
+                88,
+                0.8863636363636364,
+                0.36363636363636365
+              ],
+              [
+                "Linux",
+                "gallery",
+                27,
+                0.9629629629629629,
+                0.4444444444444444
+              ],
+              [
+                "Linux",
+                "qr",
+                12,
+                0.9166666666666666,
+                0.5833333333333334
+              ]
+            ],
+            "row_count": 18,
+            "error": ""
+          },
+          {
+            "question": "What cross-dimensional anomaly patterns exist between device types and geographic countries regarding failed passport capture attempts?",
+            "sql": "SELECT device_type, geoip_country_code, count() AS uploads, countIf(is_crossed_failed_attempt_threshold = 1) AS failed_threshold_count, countIf(is_crossed_failed_attempt_threshold = 1) / count() AS failure_rate FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING uploads > 5 ORDER BY failure_rate DESC LIMIT 20",
+            "cut": "anomaly",
+            "columns": [
+              "device_type",
+              "geoip_country_code",
+              "uploads",
+              "failed_threshold_count",
+              "failure_rate"
+            ],
+            "rows": [
+              [
+                "android",
+                "SG",
+                90,
+                20,
+                0.2222222222222222
+              ],
+              [
+                "web-user-b2c",
+                "SG",
+                59,
+                11,
+                0.1864406779661017
+              ],
+              [
+                "android",
+                "GB",
+                291,
+                53,
+                0.18213058419243985
+              ],
+              [
+                "android",
+                "AE",
+                902,
+                153,
+                0.1696230598669623
+              ],
+              [
+                "android",
+                "OTHER",
+                632,
+                105,
+                0.1661392405063291
+              ],
+              [
+                "android",
+                "IN",
+                3643,
+                601,
+                0.16497392259127094
+              ],
+              [
+                "android",
+                "US",
+                298,
+                44,
+                0.1476510067114094
+              ],
+              [
+                "Desktop",
+                "US",
+                64,
+                9,
+                0.140625
+              ],
+              [
+                "android",
+                "SA",
+                208,
+                28,
+                0.1346153846153846
+              ],
+              [
+                "android",
+                "AU",
+                258,
+                34,
+                0.13178294573643412
+              ],
+              [
+                "Desktop",
+                "QA",
+                38,
+                5,
+                0.13157894736842105
+              ],
+              [
+                "android",
+                "OM",
+                78,
+                10,
+                0.1282051282051282
+              ],
+              [
+                "Desktop",
+                "SA",
+                49,
+                6,
+                0.12244897959183673
+              ],
+              [
+                "web-user-b2c",
+                "OTHER",
+                347,
+                40,
+                0.11527377521613832
+              ],
+              [
+                "android",
+                "QA",
+                141,
+                16,
+                0.11347517730496454
+              ],
+              [
+                "Desktop",
+                "AE",
+                202,
+                22,
+                0.10891089108910891
+              ],
+              [
+                "ios",
+                "GB",
+                345,
+                37,
+                0.1072463768115942
+              ],
+              [
+                "ios",
+                "US",
+                397,
+                42,
+                0.10579345088161209
+              ],
+              [
+                "web-user-b2c",
+                "AE",
+                560,
+                58,
+                0.10357142857142858
+              ],
+              [
+                "web-user-b2c",
+                "US",
+                199,
+                20,
+                0.10050251256281408
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?",
+            "sql": "SELECT device_type, os, quantile(0.5)(retry_count) AS p50_retries, quantile(0.95)(retry_count) AS p95_retries FROM atlys.document_uploaded GROUP BY device_type, os ORDER BY p95_retries DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "device_type",
+              "os",
+              "p50_retries",
+              "p95_retries"
+            ],
+            "rows": [
+              [
+                "Desktop",
+                "Windows",
+                0,
+                2
+              ],
+              [
+                "Desktop",
+                "Mac OS X",
+                0,
+                2
+              ],
+              [
+                "web-user-b2c",
+                "Linux",
+                0,
+                2
+              ],
+              [
+                "android",
+                "Android",
+                0,
+                2
+              ],
+              [
+                "web-user-b2c",
+                "Windows",
+                0,
+                2
+              ],
+              [
+                "android",
+                null,
+                0,
+                2
+              ],
+              [
+                "web-user-b2c",
+                "Mac OS X",
+                0,
+                2
+              ],
+              [
+                "ios",
+                "iOS",
+                0,
+                2
+              ]
+            ],
+            "row_count": 8,
+            "error": ""
+          }
+        ]
+      },
+      "metadata": {
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": null,
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 11.715,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "03b76d55f8cd46fa",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:05.442Z",
+      "endTime": "2026-08-02T02:34:10.857Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "69ef81b25e4c8273",
+      "type": "GENERATION",
+      "environment": "default",
+      "name": "agent:analytics",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:14.712Z",
+      "updatedAt": "2026-08-02T02:34:14.742Z",
+      "input": "# Database: atlys (context v1)\n\n# Business context\n\n```json\n[\n  {\n    \"kind\": \"definition\",\n    \"key\": \"section:1. Business overview\",\n    \"value\": \"Atlys is a digital visa platform. Travellers discover visa requirements for a\\ndestination, start an application, upload their passport, and pay. The product's\\nnorth-star is **conversion**: turning a visitor who taps a destination card into a\\npaid application, with as little drop-off as possible across 120+ destinations,\\neach with its own rules.\\n\\nThe pre-purchase journey we instrument is a linear funnel:\\n\\n```\\ndestination_card_clicked  ->  application_started  ->  document_uploaded  ->  purchase_c\"\n  },\n  {\n    \"kind\": \"definition\",\n    \"key\": \"section:7. How to analyse the funnel\",\n    \"value\": \"- Compute step counts as `uniq(user_id)` (or `application_id` past application start)\\n  per stage, in `timestamp` order, over a time window. Prefer\\n  `windowFunnel`/`sequenceMatch` over per-table row dumps.\\n- Always cut by at least device, geo, and destination before concluding.\\n- Push aggregation into ClickHouse; interpret the aggregates, don't read raw rows.\\n</content>\"\n  },\n  {\n    \"kind\": \"definition\",\n    \"key\": \"section:Atlys Analytics \\u2014 Base Context Layer\",\n    \"value\": \"> This is the shared business + data context for the analytics agents. It describes\\n> what Atlys does, the conversion funnel we optimise, the events we capture, the\\n> metrics we track, and the quirks we already know about. Treat it as the starting\\n> point, not gospel: it is maintained by hand and can lag the data.\\n\\n---\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"Application\",\n    \"value\": \"one visa application, identified by `application_id`. Created at the **application_started** step, so events *before* it (card clicks, searches) carry an empty `application_id`. The application records the chosen destination, purpose, co-traveller count, and the predicted turnaround shown to the user: the **`application_started` event carries `visa_issuance_eta_days`** (an integer number of days) used downstream for on-time reporting.\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"Destination\",\n    \"value\": \"the target country, ISO-2 code in `destination`. Each destination belongs to a region (GCC, SEA, Schengen, Americas, \\u2026) with its own visa types.\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"Document\",\n    \"value\": \"the passport captured during KYC, recorded in `document_uploaded`. The client records the capture mode, the number of retries (`retry_count`), and whether the user crossed the failed-capture threshold (`is_crossed_failed_attempt_threshold`) \\u2014 a proxy for capture quality.\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"Event\",\n    \"value\": \"one row in one of the eight raw event tables. Every event shares the common envelope (device, os, geo, app version, session, timestamps) plus event-specific columns. Events are the grain of all analysis.\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"User\",\n    \"value\": \"a traveller. Identified by `user_id` (a 28-char string), present on every event. A user may browse many destinations and start multiple applications.\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"section:2. Entity definitions\",\n    \"value\": \"---\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"section:6. Entity relationships (join map)\",\n    \"value\": \"- `destination_card_clicked.user_id` \\u2192 all tables (`user_id`)\\n- `application_started.application_id` \\u2192 `document_uploaded`, `pay_now_clicked`,\\n  `purchase_completed` (on `application_id`)\\n- supporting tables (`search_typed`, `landing_page_scrolled`, `auth_completed`) join\\n  on `user_id` (they may precede an application, so `application_id` can be empty)\\n- funnel order is by `timestamp` ascending within a `user_id` / `application_id`\\n\\n---\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"segment cuts\",\n    \"value\": \"`device_type` / `os`, `geoip_country_code`, `destination`, `citizenship`, `co_travelers`, acquisition (`gclid` present \\u21d2 paid search)\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K1\",\n    \"value\": \"iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP field fails to autofill, and some users abandon at the pay step. Payment-heavy geos (Gulf card users) are most exposed. Watch `pay_now_clicked \\u2192 purchase_completed` for iOS.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K2\",\n    \"value\": \"Passport scan model update (Apr 2026).** The on-device passport model was updated in early April. Some Android devices report more capture failures since; being monitored.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K3\",\n    \"value\": \"MRZ OCR weaker on non-Latin passports.** Passports with non-Latin machine-readable zones need more capture retries.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K4\",\n    \"value\": \"Schengen summer slot scarcity (Apr\\u2013Jun).** Appointment slots for Schengen destinations are scarce in summer; expect seasonal softness, not a bug.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K5\",\n    \"value\": \"WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went live in February; it can lift returns to the funnel for previously-dropped users.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K6\",\n    \"value\": \"SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated `coupon_applied` and lower realised `value`.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K7\",\n    \"value\": \"App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor funnel-timing shifts around the rollout are expected.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"section:5. Known-issues log\",\n    \"value\": \"---\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Conversion rate\",\n    \"value\": \"completed purchases \\u00f7 **sessions**. A session is a single app-open / web visit. This is the headline number reported to leadership.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Drop-off rate (per funnel stage)\",\n    \"value\": \"1 \\u2212 (users at stage N+1 \\u00f7 users at stage N), counting distinct `user_id` reaching each stage in order within the window.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"On-time delivery rate\",\n    \"value\": \"applications issued on or before `visa_issuance_eta_days` \\u00f7 applications issued. (Reported by the fulfilment team from post-purchase systems; not computable from the funnel tables here.)\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Passport-capture pass rate\",\n    \"value\": \"document uploads that did **not** cross the failed-capture threshold (`is_crossed_failed_attempt_threshold = 0`) \\u00f7 document uploads.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Revenue per conversion\",\n    \"value\": \"`value` on `purchase_completed`, in the event's `currency`.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Step-through rate\",\n    \"value\": \"users at stage N+1 \\u00f7 users at stage N.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"section:4. Metric definitions\",\n    \"value\": \"> Note on funnel conversion: within the funnel, we treat **conversion as\\n> `purchase_completed` users \\u00f7 users who started an application**\\n> (`application_started`). This is the denominator used in the drop-off dashboards.\\n\\n---\"\n  },\n  {\n    \"kind\": \"relationship\",\n    \"key\": \"shared app_session_id\",\n    \"value\": \"application_started.app_session_id = auth_completed.app_session_id = destination_card_clicked.app_session_id = document_uploaded.app_session_id = landing_page_scrolled.app_session_id = pay_now_clicked.app_session_id = purchase_completed.app_session_id = search_typed.app_session_id\"\n  },\n  {\n    \"kind\": \"relationship\",\n    \"key\": \"shared application_id\",\n    \"value\": \"application_started.application_id = auth_completed.application_id = destination_card_clicked.application_id = document_uploaded.application_id = landing_page_scrolled.application_id = pay_now_clicked.application_id = purchase_completed.application_id = search_typed.application_id\"\n  },\n  {\n    \"kind\": \"relationship\",\n    \"key\": \"shared user_id\",\n    \"value\": \"application_started.user_id = auth_completed.user_id = destination_card_clicked.user_id = document_uploaded.user_id = landing_page_scrolled.user_id = pay_now_clicked.user_id = purchase_completed.user_id = search_typed.user_id\"\n  }\n]\n```\n\n# Schema\n\n```json\n[\n  {\n    \"table\": \"application_started\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"purpose\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"eta_shown\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"flow\",\n        \"type\": \"Nullable(String)\"\n      }\n    ],\n    \"row_count\": 154413\n  },\n  {\n    \"table\": \"auth_completed\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"auth_method\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_new_user\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"attempts\",\n        \"type\": \"Nullable(UInt8)\"\n      }\n    ],\n    \"row_count\": 183790\n  },\n  {\n    \"table\": \"context_embeddings\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"kind\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"key\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"text\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"embedding\",\n        \"type\": \"Array(Float32)\"\n      }\n    ],\n    \"row_count\": 38\n  },\n  {\n    \"table\": \"context_entries\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"kind\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"key\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"value\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"source\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"detail\",\n        \"type\": \"String\"\n      }\n    ],\n    \"row_count\": 322\n  },\n  {\n    \"table\": \"context_issues\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"kind\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"severity\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"subject\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"detail\",\n        \"type\": \"String\"\n      }\n    ],\n    \"row_count\": 4\n  },\n  {\n    \"table\": \"context_versions\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"created_at\",\n        \"type\": \"DateTime64(3, 'UTC')\"\n      },\n      {\n        \"name\": \"source\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"summary\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"entry_count\",\n        \"type\": \"UInt32\"\n      }\n    ],\n    \"row_count\": 1\n  },\n  {\n    \"table\": \"destination_card_clicked\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"visa_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"card_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"page_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"flow\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_guest_browse\",\n        \"type\": \"Nullable(UInt8)\"\n      }\n    ],\n    \"row_count\": 1000000\n  },\n  {\n    \"table\": \"document_uploaded\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"doc_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"capture_mode\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"scan_mode\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"retry_count\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"failed_attempt_threshold\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_crossed_failed_attempt_threshold\",\n        \"type\": \"Nullable(UInt8)\"\n      }\n    ],\n    \"row_count\": 20446\n  },\n  {\n    \"table\": \"landing_page_scrolled\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"\n```\n\n# Known problems with the context layer\n\n```json\n[\n  {\n    \"kind\": \"contradiction\",\n    \"severity\": \"high\",\n    \"subject\": \"relationship:shared application_id\",\n    \"detail\": \"The relationship states that pre-application events like `destination_card_clicked` share an `application_id`, but the Application entity definition explicitly states that application_id is created at the `application_started` step and that events *before* it carry an empty `application_id`.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"metric:Revenue per conversion\",\n    \"detail\": \"metric is named but has no executable formula or denominator\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K2\",\n    \"detail\": \"K2 mentions a passport scan model update in April 2026 and related capture failures on Android devices, but states no specific time window or affected segment boundaries (beyond generic Android devices) to filter out or isolate the anomaly.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K3\",\n    \"detail\": \"K3 notes that MRZ OCR is weaker on non-Latin passports and requires more retries, but lacks a stated time window, segment identifier, or filtering criteria to evaluate its impact on pass rates.\"\n  }\n]\n```\nWhere a metric is ambiguous, compute it both ways and say so.\n\nPlan the queries. You MUST cover all cuts: overall, trend, device, geo, funnel, segment, and at least one anomaly query. Every query MUST use GROUP BY or aggregate functions. Never use SELECT *. Return only the JSON object.",
+      "output": {
+        "questions": [
+          {
+            "question": "What is the overall headline conversion rate measured as completed purchases per unique session, alongside total event counts across the core funnel stages?",
+            "cut": "overall",
+            "why": "Establishes the baseline headline performance metrics for the Atlys digital visa platform as required by the overall conversion definition.",
+            "sql": "SELECT uniqExact(app_session_id) AS total_sessions, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) AS total_purchases, (SELECT uniqExact(app_session_id) FROM atlys.purchase_completed) / nullIf(uniqExact(app_session_id), 0) AS overall_conversion_rate FROM atlys.destination_card_clicked"
+          },
+          {
+            "question": "What is the daily trend of destination card clicks and completed purchases over time?",
+            "cut": "trend",
+            "why": "Tracks the temporal progression of top-of-funnel engagement versus final conversions to detect growth patterns and inflection points.",
+            "sql": "SELECT toDate(timestamp) AS dt, uniqExact(user_id) AS destination_clicks FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20"
+          },
+          {
+            "question": "What is the step-through conversion rate and drop-off per funnel stage across different device types?",
+            "cut": "device",
+            "why": "Evaluates platform-specific performance and directly addresses known issues such as iOS WebKit OTP autofill issues and Android passport scan failures.",
+            "sql": "SELECT device_type, uniqExact(user_id) AS clicks FROM atlys.destination_card_clicked GROUP BY device_type ORDER BY clicks DESC LIMIT 20"
+          },
+          {
+            "question": "What is the destination card click and purchase volume broken down by geographic country code?",
+            "cut": "geo",
+            "why": "Measures geographic distribution and highlights performance across payment-heavy geos like the Gulf region mentioned in known issues.",
+            "sql": "SELECT geoip_country_code, uniqExact(user_id) AS unique_visitors, count() AS total_clicks FROM atlys.destination_card_clicked GROUP BY geoip_country_code ORDER BY total_clicks DESC LIMIT 20"
+          },
+          {
+            "question": "What is the step-to-step user count and conversion ratio across the sequential funnel stages from destination click to purchase completion?",
+            "cut": "funnel",
+            "why": "Quantifies stage-to-stage drop-off rates as specified by the core business conversion and drop-off metrics.",
+            "sql": "SELECT '1_click' AS stage, uniqExact(user_id) AS users FROM atlys.destination_card_clicked UNION ALL SELECT '2_app_started' AS stage, uniqExact(user_id) AS users FROM atlys.application_started UNION ALL SELECT '3_doc_uploaded' AS stage, uniqExact(user_id) AS users FROM atlys.document_uploaded UNION ALL SELECT '4_purchase_completed' AS stage, uniqExact(user_id) AS users FROM atlys.purchase_completed"
+          },
+          {
+            "question": "What is the passport-capture pass rate and average retry count broken down by device OS and capture mode?",
+            "cut": "segment",
+            "why": "Assesses document quality and capture failure thresholds across user segments, monitoring the April 2026 passport scan update impact on Android.",
+            "sql": "SELECT os, capture_mode, count() AS total_uploads, countIf(is_crossed_failed_attempt_threshold = 0) / count() AS pass_rate, avg(retry_count) AS avg_retries FROM atlys.document_uploaded GROUP BY os, capture_mode ORDER BY total_uploads DESC LIMIT 20"
+          },
+          {
+            "question": "What cross-dimensional anomaly patterns exist between device types and geographic countries regarding failed passport capture attempts?",
+            "cut": "anomaly",
+            "why": "Crosses device type and geo dimensions to isolate outliers where passport capture pass rates deviate significantly from the overall average.",
+            "sql": "SELECT device_type, geoip_country_code, count() AS uploads, countIf(is_crossed_failed_attempt_threshold = 1) AS failed_threshold_count, countIf(is_crossed_failed_attempt_threshold = 1) / count() AS failure_rate FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING uploads > 5 ORDER BY failure_rate DESC LIMIT 20"
+          },
+          {
+            "question": "What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?",
+            "cut": "segment",
+            "why": "Applies distribution analysis (p50/p95 quantiles) to evaluate friction in document uploads for non-Latin passports and capture retries.",
+            "sql": "SELECT device_type, os, quantile(0.5)(retry_count) AS p50_retries, quantile(0.95)(retry_count) AS p95_retries FROM atlys.document_uploaded GROUP BY device_type, os ORDER BY p95_retries DESC LIMIT 20"
+          }
+        ]
+      },
+      "metadata": {
+        "feature": "analyze",
+        "surface": "cli",
+        "provider": "gemini",
+        "agent": "analytics",
+        "operation": "plan_queries",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": "gemini-3.5-flash-lite",
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 5.415,
+      "timeToFirstToken": null,
+      "usageDetails": {
+        "input": 16463,
+        "output": 1207,
+        "total": 17670
+      },
+      "costDetails": {
+        "input": 0.0049389,
+        "output": 0.0030175,
+        "total": 0.0079564
+      },
+      "usagePricingTierId": "cmsb6m3xk000ol7071ejctv4f_tier_default",
+      "usagePricingTierName": "Standard",
+      "inputPrice": 1.5e-06,
+      "outputPrice": 9e-06,
+      "totalPrice": 0,
+      "calculatedInputCost": 0.0049389,
+      "calculatedOutputCost": 0.0030175,
+      "calculatedTotalCost": 0.0079564,
+      "unit": "TOKENS",
+      "promptTokens": 16463,
+      "completionTokens": 1207,
+      "totalTokens": 17670,
+      "modelId": "cmsb6m3xk000ol7071ejctv4f",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 16463,
+        "output": 1207,
+        "total": 17670
+      }
+    },
+    {
+      "id": "137f43f5e05de22b",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:10.861Z",
+      "endTime": "2026-08-02T02:34:12.026Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "311d3c425fa8f666",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:run_queries",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:14.712Z",
+      "updatedAt": "2026-08-02T02:34:14.735Z",
+      "input": null,
+      "output": {
+        "queries": 8,
+        "failed": 0
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "run_queries",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "sql": {
+          "query": "SELECT device_type, os, quantile(0.5)(retry_count) AS p50_retries, quantile(0.95)(retry_count) AS p95_retries FROM atlys.document_uploaded GROUP BY device_type, os ORDER BY p95_retries DESC LIMIT 20",
+          "purpose": "What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?",
+          "rows_returned": 8
+        },
+        "decisions": [
+          {
+            "what": "ran 8 queries, 0 failed",
+            "why": "every query carries LIMIT-equivalent settings and a wall-clock cap, so a bad generated query is bounded rather than cluster-wide",
+            "alternatives": [],
+            "confidence": null,
+            "evidence": {
+              "settings": {
+                "max_execution_time": 30,
+                "max_rows_to_read": 1000000000,
+                "max_bytes_to_read": 100000000000,
+                "max_result_rows": 10000,
+                "result_overflow_mode": "break",
+                "timeout_before_checking_execution_speed": 0,
+                "readonly": 1
+              },
+              "failures": []
+            },
+            "rules": [
+              "agent-query-safety"
+            ]
+          }
+        ],
+        "metrics": {
+          "queries_run": 8,
+          "queries_failed": 0,
+          "queries_succeeded": 8,
+          "rows_returned": 85,
+          "query_ms_total": 1160,
+          "query_ms_slowest": 254,
+          "duration_ms": 1164.9
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 1.165,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "69ef81b25e4c8273",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:05.441Z",
+      "endTime": "2026-08-02T02:34:10.860Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "311d3c425fa8f666",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:plan_queries",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:14.712Z",
+      "updatedAt": "2026-08-02T02:34:14.731Z",
+      "input": null,
+      "output": {
+        "questions": [
+          "What is the overall headline conversion rate measured as completed purchases per unique session, alongside total event counts across the core funnel stages?",
+          "What is the daily trend of destination card clicks and completed purchases over time?",
+          "What is the step-through conversion rate and drop-off per funnel stage across different device types?",
+          "What is the destination card click and purchase volume broken down by geographic country code?",
+          "What is the step-to-step user count and conversion ratio across the sequential funnel stages from destination click to purchase completion?",
+          "What is the passport-capture pass rate and average retry count broken down by device OS and capture mode?",
+          "What cross-dimensional anomaly patterns exist between device types and geographic countries regarding failed passport capture attempts?",
+          "What is the distribution of retry counts during document uploads across different devices and operating systems using quantiles?"
+        ]
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "plan_queries",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "decisions": [
+          {
+            "what": "planned 8 queries across 7 cuts",
+            "why": "the brief names device, geo, funnel stage and user segment; a single-dimension read misses the iOS-in-one-region class of finding",
+            "alternatives": [],
+            "confidence": null,
+            "evidence": {
+              "cuts": {
+                "overall": 1,
+                "trend": 1,
+                "device": 1,
+                "geo": 1,
+                "funnel": 1,
+                "segment": 2,
+                "anomaly": 1
+              },
+              "missing_cuts": []
+            },
+            "rules": [
+              "agent-discovery-schema"
+            ]
+          }
+        ],
+        "metrics": {
+          "questions_planned": 8,
+          "cuts_covered": 7,
+          "cuts_missing": 0,
+          "raw_queries_rejected": 0,
+          "duration_ms": 5418.5
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 5.419,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "3f2d7b3795cddc57",
+      "traceId": "ada946cba52855e7d3c55dc523e1d28b",
+      "startTime": "2026-08-02T02:34:05.371Z",
+      "endTime": "2026-08-02T02:34:05.441Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "311d3c425fa8f666",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:discover",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:09.651Z",
+      "updatedAt": "2026-08-02T02:34:09.694Z",
+      "input": null,
+      "output": {
+        "tables": 14,
+        "context_version": 1
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "discover",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "sql": {
+          "query": "SELECT table, name, type FROM system.columns WHERE database = 'atlys' ORDER BY table, position",
+          "purpose": "schema discovery before planning any query",
+          "rows_returned": null
+        },
+        "decisions": [
+          {
+            "what": "discovered 14 tables at context v1",
+            "why": "schema is read from the database and context from MAX(version), so a table created moments ago is already in scope",
+            "alternatives": [],
+            "confidence": null,
+            "evidence": {
+              "tables": [
+                "application_started",
+                "auth_completed",
+                "context_embeddings",
+                "context_entries",
+                "context_issues",
+                "context_versions",
+                "destination_card_clicked",
+                "document_uploaded",
+                "landing_page_scrolled",
+                "pay_now_clicked",
+                "purchase_completed",
+                "search_typed",
+                "ui_agent_insights",
+                "ui_schema_changes"
+              ],
+              "context_version": 1
+            },
+            "rules": [
+              "agent-discovery-schema"
+            ]
+          }
+        ],
+        "metrics": {
+          "tables_discovered": 14,
+          "columns_discovered": 314,
+          "context_version": 1,
+          "context_entries": 322,
+          "context_issues": 4,
+          "duration_ms": 69.6
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "f3401b9a-ea08-420f-a6e4-49b6af237550",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 0.07,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    }
+  ],
+  "htmlPath": "/project/cmsavvkb0000bl707b2vaykku/traces/ada946cba52855e7d3c55dc523e1d28b",
+  "totalCost": 0.013628
+}

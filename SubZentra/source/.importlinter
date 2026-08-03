@@ -1,0 +1,74 @@
+[importlinter]
+root_packages =
+    zentra_domain_agent_execution
+    zentra_domain_connector
+    zentra_domain_investigation
+    zentra_domain_sequence
+    zentra_application_investigation
+    zentra_application_connector
+    zentra_adapter_postgres
+    zentra_adapter_clickhouse
+    zentra_adapter_cube
+    zentra_adapter_langgraph
+    zentra_adapter_model_providers
+    zentra_adapter_sequence_execution
+    zentra_adapter_telemetry
+    zentra_api
+include_external_packages = True
+
+[importlinter:contract:domain-is-framework-independent]
+name = Agent execution domain is framework independent
+type = forbidden
+source_modules =
+    zentra_domain_agent_execution
+    zentra_domain_investigation
+    zentra_domain_connector
+    zentra_domain_sequence
+forbidden_modules =
+    alembic
+    anthropic
+    clickhouse_connect
+    fastapi
+    httpx
+    langchain_core
+    langgraph
+    openai
+    opentelemetry
+    psycopg
+    sqlalchemy
+    uvicorn
+
+[importlinter:contract:application-is-framework-independent]
+name = Investigation application is framework independent
+type = forbidden
+source_modules =
+    zentra_application_investigation
+    zentra_application_connector
+forbidden_modules =
+    alembic
+    anthropic
+    clickhouse_connect
+    fastapi
+    httpx
+    langchain_core
+    langgraph
+    openai
+    opentelemetry
+    psycopg
+    sqlalchemy
+    uvicorn
+
+[importlinter:contract:adapters-do-not-depend-on-each-other]
+name = Adapters do not depend on sibling adapters
+type = independence
+# zentra_adapter_sequence_execution is deliberately excluded: it depends on
+# zentra_adapter_postgres to persist Sequence Step results, the first
+# intentional adapter-to-adapter dependency in this codebase. See
+# docs/adr/0022-sequence-step-execution-is-distinct-from-phase-3-query-execution.md.
+modules =
+    zentra_adapter_postgres
+    zentra_adapter_clickhouse
+    zentra_adapter_cube
+    zentra_adapter_langgraph
+    zentra_adapter_model_providers
+    zentra_adapter_telemetry

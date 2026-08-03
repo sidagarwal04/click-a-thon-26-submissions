@@ -1,0 +1,21 @@
+# evidence: rebuild_insights_phoenix_next
+# what: insight layer recreated from sql/insights/schema/, with the keys the server actually ended up with
+# run_utc: 2026-08-01 19:15:12
+# git: e8e3f60-dirty
+# host: ss-cric
+# row_count: 2188718
+# event_watermark: 2026-08-01 20:03:11.372
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:03:12   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+table	sorting_key	primary_key	rows
+late_event_audit	lateness_class, event_date, video_session_id, event_timestamp	lateness_class, event_date, video_session_id, event_timestamp	0
+session_insight_facts	toDate(session_start), country, platform, content_id, session_start, video_session_id	toDate(session_start), country, platform, content_id	119495
+audience_minute_snapshot	minute, content_id, platform, country, video_type, app_version	minute, content_id, platform, country, video_type, app_version	123171
+content_entry_cohorts	video_type, country, platform, app_version, content_id, cohort_minute	video_type, country, platform, app_version	16967
+playback_health_minute	minute, content_id, platform, country, app_version, video_type	minute, content_id, platform, country, app_version, video_type	123183
+#	lateness_class_type	Enum8('on_time' = 1, 'late_acceptable' = 2, 'late_after_finalization' = 3, 'invalid_future_event' = 4)

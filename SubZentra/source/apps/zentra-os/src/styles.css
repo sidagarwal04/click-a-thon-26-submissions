@@ -1,0 +1,50 @@
+/**
+ * Global stylesheet.
+ *
+ * The design system's token sheet pulls Tailwind in with it, so importing it
+ * here is what makes semantic utilities (`bg-primary`, `text-foreground`)
+ * resolve to real values in this app. Importing `tailwindcss` on its own —
+ * which is what this file used to do — generates the utilities but leaves
+ * every design system component unstyled.
+ */
+@import '../../../libs/foundation/design-system/src/tokens/tokens.css';
+
+/* Tailwind scans the Vite root by default, which stops at this app. Component
+   classes live in the design system library and have to be named explicitly. */
+@source '../../../libs/foundation/design-system/src';
+
+/* `@layer base`, not bare rules. Unlayered CSS outranks every Tailwind layer,
+   so an element selector written outside a layer beats the utility classes on
+   that element — `button { font: inherit }` on its own silently overrode every
+   `text-*` and `font-*` class in the shell. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  :root {
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg-layer-00);
+    color: var(--text-primary);
+    font-family: var(--font-family-sans);
+  }
+
+  button,
+  select,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 3px;
+  }
+}

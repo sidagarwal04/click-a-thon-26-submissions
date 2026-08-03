@@ -1,0 +1,227 @@
+{
+  "dashboard": {
+    "name": "RCA Detection",
+    "tags": [
+      "inmobi",
+      "rca",
+      "detection"
+    ]
+  },
+  "clock": {
+    "bucket_seconds": 2,
+    "anchor": 1785649885
+  },
+  "interval": "1m",
+  "tiles": [
+    {
+      "key": "tile-0",
+      "name": "data freshness",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "number",
+        "sqlTemplate": "SELECT dateDiff('second',\n                least(fromUnixTimestamp64Milli({endDateMilliseconds:Int64}), toDateTime(max(event_time))),\n                fromUnixTimestamp64Milli({endDateMilliseconds:Int64}))\n       / greatest(dateDiff('second', fromUnixTimestamp64Milli({startDateMilliseconds:Int64}), fromUnixTimestamp64Milli({endDateMilliseconds:Int64})), 1)\n       AS windows_stale\nFROM inmobi.ad_events_enriched\nWHERE event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})"
+      }
+    },
+    {
+      "key": "tile-1",
+      "name": "revenue \u00b7 global anomalies",
+      "x": 0,
+      "y": 4,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "number",
+        "sqlTemplate": "SELECT toUInt64(sum(is_anomaly)) AS anomaly_count\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           sum(revenue) AS actual,\n           sum(revenue) AS num,\n           0 AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('ALL', '')] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           base_median AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(expected IS NULL, NULL, (actual - expected) / robust_sigma) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 2000\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.03, 0) AS is_anomaly\nFROM scored\n)"
+      }
+    },
+    {
+      "key": "tile-2",
+      "name": "ecpm \u00b7 global anomalies",
+      "x": 0,
+      "y": 8,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "number",
+        "sqlTemplate": "SELECT toUInt64(sum(is_anomaly)) AS anomaly_count\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           sum(revenue) / nullIf(toFloat64(sum(is_impression)), 0) * 1000 AS actual,\n           sum(revenue) AS num,\n           toFloat64(sum(is_impression)) AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('ALL', '')] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           base_median AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(expected IS NULL, NULL, (actual - expected) / robust_sigma) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 500\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.03, 0) AS is_anomaly\nFROM scored\n)"
+      }
+    },
+    {
+      "key": "tile-3",
+      "name": "ecpm \u00b7 marginal sentinel",
+      "x": 0,
+      "y": 12,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "line",
+        "sqlTemplate": "SELECT $__timeInterval(ts) AS bucket, dim_name, dim_value,\n       round(max(abs(z_score)), 2) AS peak_abs_z\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           sum(revenue) / nullIf(toFloat64(sum(is_impression)), 0) * 1000 AS actual,\n           sum(revenue) AS num,\n           toFloat64(sum(is_impression)) AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('publisher_tier', toString(publisher_tier)), ('vertical', toString(vertical)), ('campaign_type', toString(campaign_type)), ('country', toString(country)), ('ad_format', toString(ad_format)), ('category', toString(category)), ('region', toString(region)), ('os_version', toString(os_version))] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           base_median AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(expected IS NULL, NULL, (actual - expected) / robust_sigma) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 500\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.03, 0) AS is_anomaly\nFROM scored\n)\nWHERE is_anomaly = 1\nGROUP BY bucket, dim_name, dim_value\nORDER BY bucket, sum(abs(delta_abs) * sample_count) DESC\nLIMIT 1 BY bucket"
+      }
+    },
+    {
+      "key": "tile-4",
+      "name": "fill_rate \u00b7 global anomalies",
+      "x": 0,
+      "y": 16,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "number",
+        "sqlTemplate": "SELECT toUInt64(sum(is_anomaly)) AS anomaly_count\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           sum(is_filled) / nullIf(toFloat64(count()), 0) AS actual,\n           sum(is_filled) AS num,\n           toFloat64(count()) AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('ALL', '')] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           if(base_den = 0, NULL, base_num / base_den) AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(den > 0 AND base_den > 0, proportionsZTest(toUInt64(num), toUInt64(base_num), toUInt64(den), toUInt64(base_den), 0.999, 'unpooled').1, NULL) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 500\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.02\n              AND abs(delta_abs) >= 0.01, 0) AS is_anomaly\nFROM scored\n)"
+      }
+    },
+    {
+      "key": "tile-5",
+      "name": "fill_rate \u00b7 marginal sentinel",
+      "x": 0,
+      "y": 20,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "line",
+        "sqlTemplate": "SELECT $__timeInterval(ts) AS bucket, dim_name, dim_value,\n       round(max(abs(z_score)), 2) AS peak_abs_z\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           sum(is_filled) / nullIf(toFloat64(count()), 0) AS actual,\n           sum(is_filled) AS num,\n           toFloat64(count()) AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('os_version', toString(os_version)), ('country', toString(country)), ('ad_format', toString(ad_format)), ('publisher_tier', toString(publisher_tier)), ('category', toString(category)), ('device_model', toString(device_model)), ('region', toString(region))] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           if(base_den = 0, NULL, base_num / base_den) AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(den > 0 AND base_den > 0, proportionsZTest(toUInt64(num), toUInt64(base_num), toUInt64(den), toUInt64(base_den), 0.999, 'unpooled').1, NULL) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 500\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.02\n              AND abs(delta_abs) >= 0.01, 0) AS is_anomaly\nFROM scored\n)\nWHERE is_anomaly = 1\nGROUP BY bucket, dim_name, dim_value\nORDER BY bucket, sum(abs(delta_abs) * sample_count) DESC\nLIMIT 1 BY bucket"
+      }
+    },
+    {
+      "key": "tile-6",
+      "name": "requests \u00b7 global anomalies",
+      "x": 0,
+      "y": 24,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "number",
+        "sqlTemplate": "SELECT toUInt64(sum(is_anomaly)) AS anomaly_count\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           toFloat64(count()) AS actual,\n           toFloat64(count()) AS num,\n           0 AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('ALL', '')] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           base_median AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(expected IS NULL, NULL, (actual - expected) / robust_sigma) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 2000\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.05, 0) AS is_anomaly\nFROM scored\n)"
+      }
+    },
+    {
+      "key": "tile-7",
+      "name": "requests \u00b7 marginal sentinel",
+      "x": 0,
+      "y": 28,
+      "w": 12,
+      "h": 4,
+      "config": {
+        "configType": "sql",
+        "displayType": "line",
+        "sqlTemplate": "SELECT $__timeInterval(ts) AS bucket, dim_name, dim_value,\n       round(max(abs(z_score)), 2) AS peak_abs_z\nFROM (\nWITH points AS (\n    SELECT toDateTime(intDiv(toUnixTimestamp(event_time) - 1785649885, 2) * 2 + 1785649885) AS ts,\n           d.1 AS dim_name,\n           d.2 AS dim_value,\n           toFloat64(count()) AS actual,\n           toFloat64(count()) AS num,\n           0 AS den,\n           count() AS sample_count\n    FROM inmobi.ad_events_enriched\n    ARRAY JOIN [('region', toString(region)), ('country', toString(country)), ('category', toString(category)), ('ad_format', toString(ad_format)), ('publisher_tier', toString(publisher_tier)), ('os_version', toString(os_version)), ('device_model', toString(device_model))] AS d\n    WHERE event_time > (fromUnixTimestamp64Milli({startDateMilliseconds:Int64}) - INTERVAL 3360 SECOND) AND event_time <= fromUnixTimestamp64Milli({endDateMilliseconds:Int64})\n    GROUP BY ts, dim_name, dim_value\n    -- vertical / campaign_type are empty on unfilled requests; that is an absence,\n    -- not a segment, and it must never become a candidate slice\n    HAVING dim_name = 'ALL' OR dim_value != ''\n),\nwindowed AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count,\n           quantileExact(0.5)(actual)  OVER w AS base_median,\n           quantileExact(0.25)(actual) OVER w AS base_q25,\n           quantileExact(0.75)(actual) OVER w AS base_q75,\n           sum(num)                    OVER w AS base_num,\n           sum(den)                    OVER w AS base_den,\n           count()                     OVER w AS base_points\n    FROM points\n    WINDOW w AS (\n        PARTITION BY dim_name, dim_value, (intDiv(toUnixTimestamp(ts) - 1785649885, 2)) % 24, (intDiv(intDiv(toUnixTimestamp(ts) - 1785649885, 2), 24) + 0) % 7 >= 5\n        ORDER BY ts\n        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING\n    )\n),\nbased AS (\n    SELECT ts, dim_name, dim_value, actual, num, den, sample_count, base_points,\n           base_num, base_den,\n           base_median AS expected,\n           greatest((base_q75 - base_q25) / 1.349, 1e-9) AS robust_sigma\n    FROM windowed\n    WHERE ts > fromUnixTimestamp64Milli({startDateMilliseconds:Int64})\n),\nscored AS (\n    SELECT ts, dim_name, dim_value, actual, expected, sample_count, base_points,\n           actual - expected AS delta_abs,\n           if(expected IS NULL OR expected = 0, NULL,\n              (actual - expected) / expected) AS delta_rel,\n           if(expected IS NULL, NULL, (actual - expected) / robust_sigma) AS z_score\n    FROM based\n)\nSELECT ts, dim_name, dim_value, actual, expected, delta_abs, delta_rel, z_score,\n       sample_count, base_points,\n       ifNull(sample_count >= 2000\n              AND base_points >= 8\n              AND abs(z_score) >= 4.0\n              AND abs(delta_rel) >= 0.05, 0) AS is_anomaly\nFROM scored\n)\nWHERE is_anomaly = 1\nGROUP BY bucket, dim_name, dim_value\nORDER BY bucket, sum(abs(delta_abs) * sample_count) DESC\nLIMIT 1 BY bucket"
+      }
+    }
+  ],
+  "alerts": [
+    {
+      "tileKey": "tile-0",
+      "name": "data freshness",
+      "source": "tile",
+      "threshold": 1,
+      "thresholdType": "above",
+      "interval": "1m",
+      "message": "metric_id=freshness scope=ops",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-1",
+      "name": "revenue \u00b7 global anomalies",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=revenue scope=global",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-2",
+      "name": "ecpm \u00b7 global anomalies",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=ecpm scope=global",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-3",
+      "name": "ecpm \u00b7 marginal sentinel",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=ecpm scope=marginal dimension_id={{group}} z={{value}}",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-4",
+      "name": "fill_rate \u00b7 global anomalies",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=fill_rate scope=global",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-5",
+      "name": "fill_rate \u00b7 marginal sentinel",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=fill_rate scope=marginal dimension_id={{group}} z={{value}}",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-6",
+      "name": "requests \u00b7 global anomalies",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=requests scope=global",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    },
+    {
+      "tileKey": "tile-7",
+      "name": "requests \u00b7 marginal sentinel",
+      "source": "tile",
+      "threshold": 0,
+      "thresholdType": "above_exclusive",
+      "interval": "1m",
+      "message": "metric_id=requests scope=marginal dimension_id={{group}} z={{value}}",
+      "channel": {
+        "type": "webhook",
+        "webhookId": "6a6debfdca45b0d18a58579f"
+      }
+    }
+  ]
+}

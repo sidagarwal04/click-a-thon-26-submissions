@@ -1,0 +1,71 @@
+/* Matches the rail's scored-seam chassis: hairline rules, no tinted boxes, uppercase micro-label.
+   The switch reads as part of the instrument panel rather than a widget dropped on top of it. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.heading {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+/* Segmented control: one hairline box, an internal divider, no gap. Two mutually exclusive
+   answers to the same question should look like one control, not two buttons. */
+.group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.button {
+  background: var(--bg-raised);
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 0.42rem 0.5rem;
+  font: inherit;
+  font-size: 0.78rem;
+  color: inherit;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.button:last-child {
+  border-right: 0;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(127, 127, 127, 0.12));
+}
+
+/* The selected state carries real weight, because reading the wrong dataset off this console
+   would mean quoting the wrong number to a judge. */
+.button[aria-pressed='true'] {
+  background: var(--signal);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -2px;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.blurb {
+  margin: 0.4rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--muted, #8b8b8b);
+}

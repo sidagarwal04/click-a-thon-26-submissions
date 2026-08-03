@@ -1,0 +1,40 @@
+# evidence: ingest_probe
+# what: is the live stream moving, and does its event_timestamp carry source event time or wall-clock arrival time
+# run_utc: 2026-08-01 13:44:02
+# git: 97f13f1-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 13:44:02   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+samples	2
+interval_seconds	10
+observed_seconds	10
+rows_first_sample	960851
+rows_last_sample	960851
+rows_arrived	0
+event_watermark_first	2026-08-01 13:20:21.559
+event_watermark_last	2026-08-01 13:20:21.559
+stream_state	IDLE
+blast.concurrency_deltas	48
+blast.foreground_intervals	31966
+blast.runs_straddling_boundary	0
+blast.session_minute_runs	1545
+blast.user_concurrency_deltas	48
+blast.user_minute_runs	1545
+frozen.last_event_timestamp	2026-07-26 11:30:04.847
+frozen.rows	905558
+last_insert_into_raw_events	2026-08-01 13:20:52
+live.first_event_timestamp	2026-08-01 11:37:57.447
+live.first_session_start_epoch	2026-08-01 11:37:19.898
+live.last_event_timestamp	2026-08-01 13:20:21.559
+live.last_session_start_epoch	2026-08-01 13:20:18.556
+live.rows	55293
+live.sessions	1546
+sessions_spanning_the_boundary	0

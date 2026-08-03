@@ -1,0 +1,851 @@
+<title>RCAMole — Explainable AI for Root Cause Investigation</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg-deep: #07131D;
+    --bg-panel: #0B1220;
+    --bg-elevated: #101C2B;
+    --bg-elevated-hi: #14263A;
+    --cyan: #22D3EE;
+    --cyan-soft: rgba(34, 211, 238, 0.16);
+    --green: #22C55E;
+    --green-soft: rgba(34, 197, 94, 0.16);
+    --ink-hi: #EAF6FB;
+    --ink-lo: #86A0B3;
+    --ink-faint: #52697C;
+    --critical: #FB5B76;
+    --critical-soft: rgba(251, 91, 118, 0.14);
+    --warning: #F5A623;
+    --warning-soft: rgba(245, 166, 35, 0.14);
+    --border-soft: rgba(158, 190, 209, 0.14);
+    --border-glow: rgba(34, 211, 238, 0.35);
+    --shadow-ambient: 0 24px 48px -28px rgba(0, 0, 0, 0.65);
+    --radius-card: 16px;
+    --radius-pill: 999px;
+    --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", ui-sans-serif, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--ink-hi);
+    font-family: var(--font-ui);
+    font-size: 14.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  button, input { font-family: inherit; color: inherit; }
+  ::selection { background: var(--cyan-soft); color: var(--ink-hi); }
+
+  /* ---------- ambient background ---------- */
+  .bg-glow {
+    position: fixed; border-radius: 50%; filter: blur(90px);
+    pointer-events: none; z-index: 0; opacity: 0.5;
+  }
+  .glow-cyan { top: -12%; left: -6%; width: 640px; height: 640px; background: radial-gradient(circle, rgba(34,211,238,0.22), transparent 70%); }
+  .glow-green { bottom: -18%; right: -10%; width: 720px; height: 720px; background: radial-gradient(circle, rgba(34,197,94,0.16), transparent 70%); }
+
+  /* ---------- app shell ---------- */
+  .shell { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+  .rail {
+    flex: none; width: 72px; display: flex; flex-direction: column; align-items: center;
+    padding: 18px 0; gap: 6px; background: rgba(11, 18, 32, 0.6);
+    border-right: 1px solid var(--border-soft);
+    backdrop-filter: blur(20px);
+  }
+  .rail-logo { width: 34px; height: 34px; margin-bottom: 14px; flex: none; }
+  .rail-item {
+    width: 42px; height: 42px; border-radius: 12px; border: 1px solid transparent;
+    background: transparent; color: var(--ink-lo); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .rail-item svg { width: 19px; height: 19px; }
+  .rail-item:hover { color: var(--ink-hi); background: rgba(255,255,255,0.04); }
+  .rail-item.active {
+    color: var(--cyan); background: var(--cyan-soft); border-color: rgba(34,211,238,0.3);
+    box-shadow: 0 0 20px -6px rgba(34,211,238,0.5);
+  }
+  .rail-spacer { flex: 1; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* ---------- top chrome ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px 16px; gap: 20px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark { width: 30px; height: 30px; flex: none; }
+  .brand-name {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.01em;
+    background: linear-gradient(120deg, var(--cyan), var(--green));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .brand-tag { font-size: 12px; color: var(--ink-faint); margin-top: 1px; }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+  .search-pill {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 12px;
+    border-radius: var(--radius-pill); border: 1px solid var(--border-soft);
+    background: rgba(255,255,255,0.03); color: var(--ink-faint); font-size: 12.5px;
+  }
+  .search-pill svg { width: 14px; height: 14px; flex: none; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #06131C;
+  }
+
+  .tabbar { display: flex; gap: 4px; padding: 0 32px; border-bottom: 1px solid var(--border-soft); }
+  .tab {
+    position: relative; border: none; background: none; cursor: pointer;
+    padding: 12px 6px; margin-right: 22px; font-size: 13.5px; font-weight: 600; color: var(--ink-faint);
+    display: flex; align-items: center; gap: 7px; transition: color 0.15s;
+  }
+  .tab:hover { color: var(--ink-lo); }
+  .tab.active { color: var(--ink-hi); }
+  .tab.active::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--green));
+    box-shadow: 0 0 10px 0 rgba(34,211,238,0.7);
+  }
+
+  .content { flex: 1; padding: 26px 32px 64px; max-width: 1180px; width: 100%; }
+  .main.is-detail .topbar, .main.is-detail .tabbar { display: none; }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: rise 0.35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
+
+  /* ---------- glass primitives ---------- */
+  .glass {
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+    border: 1px solid var(--border-soft); border-radius: var(--radius-card);
+    box-shadow: var(--shadow-ambient), inset 0 1px 0 rgba(255,255,255,0.04);
+    backdrop-filter: blur(18px);
+  }
+  .divider {
+    height: 1px; border: none; margin: 26px 0;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.35), rgba(34,197,94,0.25), transparent);
+  }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+
+  /* ---------- KPI tiles ---------- */
+  .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr) 1.7fr; gap: 14px; margin-bottom: 22px; }
+  .kpi-tile { padding: 16px 18px; }
+  .kpi-tile .kpi-label { font-size: 12px; color: var(--ink-lo); margin-bottom: 8px; }
+  .kpi-tile .kpi-value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi-tile.impact { border-color: rgba(251,91,118,0.35); background: linear-gradient(180deg, rgba(251,91,118,0.09), rgba(255,255,255,0.015)); }
+  .kpi-tile.impact .kpi-value { color: var(--critical); }
+  @media (max-width: 860px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } .kpi-tile.impact { grid-column: span 2; } }
+
+  /* ---------- filters ---------- */
+  .filter-row { display: flex; gap: 10px; margin-bottom: 20px; position: relative; z-index: 3; }
+  .filter-btn {
+    display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--radius-pill);
+    border: 1px solid var(--border-soft); background: rgba(255,255,255,0.03); color: var(--ink-lo);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.open { color: var(--ink-hi); border-color: rgba(34,211,238,0.35); }
+  .filter-btn svg { width: 13px; height: 13px; transition: transform 0.15s; }
+  .filter-btn.open svg { transform: rotate(180deg); }
+  .filter-menu {
+    position: absolute; top: 40px; min-width: 168px; padding: 6px; display: none; flex-direction: column; gap: 2px;
+    z-index: 5;
+  }
+  .filter-menu.open { display: flex; }
+  .filter-menu button {
+    text-align: left; padding: 8px 10px; border-radius: 8px; border: none; background: none;
+    color: var(--ink-lo); font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  }
+  .filter-menu button:hover { background: rgba(255,255,255,0.05); color: var(--ink-hi); }
+  .filter-menu button.sel { color: var(--cyan); }
+
+  /* ---------- incident list ---------- */
+  .incident-list { display: flex; flex-direction: column; gap: 12px; }
+  .incident-card {
+    position: relative; display: block; padding: 18px 20px 18px 24px; overflow: hidden; cursor: pointer;
+    text-decoration: none; color: inherit;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .incident-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  }
+  .incident-card.sev-high::before { background: var(--critical); box-shadow: 0 0 12px 0 rgba(251,91,118,0.6); }
+  .incident-card.sev-medium::before { background: var(--warning); box-shadow: 0 0 12px 0 rgba(245,166,35,0.5); }
+  .incident-card.sev-low::before { background: var(--green); box-shadow: 0 0 12px 0 rgba(34,197,94,0.5); }
+  .incident-card:hover { transform: translateY(-2px); border-color: rgba(34,211,238,0.35); box-shadow: var(--shadow-ambient), 0 0 26px -10px rgba(34,211,238,0.35); }
+  .incident-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .incident-title-row { display: flex; align-items: center; gap: 10px; }
+  .incident-title { font-size: 16px; font-weight: 700; }
+  .sev-badge { font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; padding: 3px 9px; border-radius: var(--radius-pill); }
+  .sev-badge.high { color: var(--critical); background: var(--critical-soft); }
+  .sev-badge.medium { color: var(--warning); background: var(--warning-soft); }
+  .sev-badge.low { color: var(--green); background: var(--green-soft); }
+  .incident-metric { font-family: var(--font-mono); font-size: 13.5px; color: var(--ink-hi); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+  .incident-root { font-size: 13px; color: var(--ink-lo); margin-bottom: 12px; }
+  .incident-root b { color: var(--ink-hi); font-weight: 600; }
+  .incident-bottom { display: flex; align-items: center; justify-content: space-between; }
+  .confidence-inline { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-lo); }
+  .view-link { font-size: 13px; font-weight: 700; color: var(--cyan); display: flex; align-items: center; gap: 5px; }
+
+  /* ---------- confidence ring ---------- */
+  .ring { flex: none; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; border-radius: var(--radius-pill);
+    padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid var(--border-soft);
+    background: rgba(255,255,255,0.03); color: var(--ink-hi); transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+  }
+  .btn svg { width: 14px; height: 14px; }
+  .btn:hover { border-color: rgba(34,211,238,0.4); box-shadow: 0 0 18px -8px rgba(34,211,238,0.5); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary {
+    background: linear-gradient(120deg, var(--cyan), var(--green)); color: #06131C; border-color: transparent;
+  }
+  .btn.primary:hover { box-shadow: 0 0 22px -6px rgba(34,211,238,0.7); }
+  .btn.ghost { background: none; }
+  :is(.btn, .tab, .rail-item, .filter-btn, .incident-card, .path-node):focus-visible {
+    outline: 2px solid var(--cyan); outline-offset: 2px;
+  }
+
+  /* ---------- investigation detail ---------- */
+  .detail-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; flex-wrap: wrap; gap: 12px; }
+  .back-link { display: flex; align-items: center; gap: 7px; color: var(--ink-lo); font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: none; }
+  .back-link:hover { color: var(--ink-hi); }
+  .back-link svg { width: 15px; height: 15px; }
+  .detail-actions { display: flex; gap: 10px; }
+
+  .detail-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .detail-title { font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+  .detail-meta { display: flex; align-items: center; gap: 18px; color: var(--ink-lo); font-size: 13px; margin-bottom: 22px; }
+  .detail-meta .conf { display: flex; align-items: center; gap: 8px; }
+
+  .impact-block { margin-bottom: 8px; }
+  .impact-block .eyebrow { margin-bottom: 6px; }
+  .impact-value { font-family: var(--font-mono); font-size: 40px; font-weight: 800; color: var(--critical); font-variant-numeric: tabular-nums; }
+
+  .section-title { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .section-title .ic { font-size: 16px; }
+
+  .summary-card { padding: 20px 22px; }
+  .summary-card p { margin: 0 0 12px; color: var(--ink-hi); font-size: 14px; line-height: 1.65; }
+  .summary-card p:last-child { margin-bottom: 0; }
+
+  /* investigation path */
+  .path-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+  .path-node-row { display: flex; flex-direction: column; align-items: flex-start; }
+  .path-node {
+    padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .path-node .sub { color: var(--cyan); font-weight: 800; }
+  .path-node:hover { border-color: rgba(34,211,238,0.4); }
+  .path-node.active {
+    border-color: var(--cyan); background: linear-gradient(180deg, rgba(34,211,238,0.14), rgba(255,255,255,0.02));
+    box-shadow: 0 0 24px -8px rgba(34,211,238,0.6);
+  }
+  .path-connector { width: 2px; height: 26px; margin-left: 26px; background: linear-gradient(180deg, var(--cyan), var(--green)); opacity: 0.55; }
+
+  .why-card { padding: 20px 22px; }
+  .why-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+  .why-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .why-stat .label { font-size: 11.5px; color: var(--ink-faint); margin-bottom: 4px; }
+  .why-stat .value { font-family: var(--font-mono); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .why-reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .why-reasons li { display: flex; gap: 10px; font-size: 13.5px; color: var(--ink-lo); line-height: 1.5; }
+  .why-reasons li::before { content: ""; flex: none; width: 5px; height: 5px; border-radius: 50%; margin-top: 7px; background: var(--cyan); box-shadow: 0 0 6px 0 rgba(34,211,238,0.8); }
+
+  /* contribution breakdown */
+  .contrib-row { display: grid; grid-template-columns: 140px 1fr 46px; align-items: center; gap: 14px; margin-bottom: 12px; font-size: 13px; }
+  .contrib-row:last-child { margin-bottom: 0; }
+  .contrib-label { color: var(--ink-lo); }
+  .contrib-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); overflow: hidden; }
+  .contrib-fill { height: 100%; border-radius: 4px; background: var(--cyan); }
+  .contrib-pct { font-family: var(--font-mono); text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* evidence */
+  .evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .evidence-card { padding: 16px 18px; }
+  .evidence-metric { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--ink-hi); }
+  .evidence-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-lo); padding: 5px 0; border-top: 1px dashed var(--border-soft); }
+  .evidence-row:first-of-type { border-top: none; }
+  .evidence-row span:last-child { font-family: var(--font-mono); color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+  .evidence-row.diff span:last-child.neg { color: var(--critical); }
+  .evidence-row.diff span:last-child.pos { color: var(--green); }
+
+  /* pipeline stepper */
+  .stepper { display: flex; align-items: center; gap: 0; }
+  .step { display: flex; align-items: center; gap: 10px; }
+  .step-dot {
+    width: 26px; height: 26px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center;
+    background: var(--green-soft); border: 1px solid rgba(34,197,94,0.5); color: var(--green);
+    box-shadow: 0 0 12px -2px rgba(34,197,94,0.6);
+  }
+  .step-dot svg { width: 13px; height: 13px; }
+  .step-label { font-size: 12.5px; color: var(--ink-lo); white-space: nowrap; }
+  .step-line { width: 40px; height: 2px; background: linear-gradient(90deg, var(--green), rgba(34,197,94,0.2)); margin: 0 12px; }
+  @media (max-width: 760px) { .stepper { flex-wrap: wrap; gap: 12px; } .step-line { display: none; } }
+
+  .footer-actions { display: flex; justify-content: center; gap: 14px; padding: 30px 0 10px; flex-wrap: wrap; }
+
+  /* dashboard screen */
+  .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .spark-card { padding: 18px 20px; }
+  .spark-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .spark-title { font-size: 13px; color: var(--ink-lo); }
+  .spark-value { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
+  .spark-delta { font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; }
+  .spark-delta.neg { color: var(--critical); }
+  .spark-delta.pos { color: var(--green); }
+  .spark-svg { width: 100%; height: 90px; display: block; margin-top: 10px; overflow: visible; }
+
+  /* guide screen */
+  .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .guide-card { padding: 20px 22px; }
+  .guide-card h3 { font-size: 14.5px; font-weight: 700; margin-bottom: 8px; color: var(--ink-hi); }
+  .guide-card p { margin: 0; font-size: 13px; color: var(--ink-lo); line-height: 1.6; }
+
+  @media (max-width: 900px) {
+    .content { padding: 22px 18px 48px; }
+    .topbar, .detail-header { padding-left: 18px; padding-right: 18px; }
+    .why-stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+<div class="bg-glow glow-cyan"></div>
+<div class="bg-glow glow-green"></div>
+
+<div class="shell">
+  <nav class="rail">
+    <svg class="rail-logo" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+      <defs><linearGradient id="railGrad" x1="0" y1="0" x2="34" y2="34"><stop offset="0" stop-color="#22D3EE"/><stop offset="1" stop-color="#22C55E"/></linearGradient></defs>
+      <ellipse cx="18" cy="17" rx="13" ry="11" fill="url(#railGrad)"/>
+      <ellipse cx="10.5" cy="21" rx="6.4" ry="5.2" fill="rgba(255,255,255,0.22)"/>
+      <circle cx="5.2" cy="18" r="1.7" fill="#06131C"/>
+      <circle cx="15.5" cy="12.5" r="1.4" fill="#06131C"/>
+    </svg>
+    <button class="rail-item active" data-tab="home" title="Incident Center" aria-label="Incident Center">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </button>
+    <button class="rail-item" data-tab="dashboard" title="Dashboard" aria-label="Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+    </button>
+    <button class="rail-item" data-tab="guide" title="User Guide" aria-label="User Guide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    </button>
+    <div class="rail-spacer"></div>
+    <button class="rail-item" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 0 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.36.63.98 1.04 1.56 1.04H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+    </button>
+  </nav>
+
+  <div class="main" id="main">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+          <ellipse cx="18" cy="17" rx="13" ry="11" fill="url(#railGrad)"/>
+          <ellipse cx="10.5" cy="21" rx="6.4" ry="5.2" fill="rgba(255,255,255,0.22)"/>
+          <circle cx="5.2" cy="18" r="1.7" fill="#06131C"/>
+          <circle cx="15.5" cy="12.5" r="1.4" fill="#06131C"/>
+        </svg>
+        <div>
+          <div class="brand-name">RCAMole</div>
+          <div class="brand-tag">Explainable AI for Root Cause Investigation</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <span>Search incidents…</span>
+        </div>
+        <div class="avatar">JD</div>
+      </div>
+    </header>
+
+    <nav class="tabbar">
+      <button class="tab active" data-tab="home">🚨 Incident Center</button>
+      <button class="tab" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab" data-tab="guide">📖 User Guide</button>
+    </nav>
+
+    <div class="content">
+
+      <!-- ===================== SCREEN: INCIDENT CENTER ===================== -->
+      <section class="screen active" id="screen-home">
+        <div class="kpi-row">
+          <div class="glass kpi-tile"><div class="kpi-label">Incidents</div><div class="kpi-value">12</div></div>
+          <div class="glass kpi-tile"><div class="kpi-label">High Severity</div><div class="kpi-value">3</div></div>
+          <div class="glass kpi-tile"><div class="kpi-label">Metrics Affected</div><div class="kpi-value">5</div></div>
+          <div class="glass kpi-tile impact"><div class="kpi-label">Biggest Impact</div><div class="kpi-value">Revenue -18.4%</div></div>
+        </div>
+
+        <div class="filter-row" id="filterRow">
+          <button class="filter-btn" data-menu="metric">
+            <span id="metricLabel">All Metrics</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="glass filter-menu" id="menu-metric"></div>
+
+          <button class="filter-btn" data-menu="severity">
+            <span id="severityLabel">All Severities</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="glass filter-menu" id="menu-severity"></div>
+
+          <button class="filter-btn" data-menu="sort">
+            <span id="sortLabel">Newest first</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="glass filter-menu" id="menu-sort"></div>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="incident-list" id="incidentList"></div>
+      </section>
+
+      <!-- ===================== SCREEN: INVESTIGATION DETAIL ===================== -->
+      <section class="screen" id="screen-investigation">
+        <div class="detail-header">
+          <button class="back-link" id="backLink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>
+            Incident Center
+          </button>
+          <div class="detail-actions">
+            <button class="btn ghost">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+              Export Report
+            </button>
+            <button class="btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Follow-up AI
+            </button>
+          </div>
+        </div>
+
+        <div class="content" style="padding-top:6px;">
+          <div class="detail-title-row">
+            <h1 class="detail-title" id="detTitle">—</h1>
+            <span class="sev-badge" id="detSevBadge">—</span>
+          </div>
+          <div class="detail-meta">
+            <span id="detDate">—</span>
+            <span class="conf" id="detConfWrap">Confidence <b id="detConf" style="font-family:var(--font-mono)">—</b></span>
+          </div>
+
+          <div class="impact-block">
+            <div class="eyebrow" id="detImpactLabel">REVENUE IMPACT</div>
+            <div class="impact-value" id="detImpactValue">-18.4%</div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="section-title"><span class="ic">🤖</span> AI Investigation Summary</div>
+          <div class="glass summary-card" id="detSummary"></div>
+
+          <hr class="divider" />
+
+          <div class="section-title"><span class="ic">🧠</span> Investigation Path</div>
+          <div class="path-wrap" id="detPath"></div>
+
+          <hr class="divider" />
+
+          <div class="glass why-card">
+            <div class="why-title" id="whyTitle">📌 Why Requests?</div>
+            <div class="why-stats" id="whyStats"></div>
+            <ul class="why-reasons" id="whyReasons"></ul>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="section-title"><span class="ic">📊</span> Contribution Breakdown</div>
+          <div class="glass" style="padding:20px 22px;" id="detContribution"></div>
+
+          <hr class="divider" />
+
+          <div class="section-title"><span class="ic">📈</span> Supporting Evidence</div>
+          <div class="evidence-grid" id="detEvidence"></div>
+
+          <hr class="divider" />
+
+          <div class="section-title"><span class="ic">⚙</span> Investigation Pipeline</div>
+          <div class="stepper" id="detStepper"></div>
+
+          <hr class="divider" />
+
+          <div class="footer-actions">
+            <button class="btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Ask Follow-up AI
+            </button>
+            <button class="btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              View Langfuse Trace
+            </button>
+            <button class="btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+              Download Investigation
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== SCREEN: DASHBOARD ===================== -->
+      <section class="screen" id="screen-dashboard">
+        <div class="section-title">📊 Live metric trends</div>
+        <div class="dash-grid" id="dashGrid"></div>
+      </section>
+
+      <!-- ===================== SCREEN: USER GUIDE ===================== -->
+      <section class="screen" id="screen-guide">
+        <div class="section-title">📖 Reading an investigation</div>
+        <div class="guide-grid">
+          <div class="glass guide-card">
+            <h3>Confidence score</h3>
+            <p>How cleanly a single segment explains the anomaly — high explanatory power plus a clear lift over the segment's size. Low confidence means the drill-down found nothing that stood out, and the finding is reported as broad-based rather than forced.</p>
+          </div>
+          <div class="glass guide-card">
+            <h3>LMDI decomposition</h3>
+            <p>Revenue is decomposed into Requests × Fill Rate × Render Rate × eCPM using a log-mean divisia index, so every factor's contribution to the change is exact and the four contributions always sum to the total delta.</p>
+          </div>
+          <div class="glass guide-card">
+            <h3>Explanatory power &amp; lift</h3>
+            <p>Explanatory power is the share of the movement one segment accounts for. Lift compares that to the segment's size — a lift near 1× means it simply moved with everyone else; well above 1× means it moved disproportionately, and is the bar a segment must clear to be named a root cause.</p>
+          </div>
+          <div class="glass guide-card">
+            <h3>Severity levels</h3>
+            <p>HIGH: material revenue or fill-rate impact with a confidently localized cause. MEDIUM: a real, measurable deviation, often on a secondary metric. LOW: a contained move affecting a small share of traffic.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var INCIDENTS = [
+    {
+      id: "revenue-drop", title: "Revenue Drop", severity: "high", metric: "revenue",
+      metricLine: "Revenue ↓18.4%", rootCausePath: ["Requests", "APAC", "Gaming"],
+      confidence: 96, date: "15 June 2026",
+      impactLabel: "Revenue Impact", impactValue: "-18.4%",
+      summary: [
+        "Revenue was 18.4% lower than the expected baseline.",
+        "LMDI decomposition identified Requests as the dominant contributor (82%).",
+        "Drill-down localized the issue to APAC → Gaming.",
+        "No meaningful degradation was detected in eCPM or Render Rate."
+      ],
+      path: [
+        { label: "Revenue", sub: null, why: { stats: [["Baseline Revenue", "$12,480"], ["Current Revenue", "$10,183"], ["Deviation", "-18.4% (z = -4.2)"]], reasons: ["Fell outside the like-for-like baseline band for this weekday.", "Deviation exceeds the anomaly threshold (|z| > 3).", "Triggered an automatic drill-down investigation."] } },
+        { label: "Requests", sub: "▼", why: { stats: [["LMDI Contribution", "82%"], ["Revenue Change", "-18.4%"], ["Request Change", "-16.8%"]], reasons: ["Largest contributor according to LMDI.", "Request decline closely matches revenue decline.", "Fill Rate and eCPM remained relatively stable."] } },
+        { label: "APAC", sub: null, why: { stats: [["Explanatory Power", "0.79"], ["Lift", "3.1×"], ["Request Change (APAC)", "-41.2%"]], reasons: ["APAC explains 79% of the request decline alone.", "Lift of 3.1× — far more than its volume share would predict.", "Other regions moved in line with their own size, not flagged."] } },
+        { label: "Gaming", sub: null, why: { stats: [["Explanatory Power", "0.71"], ["Lift", "4.6×"], ["Request Change (Gaming, APAC)", "-52.0%"]], reasons: ["Within APAC, Gaming alone explains 71% of the drop.", "Lift of 4.6× marks it as the most concentrated segment found.", "Drill-down stopped here — no deeper segment cleared the localization bar."] } }
+      ],
+      contribution: [["Requests", 82], ["Fill Rate", 11], ["eCPM", 5], ["Render Rate", 2]],
+      evidence: [["Revenue", "$12,480", "$10,183", "-18.4%"], ["Requests", "1.20M", "0.99M", "-16.8%"], ["Fill Rate", "82%", "81%", "-1%"]]
+    },
+    {
+      id: "ctr-drop", title: "CTR Drop", severity: "medium", metric: "ctr",
+      metricLine: "CTR ↓9.1%", rootCausePath: ["Europe", "Interstitial"],
+      confidence: 91, date: "18 June 2026",
+      impactLabel: "CTR Impact", impactValue: "-9.1%",
+      summary: [
+        "CTR was 9.1% lower than the expected baseline.",
+        "The decline was not broad-based — most regions and formats tracked baseline within noise.",
+        "Drill-down localized the issue to Europe → Interstitial.",
+        "Revenue and eCPM were largely insulated, since Interstitial carries a small volume share."
+      ],
+      path: [
+        { label: "CTR", sub: null, why: { stats: [["Baseline CTR", "2.14%"], ["Current CTR", "1.95%"], ["Deviation", "-9.1% (z = -3.6)"]], reasons: ["Outside the like-for-like baseline band.", "Exceeded the anomaly threshold for this metric.", "Triggered drill-down across region and ad format."] } },
+        { label: "Europe", sub: "▼", why: { stats: [["Explanatory Power", "0.74"], ["Lift", "2.8×"], ["CTR Change (Europe)", "-21.4%"]], reasons: ["Largest single-region contributor by explanatory power.", "Lift of 2.8× — disproportionate to Europe's traffic share.", "Other regions stayed within 1.1× lift, i.e. proportional, not causal."] } },
+        { label: "Interstitial", sub: null, why: { stats: [["Explanatory Power", "0.68"], ["Lift", "3.9×"], ["CTR Change (Interstitial, EU)", "-33.0%"]], reasons: ["Within Europe, Interstitial alone explains 68% of the CTR drop.", "Lift of 3.9× — the most concentrated format found.", "Banner and Rewarded in Europe stayed within baseline noise."] } }
+      ],
+      contribution: [["Europe", 74], ["Other regions", 16], ["Interstitial (non-EU)", 10]],
+      evidence: [["CTR", "2.14%", "1.95%", "-9.1%"], ["CTR — Europe", "2.31%", "1.82%", "-21.4%"], ["Impressions — Interstitial (EU)", "184K", "179K", "-2.7%"]]
+    },
+    {
+      id: "fillrate-drop", title: "Fill Rate Drop", severity: "low", metric: "fill_rate",
+      metricLine: "Fill Rate ↓4.2%", rootCausePath: ["iOS", "Rewarded"],
+      confidence: 88, date: "21 June 2026",
+      impactLabel: "Fill Rate Impact", impactValue: "-4.2%",
+      summary: [
+        "Fill rate was 4.2% lower than the expected baseline — a modest, contained move.",
+        "The drop was concentrated on iOS, not broad-based across platforms.",
+        "Drill-down localized the issue to iOS → Rewarded.",
+        "Revenue impact was minimal; Rewarded carries a small share of total requests."
+      ],
+      path: [
+        { label: "Fill Rate", sub: null, why: { stats: [["Baseline Fill Rate", "83.0%"], ["Current Fill Rate", "79.5%"], ["Deviation", "-4.2% (z = -2.9)"]], reasons: ["Just past the anomaly threshold — a contained move, not a broad crash.", "Android and Web fill rates stayed within baseline noise.", "Triggered a scoped drill-down into device platform."] } },
+        { label: "iOS", sub: "▼", why: { stats: [["Explanatory Power", "0.66"], ["Lift", "2.1×"], ["Fill Rate Change (iOS)", "-9.8%"]], reasons: ["iOS explains two-thirds of the overall fill-rate movement.", "Lift of 2.1× — moderately disproportionate to its traffic share.", "Android and Web segments were checked and ruled out."] } },
+        { label: "Rewarded", sub: null, why: { stats: [["Explanatory Power", "0.58"], ["Lift", "2.9×"], ["Fill Rate Change (Rewarded, iOS)", "-14.1%"]], reasons: ["Within iOS, Rewarded alone explains 58% of the drop.", "Lift of 2.9× clears the localization bar; Banner/Interstitial on iOS did not.", "Drill-down stopped here — Rewarded is too small a segment to split further."] } }
+      ],
+      contribution: [["iOS", 66], ["Android", 22], ["Web", 12]],
+      evidence: [["Fill Rate", "83.0%", "79.5%", "-4.2%"], ["Fill Rate — iOS", "84.1%", "75.9%", "-9.8%"], ["Requests — Rewarded (iOS)", "146K", "141K", "-3.4%"]]
+    }
+  ];
+
+  var PIPELINE_STEPS = ["Baseline Comparison", "LMDI Decomposition", "Root Cause Localization", "AI Report Generation"];
+  var CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  var state = { metric: "all", severity: "all", sort: "newest", currentIncident: null };
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function confidenceRing(pct, size) {
+    size = size || 30;
+    var r = size / 2 - 3, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+    return '<svg class="ring" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+      '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>' +
+      '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="url(#railGrad)" stroke-width="3" ' +
+      'stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '" transform="rotate(-90 ' + size / 2 + ' ' + size / 2 + ')"/>' +
+      '</svg>';
+  }
+
+  // ---------------- Incident Center ----------------
+  function renderIncidentList() {
+    var list = document.getElementById("incidentList");
+    list.innerHTML = "";
+    var items = INCIDENTS.filter(function (i) {
+      return (state.metric === "all" || i.metric === state.metric) && (state.severity === "all" || i.severity === state.severity);
+    });
+    var sevRank = { high: 0, medium: 1, low: 2 };
+    items = items.slice().sort(function (a, b) {
+      if (state.sort === "severity") return sevRank[a.severity] - sevRank[b.severity];
+      if (state.sort === "confidence") return b.confidence - a.confidence;
+      return 0; // "newest" = source order
+    });
+
+    if (!items.length) {
+      list.appendChild(el("div", null, '<p style="color:var(--ink-faint); padding:20px 0;">No incidents match these filters.</p>'));
+      return;
+    }
+
+    items.forEach(function (inc) {
+      var card = el("a", "glass incident-card sev-" + inc.severity);
+      card.href = "javascript:void(0)";
+      card.innerHTML =
+        '<div class="incident-top">' +
+          '<div class="incident-title-row"><span class="incident-title">' + inc.title + "</span></div>" +
+          '<span class="sev-badge ' + inc.severity + '">' + inc.severity.toUpperCase() + "</span>" +
+        "</div>" +
+        '<div class="incident-metric">' + inc.metricLine + "</div>" +
+        '<div class="incident-root">Root Cause: <b>' + inc.rootCausePath.join(" → ") + "</b></div>" +
+        '<div class="incident-bottom">' +
+          '<span class="confidence-inline">' + confidenceRing(inc.confidence, 26) + "Confidence " + inc.confidence + "%</span>" +
+          '<span class="view-link">View Investigation <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>' +
+        "</div>";
+      card.addEventListener("click", function () { openInvestigation(inc.id); });
+      list.appendChild(card);
+    });
+  }
+
+  function renderFilterMenus() {
+    var metrics = [["all", "All Metrics"], ["revenue", "Revenue"], ["ctr", "CTR"], ["fill_rate", "Fill Rate"]];
+    var severities = [["all", "All Severities"], ["high", "High"], ["medium", "Medium"], ["low", "Low"]];
+    var sorts = [["newest", "Newest first"], ["severity", "Highest severity"], ["confidence", "Highest confidence"]];
+    fillMenu("menu-metric", metrics, state.metric, function (v, label) { state.metric = v; document.getElementById("metricLabel").textContent = label; renderIncidentList(); });
+    fillMenu("menu-severity", severities, state.severity, function (v, label) { state.severity = v; document.getElementById("severityLabel").textContent = label; renderIncidentList(); });
+    fillMenu("menu-sort", sorts, state.sort, function (v, label) { state.sort = v; document.getElementById("sortLabel").textContent = label; renderIncidentList(); });
+  }
+
+  function fillMenu(menuId, options, current, onSelect) {
+    var menu = document.getElementById(menuId);
+    menu.innerHTML = "";
+    options.forEach(function (opt) {
+      var btn = el("button", opt[0] === current ? "sel" : "", opt[1] + (opt[0] === current ? " " + CHECK_ICON.replace('stroke-width="3"', 'stroke-width="3" width="12" height="12"') : ""));
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        onSelect(opt[0], opt[1]);
+        closeAllMenus();
+      });
+      menu.appendChild(btn);
+    });
+  }
+
+  function closeAllMenus() {
+    document.querySelectorAll(".filter-menu").forEach(function (m) { m.classList.remove("open"); });
+    document.querySelectorAll(".filter-btn").forEach(function (b) { b.classList.remove("open"); });
+  }
+
+  document.getElementById("filterRow").addEventListener("click", function (e) {
+    var btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    var name = btn.dataset.menu;
+    var menu = document.getElementById("menu-" + name);
+    var wasOpen = menu.classList.contains("open");
+    closeAllMenus();
+    if (!wasOpen) {
+      menu.style.left = btn.offsetLeft + "px";
+      menu.classList.add("open");
+      btn.classList.add("open");
+    }
+  });
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".filter-row")) closeAllMenus();
+  });
+
+  // ---------------- Investigation detail ----------------
+  function openInvestigation(id) {
+    var inc = INCIDENTS.filter(function (i) { return i.id === id; })[0];
+    if (!inc) return;
+    state.currentIncident = inc;
+    document.getElementById("detTitle").textContent = inc.title;
+    var sevBadge = document.getElementById("detSevBadge");
+    sevBadge.className = "sev-badge " + inc.severity;
+    sevBadge.textContent = (inc.severity === "high" ? "🔴 " : inc.severity === "medium" ? "🟡 " : "🟢 ") + inc.severity.toUpperCase();
+    document.getElementById("detDate").textContent = inc.date;
+    document.getElementById("detConf").textContent = inc.confidence + "%";
+    document.getElementById("detImpactLabel").textContent = inc.impactLabel.toUpperCase();
+    document.getElementById("detImpactValue").textContent = inc.impactValue;
+
+    var summary = document.getElementById("detSummary");
+    summary.innerHTML = inc.summary.map(function (p) { return "<p>" + p + "</p>"; }).join("");
+
+    renderPath(inc, 1);
+    renderContribution(inc);
+    renderEvidence(inc);
+    renderStepper();
+
+    goTo("investigation");
+  }
+
+  function renderPath(inc, activeIndex) {
+    var wrap = document.getElementById("detPath");
+    wrap.innerHTML = "";
+    inc.path.forEach(function (node, i) {
+      if (i > 0) wrap.appendChild(el("div", "path-connector"));
+      var row = el("div", "path-node-row");
+      var n = el("div", "glass path-node" + (i === activeIndex ? " active" : ""), node.label + (node.sub ? ' <span class="sub">' + node.sub + "</span>" : ""));
+      n.addEventListener("click", function () { renderPath(inc, i); renderWhy(inc, i); });
+      row.appendChild(n);
+      wrap.appendChild(row);
+    });
+    renderWhy(inc, activeIndex);
+  }
+
+  function renderWhy(inc, i) {
+    var node = inc.path[i];
+    document.getElementById("whyTitle").textContent = "📌 Why " + node.label + "?";
+    var stats = document.getElementById("whyStats");
+    stats.innerHTML = node.why.stats.map(function (s) {
+      return '<div class="why-stat"><div class="label">' + s[0] + '</div><div class="value">' + s[1] + "</div></div>";
+    }).join("");
+    var reasons = document.getElementById("whyReasons");
+    reasons.innerHTML = node.why.reasons.map(function (r) { return "<li>" + r + "</li>"; }).join("");
+  }
+
+  function renderContribution(inc) {
+    var box = document.getElementById("detContribution");
+    var max = Math.max.apply(null, inc.contribution.map(function (c) { return c[1]; }));
+    box.innerHTML = inc.contribution.map(function (c) {
+      var opacity = 0.35 + 0.65 * (c[1] / max);
+      return '<div class="contrib-row"><div class="contrib-label">' + c[0] + '</div>' +
+        '<div class="contrib-track"><div class="contrib-fill" style="width:' + c[1] + '%; opacity:' + opacity.toFixed(2) + ';"></div></div>' +
+        '<div class="contrib-pct">' + c[1] + "%</div></div>";
+    }).join("");
+  }
+
+  function renderEvidence(inc) {
+    var grid = document.getElementById("detEvidence");
+    grid.innerHTML = inc.evidence.map(function (row) {
+      var neg = row[3].trim().charAt(0) === "-";
+      return '<div class="glass evidence-card">' +
+        '<div class="evidence-metric">' + row[0] + "</div>" +
+        '<div class="evidence-row"><span>Baseline</span><span>' + row[1] + "</span></div>" +
+        '<div class="evidence-row"><span>Current</span><span>' + row[2] + "</span></div>" +
+        '<div class="evidence-row diff"><span>Difference</span><span class="' + (neg ? "neg" : "pos") + '">' + row[3] + "</span></div>" +
+        "</div>";
+    }).join("");
+  }
+
+  function renderStepper() {
+    var wrap = document.getElementById("detStepper");
+    wrap.innerHTML = "";
+    PIPELINE_STEPS.forEach(function (label, i) {
+      if (i > 0) wrap.appendChild(el("div", "step-line"));
+      var step = el("div", "step");
+      step.innerHTML = '<div class="step-dot">' + CHECK_ICON + '</div><div class="step-label">' + label + "</div>";
+      wrap.appendChild(step);
+    });
+  }
+
+  document.getElementById("backLink").addEventListener("click", function () { goTo("home"); });
+
+  // ---------------- Dashboard screen ----------------
+  function sparkline(points, w, h) {
+    var max = Math.max.apply(null, points), min = Math.min.apply(null, points);
+    var pad = (max - min) * 0.15 || 1;
+    max += pad; min -= pad;
+    var stepX = w / (points.length - 1);
+    var scaleY = function (v) { return h - ((v - min) / (max - min)) * h; };
+    var d = points.map(function (v, i) { return (i === 0 ? "M" : "L") + (i * stepX).toFixed(1) + "," + scaleY(v).toFixed(1); }).join(" ");
+    var area = d + " L" + w + "," + h + " L0," + h + " Z";
+    var lastX = (points.length - 1) * stepX, lastY = scaleY(points[points.length - 1]);
+    return '<svg class="spark-svg" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none">' +
+      '<line x1="0" y1="' + (h * 0.5) + '" x2="' + w + '" y2="' + (h * 0.5) + '" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>' +
+      '<path d="' + area + '" fill="url(#sparkFill)" stroke="none"/>' +
+      '<path d="' + d + '" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + lastX + '" cy="' + lastY + '" r="3.5" fill="var(--bg-deep)" stroke="var(--cyan)" stroke-width="2"/>' +
+      "</svg>";
+  }
+
+  var DASH_METRICS = [
+    { title: "Revenue (7d)", value: "$10,183 /day", delta: "-18.4% vs baseline", neg: true, points: [12480, 12290, 12510, 12105, 11840, 10620, 10183] },
+    { title: "CTR (7d)", value: "1.95%", delta: "-9.1% vs baseline", neg: true, points: [2.14, 2.11, 2.09, 2.02, 1.98, 1.96, 1.95] },
+    { title: "Fill Rate (7d)", value: "79.5%", delta: "-4.2% vs baseline", neg: true, points: [83.0, 82.6, 82.1, 81.4, 80.5, 79.9, 79.5] },
+    { title: "eCPM (7d)", value: "$4.82", delta: "+1.3% vs baseline", neg: false, points: [4.71, 4.74, 4.69, 4.77, 4.80, 4.78, 4.82] }
+  ];
+
+  function renderDashboard() {
+    var defs = '<svg width="0" height="0"><defs><linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#22D3EE" stop-opacity="0.35"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></linearGradient></defs></svg>';
+    var grid = document.getElementById("dashGrid");
+    grid.innerHTML = defs + DASH_METRICS.map(function (m) {
+      return '<div class="glass spark-card"><div class="spark-head"><div><div class="spark-title">' + m.title + '</div><div class="spark-value">' + m.value + '</div></div>' +
+        '<div class="spark-delta ' + (m.neg ? "neg" : "pos") + '">' + m.delta + "</div></div>" +
+        sparkline(m.points, 280, 90) + "</div>";
+    }).join("");
+  }
+
+  // ---------------- Navigation ----------------
+  function goTo(name) {
+    document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("active"); });
+    var main = document.getElementById("main");
+    if (name === "investigation") {
+      document.getElementById("screen-investigation").classList.add("active");
+      main.classList.add("is-detail");
+      return;
+    }
+    main.classList.remove("is-detail");
+    document.getElementById("screen-" + name).classList.add("active");
+    document.querySelectorAll(".tab").forEach(function (t) { t.classList.toggle("active", t.dataset.tab === name); });
+    document.querySelectorAll(".rail-item[data-tab]").forEach(function (t) { t.classList.toggle("active", t.dataset.tab === name); });
+  }
+
+  document.querySelectorAll(".tab, .rail-item[data-tab]").forEach(function (btn) {
+    btn.addEventListener("click", function () { goTo(btn.dataset.tab); });
+  });
+
+  renderFilterMenus();
+  renderIncidentList();
+  renderDashboard();
+})();
+</script>

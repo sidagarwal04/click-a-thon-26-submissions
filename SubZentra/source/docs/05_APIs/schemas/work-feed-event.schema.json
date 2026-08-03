@@ -1,0 +1,549 @@
+{
+  "$defs": {
+    "AgentEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "capability_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capability Id"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "default": "0",
+          "title": "Cost Usd"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "fallback_count": {
+          "default": 0,
+          "maximum": 16,
+          "minimum": 0,
+          "title": "Fallback Count",
+          "type": "integer"
+        },
+        "from_agent_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From Agent Id"
+        },
+        "input_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "output_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider"
+        },
+        "role": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "to_agent_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To Agent Id"
+        },
+        "type": {
+          "const": "agent",
+          "default": "agent",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_id",
+        "agent_id",
+        "role"
+      ],
+      "title": "AgentEventPayload",
+      "type": "object"
+    },
+    "ApprovalEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "format": "uuid",
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "failed_conditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Failed Conditions",
+          "type": "array"
+        },
+        "status": {
+          "maxLength": 16,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "const": "approval",
+          "default": "approval",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "status"
+      ],
+      "title": "ApprovalEventPayload",
+      "type": "object"
+    },
+    "FindingEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "citation_count": {
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Citation Count",
+          "type": "integer"
+        },
+        "investigation_id": {
+          "format": "uuid",
+          "title": "Investigation Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "finding",
+          "default": "finding",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "investigation_id",
+        "citation_count"
+      ],
+      "title": "FindingEventPayload",
+      "type": "object"
+    },
+    "InvestigationEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "failure_category": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Category"
+        },
+        "investigation_id": {
+          "format": "uuid",
+          "title": "Investigation Id",
+          "type": "string"
+        },
+        "parent_investigation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Investigation Id"
+        },
+        "retry_of_investigation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry Of Investigation Id"
+        },
+        "status": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "const": "investigation",
+          "default": "investigation",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "investigation_id",
+        "status"
+      ],
+      "title": "InvestigationEventPayload",
+      "type": "object"
+    },
+    "MessageEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "message_id": {
+          "format": "uuid",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_kind": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Message Kind",
+          "type": "string"
+        },
+        "type": {
+          "const": "message",
+          "default": "message",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "message_kind"
+      ],
+      "title": "MessageEventPayload",
+      "type": "object"
+    },
+    "RoutingEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Disposition",
+          "type": "string"
+        },
+        "scenario_key": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scenario Key"
+        },
+        "suggestion_count": {
+          "default": 0,
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Suggestion Count",
+          "type": "integer"
+        },
+        "type": {
+          "const": "routing",
+          "default": "routing",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "disposition"
+      ],
+      "title": "RoutingEventPayload",
+      "type": "object"
+    },
+    "VisualizationEventPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Api Version"
+        },
+        "failure_category": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Category"
+        },
+        "investigation_id": {
+          "format": "uuid",
+          "title": "Investigation Id",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "status": {
+          "maxLength": 24,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "const": "visualization",
+          "default": "visualization",
+          "title": "Type",
+          "type": "string"
+        },
+        "visualization_id": {
+          "format": "uuid",
+          "title": "Visualization Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "visualization_id",
+        "investigation_id",
+        "status"
+      ],
+      "title": "VisualizationEventPayload",
+      "type": "object"
+    },
+    "WorkFeedEventKind": {
+      "enum": [
+        "thread.message_added",
+        "thread.routing_clarification",
+        "thread.routing_resolved",
+        "investigation.queued",
+        "investigation.started",
+        "investigation.status_changed",
+        "investigation.cancel_requested",
+        "investigation.cancelled",
+        "investigation.completed",
+        "investigation.failed",
+        "investigation.retry_created",
+        "agent.started",
+        "agent.public_update",
+        "agent.capability_used",
+        "agent.handoff",
+        "agent.completed",
+        "approval.requested",
+        "approval.decided",
+        "finding.published",
+        "visualization.requested",
+        "visualization.started",
+        "visualization.completed",
+        "visualization.failed",
+        "visualization.retry_requested",
+        "visualization.tombstoned"
+      ],
+      "title": "WorkFeedEventKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/WorkFeedEventKind"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "payload": {
+      "discriminator": {
+        "mapping": {
+          "agent": "#/$defs/AgentEventPayload",
+          "approval": "#/$defs/ApprovalEventPayload",
+          "finding": "#/$defs/FindingEventPayload",
+          "investigation": "#/$defs/InvestigationEventPayload",
+          "message": "#/$defs/MessageEventPayload",
+          "routing": "#/$defs/RoutingEventPayload",
+          "visualization": "#/$defs/VisualizationEventPayload"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MessageEventPayload"
+        },
+        {
+          "$ref": "#/$defs/RoutingEventPayload"
+        },
+        {
+          "$ref": "#/$defs/InvestigationEventPayload"
+        },
+        {
+          "$ref": "#/$defs/AgentEventPayload"
+        },
+        {
+          "$ref": "#/$defs/ApprovalEventPayload"
+        },
+        {
+          "$ref": "#/$defs/FindingEventPayload"
+        },
+        {
+          "$ref": "#/$defs/VisualizationEventPayload"
+        }
+      ],
+      "title": "Payload"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "thread_id": {
+      "format": "uuid",
+      "title": "Thread Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "tenant_id",
+    "thread_id",
+    "sequence",
+    "kind",
+    "occurred_at",
+    "payload"
+  ],
+  "title": "ThreadEvent",
+  "type": "object"
+}

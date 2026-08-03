@@ -1,0 +1,108 @@
+{
+  "feature_slug": "deep_linear",
+  "table_fqn": "atlys.f_deep_linear_events",
+  "event_column": "event",
+  "event_types": [
+    "itinerary_viewed",
+    "slot_selected",
+    "traveller_details_entered",
+    "document_uploaded",
+    "insurance_offered",
+    "payment_initiated",
+    "payment_authorized",
+    "booking_confirmed"
+  ],
+  "entity_key": "booking_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "user_id"
+  ],
+  "ordered_steps": [
+    "itinerary_viewed",
+    "slot_selected",
+    "traveller_details_entered",
+    "document_uploaded",
+    "insurance_offered",
+    "payment_initiated",
+    "payment_authorized",
+    "booking_confirmed"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "device_type",
+    "os",
+    "city",
+    "geoip_country_code",
+    "destination",
+    "app_version",
+    "client_lib",
+    "payment_card_network",
+    "payment_method",
+    "insurance_tier"
+  ],
+  "measures": [
+    {
+      "column": "auth_latency_ms",
+      "kind": "duration_ms",
+      "scoped_to_events": [
+        "payment_authorized"
+      ],
+      "unit": "ms"
+    },
+    {
+      "column": "payment_amount_minor",
+      "kind": "money",
+      "scoped_to_events": [
+        "payment_initiated"
+      ],
+      "unit": "minor_units"
+    },
+    {
+      "column": "document_scan_quality_score",
+      "kind": "score",
+      "scoped_to_events": [
+        "document_uploaded"
+      ],
+      "unit": "0-1"
+    },
+    {
+      "column": "document_scan_page_count",
+      "kind": "count",
+      "scoped_to_events": [
+        "document_uploaded"
+      ],
+      "unit": "pages"
+    }
+  ],
+  "flags": [],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "user_id",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked",
+        "search_typed",
+        "landing_page_scrolled",
+        "auth_completed",
+        "application_started",
+        "document_uploaded",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "user_id",
+      "evidence": "business_def.relationship.destination_card_clicked_user_id: destination_card_clicked.user_id -> all tables (user_id); user_id has 100% coverage here (340 distinct) matching that documented join map."
+    },
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked",
+        "application_started"
+      ],
+      "join_key": "destination,toDate(timestamp)",
+      "evidence": "destination is ISO-2 (5 distinct values here: AE, US, SG, FR, ...), same vocabulary as the documented `entity.destination` ISO-2 code used across the pre-existing funnel tables."
+    }
+  ]
+}

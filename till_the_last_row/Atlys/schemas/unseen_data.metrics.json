@@ -1,0 +1,78 @@
+{
+  "spec_name": "unseen_data",
+  "spec_title": "Promo / Coupon at Checkout",
+  "database": "atlys",
+  "base_table": "atlys.promo_coupon_checkout",
+  "discriminator": "payload.event",
+  "event_types": [
+    "coupon_field_shown",
+    "coupon_entered",
+    "coupon_applied",
+    "coupon_rejected",
+    "discount_shown",
+    "checkout_with_coupon"
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "name": "coupon_apply_rate",
+      "pm_question": "What share of users who see the coupon field actually apply a coupon?",
+      "formula": "uniq(user_id where event='coupon_applied') / uniq(user_id where event='coupon_field_shown')",
+      "numerator_paths": ["payload.user_id (event=coupon_applied)"],
+      "denominator_paths": ["payload.user_id (event=coupon_field_shown)"],
+      "dimensions": ["device_type", "geoip_country_code", "event_day"],
+      "served_by_mv": "atlys.coupon_funnel_daily_agg",
+      "serving_states": ["users_state (uniq user_id) per event_type"],
+      "confirmed_by_user": false
+    },
+    {
+      "id": "M2",
+      "name": "valid_vs_rejected_mix",
+      "pm_question": "Of applied coupons, how many are accepted vs rejected, and what are the top rejection reasons?",
+      "formula": "count(event='coupon_applied') vs count(event='coupon_rejected'); reject breakdown = count(event='coupon_rejected') GROUP BY reject_reason",
+      "numerator_paths": ["payload.event=coupon_rejected", "payload.reject_reason"],
+      "denominator_paths": ["payload.event IN (coupon_applied, coupon_rejected)"],
+      "dimensions": ["reject_reason", "coupon_code", "event_day"],
+      "served_by_mv": "atlys.coupon_funnel_daily_agg",
+      "serving_states": ["events_state (count) per event_type + reject_reason"],
+      "confirmed_by_user": false
+    },
+    {
+      "id": "M3",
+      "name": "coupon_conversion_lift",
+      "pm_question": "Do users who apply a coupon convert to checkout at a higher rate than users who see the coupon field but don't apply?",
+      "formula": "cohort_rate = uniq(user_id in coupon_applied AND reaching checkout_with_coupon with coupon_code NOT NULL) / uniq(user_id in coupon_applied); baseline_rate = uniq(user_id who saw coupon_field_shown, never applied, reaching checkout with coupon_code IS NULL) / uniq(user_id who saw coupon_field_shown, never applied); lift = cohort_rate / baseline_rate. Keyed by user_id.",
+      "numerator_paths": ["payload.user_id at checkout_with_coupon"],
+      "denominator_paths": ["payload.user_id at coupon_applied / coupon_field_shown"],
+      "dimensions": ["device_type", "geoip_country_code", "event_day"],
+      "served_by_mv": "atlys.coupon_funnel_daily_agg",
+      "serving_states": ["users_state (uniqState user_id) per event_type stage"],
+      "confirmed_by_user": true,
+      "confirmation_note": "User confirmed the cohort/baseline definition and user_id keying this session."
+    },
+    {
+      "id": "M4",
+      "name": "coupon_margin_cost",
+      "pm_question": "How much discount margin is each coupon code costing us?",
+      "formula": "SUM(discount_amount) GROUP BY coupon_code (over events carrying discount_amount)",
+      "numerator_paths": ["payload.discount_amount"],
+      "denominator_paths": [],
+      "dimensions": ["coupon_code", "device_type", "geoip_country_code", "destination", "event_day"],
+      "served_by_mv": "atlys.coupon_discount_daily_agg",
+      "serving_states": ["discount_amount_state (sum)", "cart_value_state (sum)", "final_value_state (sum)", "events_state (count)"],
+      "confirmed_by_user": false
+    },
+    {
+      "id": "M5",
+      "name": "segment_cuts",
+      "pm_question": "How do coupon apply rate, mix, and margin cost vary by device, geo, and destination?",
+      "formula": "M1/M2/M4 sliced by device_type, geoip_country_code, destination",
+      "numerator_paths": ["derived from M1/M2/M4"],
+      "denominator_paths": ["derived from M1/M2/M4"],
+      "dimensions": ["device_type", "geoip_country_code", "destination", "event_day"],
+      "served_by_mv": "atlys.coupon_funnel_daily_agg + atlys.coupon_discount_daily_agg",
+      "serving_states": ["shared dimensions in both agg tables"],
+      "confirmed_by_user": false
+    }
+  ]
+}

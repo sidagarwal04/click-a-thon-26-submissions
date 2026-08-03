@@ -1,0 +1,263 @@
+# =============================================================
+# SonyLIV Concurrency — Click-a-thon 2026
+#
+#   Console (React/MUI)  http://localhost:5173
+#   API                  http://localhost:8080/api/health
+#   LibreChat            http://localhost:3080
+#   OTLP collector       localhost:4317 (gRPC) / 4318 (HTTP)
+#
+# ClickHouse itself runs in ClickHouse Cloud — see sql/ddl.sql.
+# =============================================================
+
+services:
+  # ---------------- ClickStack OTel collector ----------------
+  otel-collector:
+    image: clickhouse/clickstack-otel-collector:latest
+    container_name: liv-otel-collector
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_ENDPOINT: ${CLICKHOUSE_ENDPOINT}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks: [liv]
+
+  # ---------------- Analytics API ----------------
+  api:
+    build: ./api
+    container_name: liv-api
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_ENDPOINT: ${CLICKHOUSE_ENDPOINT}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
+      API_PORT: ${API_PORT}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api/src:/app/src        # live reload: docker compose restart api
+    depends_on: [otel-collector]
+    networks: [liv]
+
+  # ---------------- React console ----------------
+  web:
+    build: ./web
+    container_name: liv-web
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE: /api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web/src:/app/src        # Vite HMR picks these up with no restart
+      - ./web/index.html:/app/index.html
+    depends_on: [api]
+    networks: [liv]
+
+  # ---------------- ClickHouse MCP server (self-hosted) ----------------
+  # Official mcp-clickhouse in HTTP transport, connecting to ClickHouse Cloud
+  # underneath. Exposes a token-authenticated MCP endpoint a headless agent
+  # can use — the Cloud remote MCP is OAuth-browser-only.
+  # Tools: run_select_query, list_databases, list_tables.
+  mcp-clickhouse:
+    build: ./mcp-clickhouse
+    image: liv/mcp-clickhouse:local
+    container_name: liv-mcp-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_HOST: ${CH_HOST_BARE}          # bare host, NO https://
+      CLICKHOUSE_PORT: "8443"
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_SECURE: "true"
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: http
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: "8000"
+      CLICKHOUSE_MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN}
+      CLICKHOUSE_MCP_QUERY_TIMEOUT: "60"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=4).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 12
+    networks: [liv]
+
+  # ---------------- LangGraph agents (OpenAI-compatible) ----------------
+  lc-agent:
+    build: ./lc-agent
+    image: liv/lc-agent:local
+    container_name: liv-lc-agent
+    restart: unless-stopped
+    depends_on:
+      mcp-clickhouse:
+        condition: service_healthy
+    volumes:
+      - ./lc-agent:/app          # live reload for prompt/tool-hint edits
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      AGENT_API_KEY: ${AGENT_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_KEY: ${OPENROUTER_KEY:-}
+      GOOGLE_KEY: ${GOOGLE_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+
+      # ── Langfuse: tracing + live prompts (no-op if keys unset) ──
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_HOST: ${LANGFUSE_HOST:-https://us.cloud.langfuse.com}
+
+      # ── MCP server the agents load tools from ──
+      MCP_CLICKHOUSE_URL: http://mcp-clickhouse:8000/mcp
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN}
+
+      # ── Supervisor: Grok routes to the specialists below ──
+      # It has NO database tools. Each specialist is exposed to it as a tool,
+      # so routing is ordinary tool-calling and Langfuse renders the whole
+      # chain as one nested trace: router -> specialist -> MCP -> SQL.
+      SUPERVISOR_ID: liv-analyst
+      SUPERVISOR_PROVIDER: xai
+      SUPERVISOR_MODEL: ${SUPERVISOR_MODEL:-grok-4.5}
+      SUPERVISOR_PROMPT: liv-router-agent
+      SUPERVISOR_PROMPT_LABEL: production
+      SUPERVISOR_DELEGATES: liv-concurrency,liv-segment,liv-capacity
+      SUPERVISOR_TEMPERATURE: "0.1"
+
+      # ── Specialists (auto-discovered; add AGENT_4_*, AGENT_5_* …) ──
+      # DESCRIPTION is what the router sees as the tool description — it is
+      # how the supervisor decides who to ask, so keep it sharp.
+      AGENT_1_ID: liv-concurrency
+      AGENT_1_PROVIDER: ${AGENT_PROVIDER:-openrouter}
+      AGENT_1_MODEL: ${AGENT_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      AGENT_1_DESCRIPTION: >-
+        Concurrency analyst. Peak and average concurrent sessions, the exact
+        minute a peak occurred, filtered slices by platform, country, content
+        type or title, and trends over a range. Use for any question wanting a
+        concurrency number.
+      AGENT_1_PROMPT: liv-concurrency-agent
+      AGENT_1_PROMPT_LABEL: production
+      AGENT_1_SYSTEM: >-
+        You are a streaming operations analyst for SonyLIV. Answer questions
+        about foreground viewing concurrency by querying ClickHouse first via
+        the MCP tools, then summarising in concise prose. Always report the
+        minute a peak occurred, not just its value. End with one operational
+        implication.
+
+      AGENT_2_ID: liv-segment
+      AGENT_2_PROVIDER: ${AGENT_PROVIDER:-openrouter}
+      AGENT_2_MODEL: ${AGENT_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      AGENT_2_DESCRIPTION: >-
+        Segment analyst. Compares concurrency ACROSS platforms, countries,
+        content types or titles: who carries the load, share of viewing, and
+        whether segments peak at the same time. Use for comparisons and
+        breakdowns rather than single figures.
+      AGENT_2_PROMPT: liv-segment-agent
+      AGENT_2_PROMPT_LABEL: production
+      AGENT_2_SYSTEM: >-
+        You analyse SonyLIV concurrency by segment — platform, country, content
+        type or title. Query ClickHouse via the MCP tools, give each segment's
+        peak and the minute it peaked, and call out when segments peak at
+        different times.
+
+      AGENT_3_ID: liv-capacity
+      AGENT_3_PROVIDER: ${AGENT_PROVIDER:-openrouter}
+      AGENT_3_MODEL: ${AGENT_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      AGENT_3_DESCRIPTION: >-
+        Capacity planner. Turns peak and average into provisioning advice —
+        what to size for, headroom, whether a peak looks recurring. Use for
+        infrastructure and planning questions.
+      AGENT_3_PROMPT: liv-capacity-agent
+      AGENT_3_PROMPT_LABEL: production
+      AGENT_3_SYSTEM: >-
+        You translate SonyLIV concurrency into capacity decisions for a
+        non-technical stakeholder. Query ClickHouse via the MCP tools, establish
+        peak, average and the ratio between them, and recommend headroom.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:3002/health').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 25s
+      retries: 5
+    networks: [liv]
+
+  # ---------------- LibreChat ----------------
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: liv-librechat
+    restart: unless-stopped
+    ports:
+      - "3080:3080"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      lc-agent:
+        condition: service_healthy
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      SEARCH: "false"
+      ALLOW_REGISTRATION: "true"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_KEY: ${OPENROUTER_KEY:-}
+      GOOGLE_KEY: ${GOOGLE_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      AGENT_API_KEY: ${AGENT_API_KEY:-}
+      CREDS_KEY: ${CREDS_KEY}
+      CREDS_IV: ${CREDS_IV}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+    volumes:
+      - ./librechat/librechat.yaml:/app/librechat.yaml:ro
+      - librechat_images:/app/client/public/images
+    networks: [liv]
+
+  mongodb:
+    image: mongo:6
+    container_name: liv-mongo
+    restart: unless-stopped
+    command: mongod --noauth
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+    networks: [liv]
+  # ---------------- Prompt-ops pipeline (on demand) ----------------
+  # Not started by `docker compose up` — it lives behind a profile and is run
+  # explicitly. Inside the network it reaches the agent by service name, so no
+  # published port is needed.
+  #
+  #   docker compose run --rm prompt-ops
+  #   docker compose run --rm prompt-ops python evals/ground_truth.py
+  prompt-ops:
+    build: ./langfuse
+    image: liv/prompt-ops:local
+    profiles: ["ops"]
+    depends_on:
+      lc-agent:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Overrides the host-oriented value in .env — service DNS, not localhost.
+      AGENT_BASE_URL: http://lc-agent:3002/v1
+    volumes:
+      - ./langfuse:/app          # edit evaluators without rebuilding
+    networks: [liv]
+
+volumes:
+  mongo_data:
+  librechat_images:
+
+networks:
+  liv:
+    driver: bridge

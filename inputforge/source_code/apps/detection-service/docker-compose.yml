@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: detection
+      POSTGRES_PASSWORD: detection
+      POSTGRES_DB: detection_registry
+    ports:
+      - "55432:5432"
+    volumes:
+      - detection_pg_data:/var/lib/postgresql/data
+
+  clickstack-otel-collector:
+    image: clickhouse/clickstack-otel-collector:latest
+    environment:
+      CLICKHOUSE_ENDPOINT: ${CLICKHOUSE_URL:?Set CLICKHOUSE_URL in .env.local}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:?Set CLICKHOUSE_USER in .env.local}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?Set CLICKHOUSE_PASSWORD in .env.local}
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+
+volumes:
+  detection_pg_data:

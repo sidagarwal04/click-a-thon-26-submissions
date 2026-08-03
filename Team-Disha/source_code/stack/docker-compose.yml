@@ -1,0 +1,22 @@
+# Clickathon stack — LibreChat + ClickHouse MCP + Admin Panel + ClickStack
+# Uses ClickHouse Cloud + Langfuse Cloud (no local Langfuse / no local CH for app data).
+#
+# From repo root:
+#   docker compose -f stack/docker-compose.yml --env-file .env up -d
+#
+# Adapted from https://github.com/ClickHouse/agentic-data-stack
+# ClickStack piece adapted from https://github.com/ClickHouse/ClickStack
+
+name: clickathon
+
+include:
+  - clickhouse-mcp-compose.yml
+  - rca-mcp-compose.yml
+  - librechat-compose.yml
+  - admin-panel-compose.yml
+  - clickstack-compose.yml
+
+networks:
+  clickathon:
+    name: clickathon
+    driver: bridge

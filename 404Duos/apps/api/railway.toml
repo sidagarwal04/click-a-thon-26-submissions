@@ -1,0 +1,15 @@
+# Railway: one service for InsightIQ (API + in-process RCA).
+# Settings → Root Directory = apps/api
+# Settings → Builder = Dockerfile
+# Settings → Networking → Generate Domain
+# Required vars: CLICKHOUSE_*, optional GEMINI_*, LANGFUSE_*
+# Do not set ENGINE_URL.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"

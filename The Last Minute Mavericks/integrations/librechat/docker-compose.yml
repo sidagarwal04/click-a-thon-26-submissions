@@ -1,0 +1,38 @@
+# LibreChat for RootCauseOS — minimal hackathon deployment.
+# The RCA model comes from integrations/openai_shim.py on the HOST
+# (0.0.0.0:8601), reached from the container via host.docker.internal.
+# No meilisearch / rag_api / vectordb: chat + custom endpoint only.
+
+services:
+  api:
+    # LibreChat image. v0.8.x is required: it serves chat through the
+    # Agents API and streams answers as structured `content[]` deltas that
+    # the v0.8.x UI renders live. The custom endpoint only works when the
+    # browser sends `endpointType: "custom"` with each chat request, which
+    # it derives from the `type` field in /api/endpoints — so the endpoint
+    # must be registered in librechat.yaml (current config version) AND
+    # surfaced via /api/models + /api/endpoints. With both correct, the
+    # grounded RCA answer streams into the chat instead of a blank reply.
+    image: ghcr.io/danny-avila/librechat:v0.8.7
+    container_name: rcos-librechat
+    ports:
+      - "3080:3080"
+    depends_on:
+      - mongodb
+    env_file: .env
+    environment:
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: rcos-mongodb
+    command: mongod --noauth
+    volumes:
+      - ./data-node:/data/db
+    restart: unless-stopped

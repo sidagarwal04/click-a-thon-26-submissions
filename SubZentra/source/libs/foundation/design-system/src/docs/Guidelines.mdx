@@ -1,0 +1,316 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Getting Started/Guidelines" />
+
+# Component Guidelines
+
+This guide covers best practices for using and extending the Open Zentra Design System components.
+
+## Component Architecture
+
+### Compound Components
+
+Many of our complex components use the compound component pattern, which provides flexibility while maintaining structure:
+
+```tsx
+// Compound component usage
+<Modal>
+  <Modal.Trigger>
+    <Button>Open Modal</Button>
+  </Modal.Trigger>
+  <Modal.Content>
+    <Modal.Header>
+      <Modal.Title>Edit Profile</Modal.Title>
+      <Modal.Description>Make changes to your profile here.</Modal.Description>
+      <Modal.Close />
+    </Modal.Header>
+    <Modal.Body>{/* Form content */}</Modal.Body>
+    <Modal.Footer>
+      <Button intent="secondary">Cancel</Button>
+      <Button intent="primary">Save</Button>
+    </Modal.Footer>
+  </Modal.Content>
+</Modal>
+```
+
+### Components Using This Pattern
+
+- **Modal** — `Modal.Trigger`, `Modal.Content`, `Modal.Header`, `Modal.Body`, `Modal.Footer`
+- **Drawer** — `Drawer.Trigger`, `Drawer.Content`, `Drawer.Header`, `Drawer.Body`, `Drawer.Footer`
+- **Accordion** — `Accordion.Item`, `Accordion.Trigger`, `Accordion.Content`
+- **Tabs** — `Tabs.List`, `Tabs.Trigger`, `Tabs.Content`
+- **Menu** — `Menu.Trigger`, `Menu.Content`, `Menu.Item`
+- **Select** — `Select.Trigger`, `Select.Content`, `Select.Item`
+
+---
+
+## Theming System
+
+### Using the Theme Provider
+
+All components must be wrapped in a `ThemeProvider`:
+
+```tsx
+import { defaultTheme, ThemeProvider } from '@open-zentra/foundation-design-system';
+
+function App() {
+  return (
+    <ThemeProvider theme={defaultTheme}>
+      <YourApp />
+    </ThemeProvider>
+  );
+}
+```
+
+### Custom Themes
+
+Create custom themes by extending the default theme:
+
+```tsx
+import { createTheme, defaultTheme } from '@open-zentra/foundation-design-system';
+
+const customTheme = createTheme({
+  ...defaultTheme,
+  button: {
+    ...defaultTheme.button,
+    variants: {
+      ...defaultTheme.button.variants,
+      primary: 'bg-brand-500 text-white hover:bg-brand-600',
+    },
+  },
+});
+```
+
+---
+
+## Variant System
+
+Components use a consistent variant system powered by `class-variance-authority`:
+
+### Common Variants
+
+| Variant  | Values                                            | Usage            |
+| -------- | ------------------------------------------------- | ---------------- |
+| `intent` | `primary`, `secondary`, `danger`, `ghost`, `link` | Action type      |
+| `size`   | `sm`, `md`, `lg`                                  | Component sizing |
+| `state`  | `default`, `hover`, `focus`, `disabled`           | Visual states    |
+
+### Example Usage
+
+```tsx
+<Button intent="primary" size="lg">
+  Large Primary Button
+</Button>
+
+<Input size="sm" state="error" />
+```
+
+---
+
+## Accessibility Guidelines
+
+### Keyboard Navigation
+
+All interactive components support full keyboard navigation:
+
+| Key               | Action                                  |
+| ----------------- | --------------------------------------- |
+| `Tab`             | Move focus to next element              |
+| `Shift + Tab`     | Move focus to previous element          |
+| `Enter` / `Space` | Activate focused element                |
+| `Escape`          | Close overlays (modal, popover)         |
+| `Arrow Keys`      | Navigate within component (menus, tabs) |
+
+### ARIA Attributes
+
+Components automatically handle ARIA attributes:
+
+```tsx
+// Button with loading state
+<Button loading>Submitting...</Button>
+// Renders: aria-busy="true" aria-disabled="true"
+
+// Modal dialog
+<Modal>...</Modal>
+// Renders: role="dialog" aria-modal="true" aria-labelledby="..."
+```
+
+### Focus Management
+
+- Overlays trap focus within their boundaries
+- Focus is restored to trigger element when overlay closes
+- Skip links are provided for main content
+
+---
+
+## Form Patterns
+
+### Controlled vs Uncontrolled
+
+All form components support both patterns:
+
+```tsx
+// Uncontrolled (with default value)
+<Input name="email" defaultValue="user@example.com" />;
+
+// Controlled (with state)
+const [value, setValue] = useState('');
+<Input value={value} onChange={(e) => setValue(e.target.value)} />;
+```
+
+### Form Validation
+
+Use validation states for user feedback:
+
+```tsx
+<Input
+  state="error"
+  aria-invalid="true"
+  aria-describedby="email-error"
+/>
+<span id="email-error" className="text-danger">
+  Please enter a valid email
+</span>
+```
+
+### Form Groups
+
+Group related inputs with proper labels:
+
+```tsx
+<div className="space-y-2">
+  <Label htmlFor="email">Email Address</Label>
+  <Input id="email" type="email" />
+  <p className="text-sm text-foreground-muted">We'll never share your email.</p>
+</div>
+```
+
+---
+
+## Layout Patterns
+
+### Spacing
+
+Use consistent spacing tokens:
+
+```tsx
+// Component-level spacing
+<div className="p-4 space-y-4">
+  <ComponentA />
+  <ComponentB />
+</div>
+
+// Section-level spacing
+<section className="py-12 px-6">
+  <Content />
+</section>
+```
+
+### Responsive Design
+
+Use viewport-aware patterns:
+
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <Card />
+  <Card />
+  <Card />
+</div>
+```
+
+---
+
+## Error Handling
+
+### Error Boundaries
+
+Wrap components that might fail:
+
+```tsx
+import { ErrorBoundary } from '@open-zentra/foundation-design-system';
+
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <ComponentThatMightFail />
+</ErrorBoundary>;
+```
+
+### Empty States
+
+Use the EmptyState component for missing data:
+
+```tsx
+<EmptyState>
+  <EmptyState.Title>No results found</EmptyState.Title>
+  <EmptyState.Description>Try adjusting your search or filters</EmptyState.Description>
+  <EmptyState.Actions>
+    <Button onClick={resetFilters}>Clear Filters</Button>
+  </EmptyState.Actions>
+</EmptyState>
+```
+
+---
+
+## Performance
+
+### Bundle Size
+
+Import components directly for optimal tree-shaking:
+
+```tsx
+// Good - only imports Button
+import { Button } from '@open-zentra/foundation-design-system';
+// Also good - same result
+import { Button } from '@open-zentra/foundation-design-system/button';
+```
+
+### Lazy Loading
+
+Lazy load heavy components like modals:
+
+```tsx
+const Modal = lazy(() => import('./components/Modal'));
+
+<Suspense fallback={<Spinner />}>
+  <Modal>...</Modal>
+</Suspense>;
+```
+
+---
+
+## Testing
+
+### Component Testing
+
+Components are designed for easy testing:
+
+```tsx
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import { Button } from '@open-zentra/foundation-design-system';
+
+test('button calls onClick when clicked', async () => {
+  const handleClick = vi.fn();
+  render(<Button onClick={handleClick}>Click me</Button>);
+
+  await userEvent.click(screen.getByRole('button'));
+
+  expect(handleClick).toHaveBeenCalledTimes(1);
+});
+```
+
+### Accessibility Testing
+
+Use the a11y addon to verify accessibility:
+
+```tsx
+// In Storybook, the a11y panel shows violations
+// Use play functions for interaction testing
+export const AccessibleModal: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button'));
+    await expect(canvas.getByRole('dialog')).toBeVisible();
+  },
+};
+```

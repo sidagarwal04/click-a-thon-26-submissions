@@ -1,0 +1,379 @@
+# vector.toml — Direct Parquet → ClickHouse Cloud pipeline
+# No OTel involved. 8 exec sources → 8 remap transforms → 8 HTTP sinks.
+# mode = "scheduled" (runs once on start, then every 24h)
+
+# ---------------------------------------------------------------------------
+# SOURCES — one exec per parquet file
+# ---------------------------------------------------------------------------
+
+[sources.src_destination_card_clicked]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/destination_card_clicked.parquet", EVENT_NAME = "destination_card_clicked" }
+
+[sources.src_application_started]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/application_started.parquet", EVENT_NAME = "application_started" }
+
+[sources.src_auth_completed]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/auth_completed.parquet", EVENT_NAME = "auth_completed" }
+
+[sources.src_document_uploaded]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/document_uploaded.parquet", EVENT_NAME = "document_uploaded" }
+
+[sources.src_pay_now_clicked]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/pay_now_clicked.parquet", EVENT_NAME = "pay_now_clicked" }
+
+[sources.src_purchase_completed]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/purchase_completed.parquet", EVENT_NAME = "purchase_completed" }
+
+[sources.src_landing_page_scrolled]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/landing_page_scrolled.parquet", EVENT_NAME = "landing_page_scrolled" }
+
+[sources.src_search_typed]
+type = "exec"
+mode = "scheduled"
+scheduled.exec_interval_secs = 86400
+command = ["python3", "/app/parquet_reader.py"]
+environment = { PARQUET_FILE = "/app/data/search_typed.parquet", EVENT_NAME = "search_typed" }
+
+# ---------------------------------------------------------------------------
+# TRANSFORMS — parse the NDJSON line, skip non-JSON lines gracefully
+# The Python script emits: {"payload": {...}}
+# We extract .payload so the sink sends {"payload": {...}} per row.
+# ---------------------------------------------------------------------------
+
+[transforms.remap_destination_card_clicked]
+type = "remap"
+inputs = ["src_destination_card_clicked"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_application_started]
+type = "remap"
+inputs = ["src_application_started"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_auth_completed]
+type = "remap"
+inputs = ["src_auth_completed"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_document_uploaded]
+type = "remap"
+inputs = ["src_document_uploaded"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_pay_now_clicked]
+type = "remap"
+inputs = ["src_pay_now_clicked"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_purchase_completed]
+type = "remap"
+inputs = ["src_purchase_completed"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_landing_page_scrolled]
+type = "remap"
+inputs = ["src_landing_page_scrolled"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+[transforms.remap_search_typed]
+type = "remap"
+inputs = ["src_search_typed"]
+drop_on_error = true
+source = '''
+  parsed, err = parse_json(.message)
+  if err != null {
+    abort
+  }
+  .payload = parsed.payload
+  del(.message)
+  del(.source_type)
+  del(.timestamp)
+  del(.host)
+'''
+
+# ---------------------------------------------------------------------------
+# SINKS — HTTP POST to ClickHouse Cloud via JSONEachRow
+# Each row sent: {"payload": {...}}
+# ---------------------------------------------------------------------------
+
+[sinks.sink_destination_card_clicked]
+type = "http"
+inputs = ["remap_destination_card_clicked"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20destination_card_clicked%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_destination_card_clicked.encoding]
+codec = "json"
+[sinks.sink_destination_card_clicked.framing]
+method = "newline_delimited"
+[sinks.sink_destination_card_clicked.tls]
+verify_certificate = false
+[sinks.sink_destination_card_clicked.request]
+retry_attempts = 2
+
+[sinks.sink_application_started]
+type = "http"
+inputs = ["remap_application_started"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20application_started%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_application_started.encoding]
+codec = "json"
+[sinks.sink_application_started.framing]
+method = "newline_delimited"
+[sinks.sink_application_started.tls]
+verify_certificate = false
+[sinks.sink_application_started.request]
+retry_attempts = 2
+
+[sinks.sink_auth_completed]
+type = "http"
+inputs = ["remap_auth_completed"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20auth_completed%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_auth_completed.encoding]
+codec = "json"
+[sinks.sink_auth_completed.framing]
+method = "newline_delimited"
+[sinks.sink_auth_completed.tls]
+verify_certificate = false
+[sinks.sink_auth_completed.request]
+retry_attempts = 2
+
+[sinks.sink_document_uploaded]
+type = "http"
+inputs = ["remap_document_uploaded"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20document_uploaded%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_document_uploaded.encoding]
+codec = "json"
+[sinks.sink_document_uploaded.framing]
+method = "newline_delimited"
+[sinks.sink_document_uploaded.tls]
+verify_certificate = false
+[sinks.sink_document_uploaded.request]
+retry_attempts = 2
+
+[sinks.sink_pay_now_clicked]
+type = "http"
+inputs = ["remap_pay_now_clicked"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20pay_now_clicked%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_pay_now_clicked.encoding]
+codec = "json"
+[sinks.sink_pay_now_clicked.framing]
+method = "newline_delimited"
+[sinks.sink_pay_now_clicked.tls]
+verify_certificate = false
+[sinks.sink_pay_now_clicked.request]
+retry_attempts = 2
+
+[sinks.sink_purchase_completed]
+type = "http"
+inputs = ["remap_purchase_completed"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20purchase_completed%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_purchase_completed.encoding]
+codec = "json"
+[sinks.sink_purchase_completed.framing]
+method = "newline_delimited"
+[sinks.sink_purchase_completed.tls]
+verify_certificate = false
+[sinks.sink_purchase_completed.request]
+retry_attempts = 2
+
+[sinks.sink_landing_page_scrolled]
+type = "http"
+inputs = ["remap_landing_page_scrolled"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20landing_page_scrolled%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_landing_page_scrolled.encoding]
+codec = "json"
+[sinks.sink_landing_page_scrolled.framing]
+method = "newline_delimited"
+[sinks.sink_landing_page_scrolled.tls]
+verify_certificate = false
+[sinks.sink_landing_page_scrolled.request]
+retry_attempts = 2
+
+[sinks.sink_search_typed]
+type = "http"
+inputs = ["remap_search_typed"]
+uri = "https://lyab2g0slj.eastus2.azure.clickhouse.cloud:8443/?database=atlys&user=default&password=IAe_cPA4PukDz&query=INSERT%20INTO%20search_typed%20FORMAT%20JSONEachRow"
+method = "post"
+[sinks.sink_search_typed.encoding]
+codec = "json"
+[sinks.sink_search_typed.framing]
+method = "newline_delimited"
+[sinks.sink_search_typed.tls]
+verify_certificate = false
+[sinks.sink_search_typed.request]
+retry_attempts = 2
+
+
+# =============================================================================
+# OBSERVABILITY — Vector internal pipeline logs -> OTel collector -> otel_logs
+# =============================================================================
+
+[sources.internal_pipeline_logs]
+  type = "internal_logs"
+
+[transforms.enrich_pipeline_logs]
+  type        = "remap"
+  inputs      = ["internal_pipeline_logs"]
+  drop_on_error = true
+  source      = '''
+    log_level      = string(.metadata.level) ?? "INFO"
+    component_id   = string(.metadata.component_id) ?? ""
+    component_type = string(.metadata.component_type) ?? ""
+    component_kind = string(.metadata.component_kind) ?? ""
+    msg            = string(.message) ?? ""
+    ts_nanos       = to_string(to_int(to_unix_timestamp(now(), unit: "nanoseconds")))
+
+    . = {
+      "resourceLogs": [{
+        "resource": {
+          "attributes": [
+            {"key": "service.name", "value": {"stringValue": "atlys-vector-pipeline"}},
+            {"key": "pipeline",     "value": {"stringValue": "parquet-to-clickhouse"}},
+            {"key": "environment",  "value": {"stringValue": "local"}}
+          ]
+        },
+        "scopeLogs": [{
+          "scope": {"name": "vector.internal"},
+          "logRecords": [{
+            "timeUnixNano": ts_nanos,
+            "severityText": log_level,
+            "body": {"stringValue": msg},
+            "attributes": [
+              {"key": "component_id",   "value": {"stringValue": component_id}},
+              {"key": "component_type", "value": {"stringValue": component_type}},
+              {"key": "component_kind", "value": {"stringValue": component_kind}}
+            ]
+          }]
+        }]
+      }]
+    }
+  '''
+
+[sinks.otlp_pipeline_logs]
+  type    = "http"
+  inputs  = ["enrich_pipeline_logs"]
+  uri     = "http://atlys-otelcol:4318/v1/logs"
+  method  = "post"
+
+  [sinks.otlp_pipeline_logs.encoding]
+    codec = "json"
+
+  [sinks.otlp_pipeline_logs.batch]
+    max_events = 1
+
+  [sinks.otlp_pipeline_logs.framing]
+    method = "bytes"
+
+  [sinks.otlp_pipeline_logs.request]
+    headers = { "Content-Type" = "application/json" }
+    retry_attempts = 3

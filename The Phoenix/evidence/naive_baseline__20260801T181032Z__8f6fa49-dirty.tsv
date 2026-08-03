@@ -1,0 +1,33 @@
+# evidence: naive_baseline
+# what: naive session-span vs foreground-only, same minute rule, densified, clipped to the overlapping range
+# run_utc: 2026-08-01 18:10:32
+# git: 8f6fa49-dirty
+# host: ss-cric
+# row_count: 2275714
+# event_watermark: 2026-08-01 17:09:57.261
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 18:10:32   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+compare_range_start	2026-07-14 15:43:00
+compare_range_end	2026-07-26 11:31:00
+minutes_excluded_by_clip	0
+naive_span	2026-07-14 15:43:00 .. 2026-07-26 11:31:00
+corrected_span	2026-07-14 15:43:00 .. 2026-07-26 11:31:00
+naive_delta_rows	15725
+naive_sum_delta	0
+gate	PASS
+minutes_compared	17029
+peak_naive	3742
+peak_naive_minute	2026-07-26 10:59:00
+peak_corrected	2828
+peak_corrected_minute	2026-07-26 10:56:00
+minutes_naive_gt0	5254
+overcount_pct_at_peak	32.3
+inverted_minutes	1
+phantom_minutes	1592
+minutes_corrected_gt0	3663

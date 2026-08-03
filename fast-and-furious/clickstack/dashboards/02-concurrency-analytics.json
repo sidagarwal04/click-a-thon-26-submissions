@@ -1,0 +1,254 @@
+{
+  "name": "SonyLIV — Concurrency analytics (lagged)",
+  "tags": [
+    "sonyliv",
+    "concurrency",
+    "analytics"
+  ],
+  "filters": [
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Platform",
+      "expression": "platform",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "App version",
+      "expression": "app_version",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Content type",
+      "expression": "video_type",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Category",
+      "expression": "category",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Peak grouping",
+      "expression": "grouping",
+      "sourceId": "__SOURCE_sonyliv-minute-grouped__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute-grouped__"
+      ]
+    }
+  ],
+  "containers": [
+    {
+      "id": "filterable",
+      "title": "Filterable",
+      "collapsed": false,
+      "collapsible": true,
+      "bordered": true
+    },
+    {
+      "id": "peaks",
+      "title": "Exact peaks",
+      "collapsed": false,
+      "collapsible": true,
+      "bordered": true
+    }
+  ],
+  "tiles": [
+    {
+      "name": "Average concurrency",
+      "containerId": "filterable",
+      "x": 0,
+      "y": 0,
+      "w": 8,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT round(sum(active_ms) / greatest(dateDiff('millisecond', greatest($__fromTime_ms, min(minute_start)), least($__toTime_ms, max(minute_start) + toIntervalMinute(1))), 1), 6) AS avg_concurrency FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters"
+      }
+    },
+    {
+      "name": "Viewer-hours",
+      "containerId": "filterable",
+      "x": 8,
+      "y": 0,
+      "w": 8,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT round(sum(active_ms) / 3600000.0, 2) AS viewer_hours FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters"
+      }
+    },
+    {
+      "name": "Intervals started",
+      "containerId": "filterable",
+      "x": 16,
+      "y": 0,
+      "w": 8,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT sum(sessions_started) AS intervals_started FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters"
+      }
+    },
+    {
+      "name": "By platform",
+      "containerId": "filterable",
+      "x": 0,
+      "y": 3,
+      "w": 12,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, platform, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, platform ORDER BY ts"
+      }
+    },
+    {
+      "name": "By content type",
+      "containerId": "filterable",
+      "x": 12,
+      "y": 3,
+      "w": 12,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, video_type, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, video_type ORDER BY ts"
+      }
+    },
+    {
+      "name": "Viewer-hours by category",
+      "containerId": "filterable",
+      "x": 0,
+      "y": 11,
+      "w": 8,
+      "h": 8,
+      "config": {
+        "displayType": "pie",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT category, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY category ORDER BY viewer_hours DESC LIMIT 12"
+      }
+    },
+    {
+      "name": "Titles",
+      "containerId": "filterable",
+      "x": 8,
+      "y": 11,
+      "w": 16,
+      "h": 8,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT title, video_type, category, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, sum(sessions_started) AS sessions, round(sum(active_ms) / nullIf(sum(sessions_started), 0) / 60000.0, 1) AS avg_minutes_per_session FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters AND title != '' GROUP BY title, video_type, category ORDER BY viewer_hours DESC LIMIT 25"
+      }
+    },
+    {
+      "name": "Peak (ungrouped)",
+      "containerId": "peaks",
+      "x": 0,
+      "y": 19,
+      "w": 8,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT max(minute_peak) AS exact_peak FROM __DATABASE__.serving_minute_current WHERE grouping = 'total' AND ($__timeFilter(minute_start) AND minute_start < $__toTime)"
+      }
+    },
+    {
+      "name": "Layer lag (s)",
+      "containerId": "peaks",
+      "x": 8,
+      "y": 19,
+      "w": 8,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT dateDiff('second', max(watermark_ts), now64(3)) AS lag_seconds FROM __DATABASE__.serving_watermark FINAL WHERE layer = 'minute'"
+      }
+    },
+    {
+      "name": "Peak minute",
+      "containerId": "peaks",
+      "x": 16,
+      "y": 19,
+      "w": 8,
+      "h": 3,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT argMax(minute_start, minute_peak) AS peak_minute, max(minute_peak) AS exact_peak, round(max(active_ms) / 60000.0, 2) AS avg_concurrency_that_minute FROM __DATABASE__.serving_minute_current WHERE grouping = 'total' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) HAVING count() > 0"
+      }
+    },
+    {
+      "name": "Peak by grouping",
+      "containerId": "peaks",
+      "x": 0,
+      "y": 22,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute-grouped__",
+        "sqlTemplate": "SELECT grouping, dim_values, max(minute_peak) AS exact_peak, argMax(minute_start, minute_peak) AS peaked_at, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, count() AS rows_read FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY grouping, dim_values ORDER BY exact_peak DESC LIMIT 60"
+      }
+    },
+    {
+      "name": "Notes",
+      "x": 0,
+      "y": 40,
+      "w": 24,
+      "h": 6,
+      "config": {
+        "displayType": "markdown",
+        "markdown": "**Lagged layer** · `serving_concurrency_minute` · 1-minute grain · published 5 minutes behind the ingest watermark · whole UTC days swapped in via `REPLACE PARTITION`.\n\nThe lag lets the late-arrival window close: 7.0% of rows arrive out of order and within-session lateness reaches p99 2.3h. No short watermark makes the live layer exact, hence two layers.\n\n**Additivity decides the layout.** `active_ms` is additive across every dimension, so `sum(active_ms) / window` is exact under any filter — every *Filterable* tile is built on it. A peak is additive across nothing: two platforms reach their maxima at different instants. Exact peaks therefore exist only at groupings that were precomputed, which is what *Peak grouping* selects.\n\nReference, hot hour 2026-07-26 10:00–11:00Z: peak **2,305**, average **855.578199**, from 31,947 intervals across 10,848 sessions. `make rollup-check` asserts these.\n\n`audio_language`, `subtitle_language` and `player_version` are absent by design — they change mid-session (8,796 / 2,980 / 1,600 sessions), so pinning a session to one value would move active time between slices."
+      }
+    }
+  ],
+  "savedFilterValues": [
+    {
+      "type": "sql",
+      "condition": "grouping IN ('platform')"
+    }
+  ]
+}

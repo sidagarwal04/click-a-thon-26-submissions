@@ -1,0 +1,67 @@
+Expression ((Project names + (Projection + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + (Projection + )))))))))))
+  Expression (Post Join Actions)
+    Join (JOIN FillRightFirst)
+      Expression (Left Pre Join Actions)
+        Filter ((WHERE + (Change column names to column identifiers + (Project names + Projection))))
+          Aggregating
+            Expression (Before GROUP BY)
+              Filter ((WHERE + Change column names to column identifiers))
+                ReadFromMergeTree (sonyliv.cc_hour_agg)
+                Indexes:
+                  MinMax
+                    Keys:
+                      hour
+                    Condition: and((hour in (-Inf, 1785110399]), (hour in [1785024000, +Inf)))
+                    Parts: 1/1
+                    Granules: 4/4
+                  Partition
+                    Keys:
+                      toYYYYMM(hour)
+                    Condition: and((toYYYYMM(hour) in (-Inf, 202607]), (toYYYYMM(hour) in [202607, +Inf)))
+                    Parts: 1/1
+                    Granules: 4/4
+                  PrimaryKey
+                    Keys:
+                      platform
+                      country
+                      content_id
+                      hour
+                    Condition: and((hour in (-Inf, 1785110399]), and((hour in [1785024000, +Inf)), and((content_id in [2078157818, 2078157818]), and((country in ['*', '*']), (platform in ['*', '*'])))))
+                    Parts: 1/1
+                    Granules: 1/4
+                    Search Algorithm: binary search
+                  Ranges: 1
+      Expression (Right Pre Join Actions)
+        Filter ((WHERE + (Change column names to column identifiers + (Project names + Projection))))
+          Aggregating
+            Expression ((Before GROUP BY + (Change column names to column identifiers + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection)))))))
+              Window
+                Window
+                  Expression ((Before WINDOW + Change column names to column identifiers) [lifted up part])
+                    Sorting
+                      Expression ((Before WINDOW + Change column names to column identifiers))
+                        CreatingSets (Create sets before main query execution)
+                          Expression ((Project names + Projection))
+                            Aggregating
+                              Expression (Before GROUP BY)
+                                Filter ((WHERE + Change column names to column identifiers))
+                                  ReadFromMergeTree (sonyliv.cc_minute_delta)
+                                  Indexes:
+                                    MinMax
+                                      Keys:
+                                        minute
+                                      Condition: (toStartOfHour(minute) in 0-element set)
+                                      Parts: 0/7
+                                      Granules: 0/10
+                                    Partition
+                                      Condition: true
+                                      Parts: 0/0
+                                      Granules: 0/0
+                                    PrimaryKey
+                                      Keys:
+                                        content_id
+                                        minute
+                                      Condition: and((content_id in [2078157818, 2078157818]), (toStartOfHour(minute) in 0-element set))
+                                      Parts: 0/0
+                                      Granules: 0/0
+                                    Ranges: 0

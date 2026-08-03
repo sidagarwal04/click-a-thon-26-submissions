@@ -1,0 +1,50 @@
+# Local ClickHouse for fast iteration. The GRADED target is ClickHouse Cloud (see .env).
+# Every choice below was verified on 26.7.1.1315 — see docs/VERIFIED.md.
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.7
+    container_name: ch
+    environment:
+      TZ: UTC                                  # required if Langfuse is ever pointed at this
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: app                     # REQUIRED: without it the entrypoint disables
+      CLICKHOUSE_PASSWORD: ${CH_PASSWORD_LOCAL} # network access for 'default' (Code: 194)
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      AGENT_PASSWORD: ${AGENT_PASSWORD}        # REQUIRED HERE: a .env feeds compose's own variable
+                                               # substitution, NOT the container. Without this line
+                                               # sql/05_users.sh creates a PASSWORDLESS user.
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d:ro   # runs ONLY on first boot (empty data dir).
+                                               # Iterating on schema needs `down -v`, not `restart`.
+      - ./chcfg/handlers.xml:/etc/clickhouse-server/config.d/handlers.xml:ro
+      - ./chcfg/appperms.xml:/etc/clickhouse-server/users.d/appperms.xml:ro
+      - ./data:/data:ro                        # CSVs for file()/INFILE loading
+      - ch-data:/var/lib/clickhouse
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "-q", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # ClickStack — the OSS integration. Observes OUR pipeline's ingestion lag and query latency.
+  # NOTE: needs a TTY (-t) or it boots fully then exits 129. OTLP 4317/4318 do NOT bind until a
+  # team exists: run tools/clickstack-bootstrap.sh after `up`. Bundles its own ClickHouse 26.5.6 —
+  # do not build the project on it.
+  clickstack:
+    image: clickhouse/clickstack-all-in-one
+    container_name: cs
+    tty: true
+    ports:
+      - "8080:8080"   # HyperDX UI
+      - "8000:8000"   # API (registration lives at the ROOT, not /api)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    profiles: ["oss"]  # `docker compose --profile oss up -d` to include it
+
+volumes:
+  ch-data: {}

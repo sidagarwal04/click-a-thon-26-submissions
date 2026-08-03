@@ -1,0 +1,1545 @@
+# SonyLIV unseen day — result matrix
+
+Foreground-only concurrency on the official unseen dataset
+(`ch-hackathon-raw-data_surprise.csv`, 7,000,000 events, day of 2026-07-31 UTC),
+produced by the pipeline in this repository. Peak and time-weighted average
+concurrency at **minute, hour and day** grain, with dimension filters, at two
+tiers (session and user), each row carrying the `query_id` that produced it and
+the `system.query_log` record joined on that id.
+
+Nothing in this file is hand-computed. Every value is the output of a query that
+was executed against the built model; every latency is `query_duration_ms` read
+back out of `system.query_log` after `SYSTEM FLUSH LOGS`, joined on the
+`query_id` the execution carried. Re-run any query in section 9 and compare.
+
+**REVISED 2026-08-02**: the same 27 queries were re-run against ClickHouse
+**Cloud**, database `sonyliv_official` (the hosted 7,000,000-row build). Section 7
+now carries **both** sets of latencies side by side — local container and Cloud —
+and the limitation that used to be section 10 item 1 is resolved. The two builds
+were checked against each other value by value:
+
+> **All 27 queries return byte-identical output on Cloud and on the local build.**
+> Not one number in sections 3-6, 8 or 10 changes. Peak **23,324** at
+> 2026-07-31 11:17:00, day integral **81,621,960** concurrency-seconds, peak users
+> **22,279** at 11:16:00 — reproduced on the hosted service, byte for byte.
+
+Two things **did** differ and are reported rather than smoothed over — one schema
+gap and one set of engine counters. Both are in section 7.1.
+
+
+## What the unseen-day spec asks for, and where it is answered
+
+| docs/upstream/unseen_spec.md asks for | where | status |
+| --- | --- | --- |
+| concurrency results — PEAK, minute grain | §3, §4.3, §4.4 | 23,324 @ 2026-07-31 11:17:00 |
+| concurrency results — AVERAGE, minute grain | §3, §4.3 | 944.6986 (time-weighted) |
+| concurrency results — PEAK, hour grain | §3, §4.2 | 23,324 in hour 2026-07-31 11:00:00 |
+| concurrency results — AVERAGE, hour grain | §3, §4.2 | 11277.4333 busiest hour; per-hour table in §4.2 |
+| concurrency results — PEAK, day grain | §3, §4.1 | 23,324 @ 2026-07-31 11:17:00 |
+| concurrency results — AVERAGE, day grain | §3, §4.1 | 944.6986 (integral / 86,400 s) |
+| dimension filters | §6 (10 sub-sections) | platform, country, content_id, video_type, category, show_name (NEW), video_resolution (NEW), partial-IN, combined |
+| user-level concurrency (the second tier in the spec) | §5 | peak 22,279 users @ 2026-07-31 11:16:00; avg 903.9986 |
+| query latencies | §7 | 27 queries, median of 3 measured runs each, on **ClickHouse Cloud** and on the local container, side by side |
+| evidence they ran through the pipeline | §7, Appendix A | 108 local + 112 Cloud system.query_log rows joined on caller-supplied query_id |
+| (not asked, offered) correctness proof on this data | §8 | 1,440/1,440 minutes agree with an independent arithmetic; integral exact |
+
+
+## 0 · How to check any single number in this file
+
+Every result row names the query that produced it (`qN` ids in section 9) and
+every latency row names a `query_id`. To audit one number end to end:
+
+  1. find the row in sections 4-6; note its query id (e.g. `s02_day_platform`);
+  2. read the exact SQL for that query — the representative shape per grain is
+     printed verbatim in section 9, and all 27 are listed in Appendix A;
+  3. take the `query_id` from the latency table in section 7 and look it up:
+
+```sql
+SELECT query_id, query_duration_ms, read_rows, read_bytes, result_rows,
+       log_comment, query
+FROM system.query_log
+WHERE type = 'QueryFinish' AND query_id = '<query_id>';
+```
+
+The `log_comment` on every execution is `unseen-matrix/<query name>/<rep>` for the
+**local** run and `unseen-matrix-cloud/<query name>/<rep>` for the **Cloud** re-run,
+so either whole run is recoverable with `WHERE log_comment LIKE 'unseen-matrix/%'` /
+`LIKE 'unseen-matrix-cloud/%'` without knowing a single id. The raw extracts are
+`evidence/submission/query-log.tsv` (local) and
+`evidence/submission/query-log-cloud.tsv` (Cloud).
+
+
+## 1 · What was run, and where
+
+| field | value |
+| --- | --- |
+| dataset | ch-hackathon-raw-data_surprise.csv (7,000,000 events) + ch-hackathon-content-data_surprise.csv (33,326 titles) |
+| raw sha256 | 06897bd68b1a5f5729cd1668525c059eb969cfe4e4acdccfe4a6849787775c95 |
+| content sha256 | 709c36fc9b25a6431dd82fb576b564674700cc717d04cf4d2e4ae8fde5c9daae |
+| server A (**LOCAL**) | ClickHouse 26.7.1.1315, local Docker container `ch`, 10 cores, max_threads=auto(10), MergeTree on local disk |
+| database A | `codex_official_green_20260802_075132` |
+| server B (**CLOUD**) | ClickHouse 26.2.1.525, ClickHouse Cloud, host `c-tomatogcp-cu-87`, 3 vCPU / 12 GiB, max_threads=3, SharedMergeTree on object storage |
+| database B | `sonyliv_official` — 7,000,000 `ev_raw` rows; 7,952,115 active part rows, 49.13 MiB on disk |
+| build | canonical path: tools/apply-sql.sh -> tools/load.sh -> tools/build-model.sh; gate sql/90_reconcile.sql PASS on **both** |
+| build provenance | local: evidence/unseen/official-20260802-codex-validation.txt (git HEAD b5d3eba)<br>cloud: evidence/unseen/reconcile-cloud-official.txt — 3,201,716 minutes compared, 0 mismatched, peak 23,324 |
+| model policy | v1 / e965954b23d4 — GAP_S=150, TAIL_S=60, unclosed_pause_to_run_end=1, point_activity_counts=0 (query `x05` returns the same policy row on both hosts; checked, not assumed) |
+| timezone | all timestamps UTC; `day` is the UTC day (see section 10 for IST) |
+| measurement | 1 discarded warm-up + 3 measured runs per query, each with its own query_id; median reported. Identical protocol on both hosts, so the two latency columns are comparable to each other |
+| query cache | disabled per execution (`use_query_cache=0`) on both hosts |
+| determinism | all 27 queries returned byte-identical output across warm-up + 3 reps, on both hosts, and identical **between** hosts (§7.1) |
+
+
+### What the pipeline ingested and modelled
+
+| field | value |
+| --- | --- |
+| raw events loaded | 7,000,000 |
+| quarantined (timestamp out of range) | 3 |
+| cast rejects | 0 |
+| accepted model input | 6,999,997 |
+| content catalogue rows | 33,326 |
+| distinct sessions | 103,022 |
+| distinct users | 79,271 |
+| active intervals derived | 159,426 |
+| cc_minute_delta rows (all dates) | 139,925 |
+| cc_minute_delta rows (2026-07-31) | 137,610 |
+| cc_hour_agg rows (8-level cube) | 122,798 |
+| raw timestamp extent | 2014-12-31 18:31:10.260 .. 2026-08-03 11:26:15.032 |
+| distinct output dates | 102 |
+
+Every row of that inventory is query `x04_dataset_extent`, and it returns
+byte-identical output on the local build and on Cloud `sonyliv_official`. The two
+builds ingested the same file and modelled it into the same shape.
+
+The file is a single day of events (2026-07-31) but 102 output dates fall out of
+it: `session_start_epoch` values reach back to 2014 on a handful of sessions, and
+the model places every derived interval on the clock it actually carries rather
+than clamping it to the headline day. Section 6.10 gives the day-grain answer for
+those dates; everything else in this file is 2026-07-31.
+
+
+## 2 · The two rules that decide whether these numbers are right
+
+
+### 2.1 · Peak is NOT summable across dimensions
+
+Two platforms peak at different minutes, so neither the sum nor the max of their
+peaks is the peak of their union. The per-dimension tables in section 6 are
+therefore NOT a decomposition of the headline peak and must not be added up.
+Measured on this dataset, at day grain, over the 19 platforms:
+
+| quantity | value | error vs truth |
+| --- | ---: | ---: |
+| true all-platform day peak (the headline) | 23,324 | — |
+| sum of the 19 per-platform day peaks | 24,025 | +701 (+3.01%) over-count |
+| max of the 19 per-platform day peaks | 7,163 | -16,161 (-69.29%) under-count |
+
+What IS summable is the DELTA: one active interval carries exactly one
+(platform, country, content_id) tuple, so summing deltas cannot double-count a
+session. Every dimension answer below therefore sums deltas FIRST, rebuilds the
+curve, and only then takes max(). A partial filter (`platform IN (A, B)`) is not
+a stored cube level at all and is recomputed at minute grain — section 6.6
+measures both the correct answer and the two wrong shortcuts side by side.
+
+
+### 2.2 · Average is TIME-WEIGHTED, with the zeros in the denominator
+
+`avg_concurrent = integral / window_seconds`, where `integral` is
+concurrency-SECONDS and `window_seconds` is the FULL nominal window — 86,400 for
+a day, 3,600 for an hour — not the minutes that happen to carry rows. A mean over
+present rows inflates every quiet window.
+
+The integral is not a sum over the stored rows either. `cc_minute_delta` holds a
+row only where concurrency CHANGES, so each change point is weighted by how long
+its level HOLDS (to the next change point, or the hour boundary). Summing bare
+change points under-counts every flat stretch — measured at 3.4% on the delivered
+file. Section 8.2 checks the stored integral against a dense count of
+(minute, session) pairs and they agree exactly.
+
+For 2026-07-31 the day is only 16 clock hours deep in data
+(795 of 1,440 minutes carry any concurrency at all), so the
+honest day average is far below the busy-hour average. Both are given, labelled.
+
+
+## 3 · Headline — session-tier concurrency, 2026-07-31 (UTC)
+
+| grain | metric | value | at | query | LOCAL ms | CLOUD ms | rows read |
+| --- | --- | ---: | --- | --- | ---: | ---: | ---: |
+| day | peak concurrent sessions | 23,324 | 2026-07-31 11:17:00 | s01 | 12 | 49 | 8,193 |
+| day | average (time-weighted, /86400 s) | 944.6986 | whole day | s01 | 12 | 49 | 8,193 |
+| hour | max hourly peak | 23,324 | 2026-07-31 11:00:00 | s11b | 3 | 19 | 8,192 |
+| hour | busiest hour average (/3600 s) | 11277.4333 | 2026-07-31 11:00:00 | s11b | 3 | 19 | 8,192 |
+| minute | peak over 1,440 minute buckets | 23,324 | 2026-07-31 11:17:00 | s14 | 13 | 28 | 137,610 |
+| minute | average over 1,440 minute buckets | 944.6986 | whole day | s14 | 13 | 28 | 137,610 |
+
+The `value` column is identical on both hosts — that is the point of running it
+twice. Only the millisecond columns differ. The s01 Cloud figure is measured on
+`sonyliv_final`, the sibling Cloud build, for the reason given in §7.1; every
+other Cloud figure in this file is `sonyliv_official`.
+
+Day integral: 81,621,960 concurrency-seconds (1,360,366 session-minutes).
+Serving provenance for the day answer: 16 stored hour rows read,
+0 minute-tier change points — the range is hour-aligned so
+no minute scan was needed at all.
+
+The three grains agree by construction and that agreement is checked, not assumed:
+max over minutes = max over hours = day peak = 23,324, and the day
+integral is identical whether taken from the hour tier or from a dense minute
+expansion (section 8). What differs per grain is the resolution of the series
+returned and the cost of returning it.
+
+Denominator note. The same day, averaged over only the minutes that carry
+concurrency (795 of 1,440), is
+1711.1522. The headline 944.6986 divides by the
+full 86,400 s. Both are printed because the choice is a reporting convention, not
+a model result; the pipeline stores the integral so either can be computed.
+
+
+## 4 · Session tier — full grain detail
+
+
+### 4.1 · Day grain, no filter (query s01)
+
+| range_start | range_end | range_seconds | peak | peak_minute | integral | avg_concurrent | hours_from_hour_tier | change_points_from_minute_tier |
+| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| 2026-07-31 00:00:00 | 2026-08-01 00:00:00 | 86400 | 23324 | 2026-07-31 11:17:00 | 81621960 | 944.6986 | 16 | 0 |
+
+
+### 4.2 · Hour grain, no filter — every hour of the day (query s11)
+
+| hour | peak | peak_minute | integral | avg_concurrent |
+| --- | ---: | --- | ---: | ---: |
+| 2026-07-31 00:00:00 | 5 | 2026-07-31 00:49:00 | 9180 | 2.55 |
+| 2026-07-31 01:00:00 | 5 | 2026-07-31 01:05:00 | 6120 | 1.7 |
+| 2026-07-31 02:00:00 | 5 | 2026-07-31 02:57:00 | 8400 | 2.3333 |
+| 2026-07-31 03:00:00 | 8 | 2026-07-31 03:48:00 | 14640 | 4.0667 |
+| 2026-07-31 04:00:00 | 15 | 2026-07-31 04:16:00 | 32220 | 8.95 |
+| 2026-07-31 05:00:00 | 13 | 2026-07-31 05:21:00 | 32400 | 9 |
+| 2026-07-31 06:00:00 | 18 | 2026-07-31 06:53:00 | 37500 | 10.4167 |
+| 2026-07-31 07:00:00 | 23 | 2026-07-31 07:59:00 | 56160 | 15.6 |
+| 2026-07-31 08:00:00 | 39 | 2026-07-31 08:54:00 | 95280 | 26.4667 |
+| 2026-07-31 09:00:00 | 78 | 2026-07-31 09:59:00 | 174060 | 48.35 |
+| 2026-07-31 10:00:00 | 22830 | 2026-07-31 10:56:00 | 40549740 | 11263.8167 |
+| 2026-07-31 11:00:00 | 23324 | 2026-07-31 11:17:00 | 40598760 | 11277.4333 |
+| 2026-07-31 12:00:00 | 1 | 2026-07-31 12:00:00 | 360 | 0.1 |
+| 2026-07-31 20:00:00 | 1 | 2026-07-31 20:30:00 | 1140 | 0.3167 |
+| 2026-07-31 22:00:00 | 2 | 2026-07-31 22:59:00 | 480 | 0.1333 |
+| 2026-07-31 23:00:00 | 4 | 2026-07-31 23:42:00 | 5520 | 1.5333 |
+
+16 of 24 hours carry data. `peak` is the hour's max of the intra-hour running
+sum, read straight out of `cc_hour_agg` — the hour IS the storage grain, so
+nothing is recomputed. `avg_concurrent` is that hour's own integral / 3,600 s.
+
+
+### 4.3 · Minute grain, no filter — whole-day summary (query s14)
+
+| minute_buckets | peak | peak_minute | avg_concurrent | integral | nonzero_minutes | first_active_minute | last_active_minute | avg_over_active_minutes |
+| ---: | ---: | --- | ---: | ---: | ---: | --- | --- | ---: |
+| 1440 | 23324 | 2026-07-31 11:17:00 | 944.6986 | 81621960 | 795 | 2026-07-31 00:00:00 | 2026-07-31 23:59:00 | 1711.1522 |
+
+
+### 4.4 · Minute grain, no filter — the peak hour minute by minute (query s15)
+
+| minute | concurrent |
+| --- | ---: |
+| 2026-07-31 11:00:00 | 21875 |
+| 2026-07-31 11:01:00 | 21766 |
+| 2026-07-31 11:02:00 | 21769 |
+| 2026-07-31 11:03:00 | 21652 |
+| 2026-07-31 11:04:00 | 21716 |
+| 2026-07-31 11:05:00 | 21567 |
+| 2026-07-31 11:06:00 | 21586 |
+| 2026-07-31 11:07:00 | 21764 |
+| 2026-07-31 11:08:00 | 21853 |
+| 2026-07-31 11:09:00 | 21838 |
+| 2026-07-31 11:10:00 | 21895 |
+| 2026-07-31 11:11:00 | 22053 |
+| 2026-07-31 11:12:00 | 22085 |
+| 2026-07-31 11:13:00 | 22188 |
+| 2026-07-31 11:14:00 | 22251 |
+| 2026-07-31 11:15:00 | 22439 |
+| 2026-07-31 11:16:00 | 23318 |
+| 2026-07-31 11:17:00 | 23324 |
+| 2026-07-31 11:18:00 | 22682 |
+| 2026-07-31 11:19:00 | 22339 |
+| 2026-07-31 11:20:00 | 21489 |
+| 2026-07-31 11:21:00 | 21172 |
+| 2026-07-31 11:22:00 | 21053 |
+| 2026-07-31 11:23:00 | 21130 |
+| 2026-07-31 11:24:00 | 21167 |
+| 2026-07-31 11:25:00 | 21846 |
+| 2026-07-31 11:26:00 | 21920 |
+| 2026-07-31 11:27:00 | 21375 |
+| 2026-07-31 11:28:00 | 21415 |
+| 2026-07-31 11:29:00 | 21508 |
+| 2026-07-31 11:30:00 | 19614 |
+| 2026-07-31 11:31:00 | 914 |
+| 2026-07-31 11:32:00 | 13 |
+| 2026-07-31 11:33:00 | 9 |
+| 2026-07-31 11:34:00 | 8 |
+| 2026-07-31 11:35:00 | 8 |
+| 2026-07-31 11:36:00 | 7 |
+| 2026-07-31 11:37:00 | 4 |
+| 2026-07-31 11:38:00 | 4 |
+| 2026-07-31 11:39:00 | 3 |
+| 2026-07-31 11:40:00 | 3 |
+| 2026-07-31 11:41:00 | 3 |
+| 2026-07-31 11:42:00 | 2 |
+| 2026-07-31 11:43:00 | 1 |
+| 2026-07-31 11:44:00 | 1 |
+| 2026-07-31 11:45:00 | 1 |
+| 2026-07-31 11:46:00 | 1 |
+| 2026-07-31 11:47:00 | 1 |
+| 2026-07-31 11:48:00 | 1 |
+| 2026-07-31 11:49:00 | 1 |
+| 2026-07-31 11:50:00 | 1 |
+| 2026-07-31 11:51:00 | 1 |
+| 2026-07-31 11:52:00 | 1 |
+| 2026-07-31 11:53:00 | 1 |
+| 2026-07-31 11:54:00 | 2 |
+| 2026-07-31 11:55:00 | 2 |
+| 2026-07-31 11:56:00 | 1 |
+| 2026-07-31 11:57:00 | 1 |
+| 2026-07-31 11:58:00 | 1 |
+| 2026-07-31 11:59:00 | 1 |
+
+This is the dashboard curve: 60 dense minute buckets from 137,610 sparse delta
+rows for the day, of which only the peak hour's change points are read. The
+densify recipe is `WITH FILL` on the DELTA inside the subquery, then an
+hour-partitioned running sum — filling the LEVEL with `INTERPOLATE` carries a
+non-zero level across an hour boundary and invents viewers (docs/CONVENTIONS.md).
+
+
+## 5 · User tier — distinct concurrent users
+
+The second tier the problem statement asks for. A user is NOT a session: one user
+can hold several concurrent sessions, so +1/-1 deltas over-count and a running sum
+is not a valid user count. `cc_user_minute` stores an
+`AggregateFunction(uniqExact, String)` state per (dims, minute); collapsing
+dimensions MERGES states, it never sums counts. `uniqExact`, not the `uniq`
+estimator — the ground truth is exact.
+
+
+### 5.1 · Day grain, no filter (query u01)
+
+| peak_users | peak_minute | integral_user_seconds | avg_users | active_minute_buckets |
+| ---: | --- | ---: | ---: | ---: |
+| 22279 | 2026-07-31 11:16:00 | 78105480 | 903.9986 | 795 |
+
+Peak concurrent USERS 22,279 at 2026-07-31 11:16:00, against peak
+concurrent SESSIONS 23,324 at 2026-07-31 11:17:00 — a 4.48% session-over-user
+spread, and the two tiers peak one minute apart. Day average users
+903.9986 vs average sessions 944.6986.
+
+
+### 5.2 · Hour grain, no filter (query u02)
+
+| hour | peak_users | peak_minute | integral_user_seconds | avg_users |
+| --- | ---: | --- | ---: | ---: |
+| 2026-07-31 00:00:00 | 5 | 2026-07-31 00:49:00 | 8820 | 2.45 |
+| 2026-07-31 01:00:00 | 5 | 2026-07-31 01:05:00 | 6060 | 1.6833 |
+| 2026-07-31 02:00:00 | 5 | 2026-07-31 02:57:00 | 8280 | 2.3 |
+| 2026-07-31 03:00:00 | 8 | 2026-07-31 03:48:00 | 14520 | 4.0333 |
+| 2026-07-31 04:00:00 | 12 | 2026-07-31 04:43:00 | 31380 | 8.7167 |
+| 2026-07-31 05:00:00 | 12 | 2026-07-31 05:07:00 | 31680 | 8.8 |
+| 2026-07-31 06:00:00 | 18 | 2026-07-31 06:53:00 | 37140 | 10.3167 |
+| 2026-07-31 07:00:00 | 23 | 2026-07-31 07:59:00 | 55980 | 15.55 |
+| 2026-07-31 08:00:00 | 37 | 2026-07-31 08:53:00 | 94020 | 26.1167 |
+| 2026-07-31 09:00:00 | 77 | 2026-07-31 09:59:00 | 172140 | 47.8167 |
+| 2026-07-31 10:00:00 | 21746 | 2026-07-31 10:55:00 | 38792280 | 10775.6333 |
+| 2026-07-31 11:00:00 | 22279 | 2026-07-31 11:16:00 | 38845680 | 10790.4667 |
+| 2026-07-31 12:00:00 | 1 | 2026-07-31 12:00:00 | 360 | 0.1 |
+| 2026-07-31 20:00:00 | 1 | 2026-07-31 20:30:00 | 1140 | 0.3167 |
+| 2026-07-31 22:00:00 | 2 | 2026-07-31 22:59:00 | 480 | 0.1333 |
+| 2026-07-31 23:00:00 | 4 | 2026-07-31 23:42:00 | 5520 | 1.5333 |
+
+
+### 5.3 · Minute grain — the peak hour, minute by minute (query u03)
+
+| minute | concurrent_users |
+| --- | ---: |
+| 2026-07-31 11:00:00 | 20845 |
+| 2026-07-31 11:01:00 | 20809 |
+| 2026-07-31 11:02:00 | 20825 |
+| 2026-07-31 11:03:00 | 20732 |
+| 2026-07-31 11:04:00 | 20779 |
+| 2026-07-31 11:05:00 | 20669 |
+| 2026-07-31 11:06:00 | 20704 |
+| 2026-07-31 11:07:00 | 20865 |
+| 2026-07-31 11:08:00 | 20947 |
+| 2026-07-31 11:09:00 | 20945 |
+| 2026-07-31 11:10:00 | 21012 |
+| 2026-07-31 11:11:00 | 21176 |
+| 2026-07-31 11:12:00 | 21216 |
+| 2026-07-31 11:13:00 | 21297 |
+| 2026-07-31 11:14:00 | 21378 |
+| 2026-07-31 11:15:00 | 21581 |
+| 2026-07-31 11:16:00 | 22279 |
+| 2026-07-31 11:17:00 | 22161 |
+| 2026-07-31 11:18:00 | 21603 |
+| 2026-07-31 11:19:00 | 21257 |
+| 2026-07-31 11:20:00 | 20502 |
+| 2026-07-31 11:21:00 | 20237 |
+| 2026-07-31 11:22:00 | 20165 |
+| 2026-07-31 11:23:00 | 20232 |
+| 2026-07-31 11:24:00 | 20230 |
+| 2026-07-31 11:25:00 | 20847 |
+| 2026-07-31 11:26:00 | 20889 |
+| 2026-07-31 11:27:00 | 20430 |
+| 2026-07-31 11:28:00 | 20462 |
+| 2026-07-31 11:29:00 | 20514 |
+| 2026-07-31 11:30:00 | 18875 |
+| 2026-07-31 11:31:00 | 884 |
+| 2026-07-31 11:32:00 | 13 |
+| 2026-07-31 11:33:00 | 9 |
+| 2026-07-31 11:34:00 | 8 |
+| 2026-07-31 11:35:00 | 8 |
+| 2026-07-31 11:36:00 | 7 |
+| 2026-07-31 11:37:00 | 4 |
+| 2026-07-31 11:38:00 | 4 |
+| 2026-07-31 11:39:00 | 3 |
+| 2026-07-31 11:40:00 | 3 |
+| 2026-07-31 11:41:00 | 3 |
+| 2026-07-31 11:42:00 | 2 |
+| 2026-07-31 11:43:00 | 1 |
+| 2026-07-31 11:44:00 | 1 |
+| 2026-07-31 11:45:00 | 1 |
+| 2026-07-31 11:46:00 | 1 |
+| 2026-07-31 11:47:00 | 1 |
+| 2026-07-31 11:48:00 | 1 |
+| 2026-07-31 11:49:00 | 1 |
+| 2026-07-31 11:50:00 | 1 |
+| 2026-07-31 11:51:00 | 1 |
+| 2026-07-31 11:52:00 | 1 |
+| 2026-07-31 11:53:00 | 1 |
+| 2026-07-31 11:54:00 | 1 |
+| 2026-07-31 11:55:00 | 1 |
+| 2026-07-31 11:56:00 | 1 |
+| 2026-07-31 11:57:00 | 1 |
+| 2026-07-31 11:58:00 | 1 |
+| 2026-07-31 11:59:00 | 1 |
+
+
+### 5.4 · Day grain, per platform (query u04)
+
+| platform | peak_users | peak_minute | integral_user_seconds | avg_users |
+| --- | ---: | --- | ---: | ---: |
+| ANDROID_PHONE | 6885 | 2026-07-31 11:17:00 | 22687680 | 262.5889 |
+| JIO_ANDROID_TV | 6596 | 2026-07-31 10:32:00 | 23228820 | 268.8521 |
+| SONY_ANDROID_TV | 2952 | 2026-07-31 10:32:00 | 10303140 | 119.2493 |
+| SAMSUNG_HTML_TV | 1191 | 2026-07-31 11:22:00 | 4224360 | 48.8931 |
+| Web | 1036 | 2026-07-31 11:09:00 | 3538440 | 40.9542 |
+| LG_HTML_TV | 921 | 2026-07-31 10:32:00 | 3240540 | 37.5062 |
+| FIRE_TV | 919 | 2026-07-31 10:31:00 | 3247620 | 37.5882 |
+| IPHONE | 753 | 2026-07-31 11:16:00 | 2429040 | 28.1139 |
+| XIAOMI_ANDROID_TV | 615 | 2026-07-31 10:31:00 | 2045340 | 23.6729 |
+| ANDROID_TAB | 315 | 2026-07-31 11:17:00 | 998760 | 11.5597 |
+| IPAD | 172 | 2026-07-31 10:41:00 | 576180 | 6.6688 |
+| SONY_HTML_TV | 133 | 2026-07-31 10:34:00 | 431880 | 4.9986 |
+| Mweb | 124 | 2026-07-31 11:16:00 | 372540 | 4.3118 |
+| SKYWORTH_HTML_TV | 107 | 2026-07-31 10:33:00 | 362940 | 4.2007 |
+| VIDAA_HTML_TV | 104 | 2026-07-31 10:50:00 | 342660 | 3.966 |
+| APPLE_TV | 41 | 2026-07-31 11:08:00 | 131820 | 1.5257 |
+| KEPLER_HTML_TV | 10 | 2026-07-31 11:23:00 | 22920 | 0.2653 |
+| ROKU_TV | 2 | 2026-07-31 11:01:00 | 3240 | 0.0375 |
+| NETRANGE_HTML_TV | 1 | 2026-07-31 10:32:00 | 3060 | 0.0354 |
+
+These rows do not sum and do not max to the total. A user watching on two
+platforms is counted in both — that is the definition of per-platform distinct
+users, not a defect. Section 2.1 applies to this tier verbatim.
+
+
+## 6 · Dimension-filtered results — day grain, 2026-07-31
+
+Read every table in this section with section 2.1 in hand: these are per-slice
+curves, each a genuine max of a genuine curve, and they do not decompose the
+headline peak.
+
+
+### 6.1 · platform — all 19 values (query s02)
+
+| platform | peak | peak_minute | integral | avg_concurrent |
+| --- | ---: | --- | ---: | ---: |
+| ANDROID_PHONE | 7163 | 2026-07-31 11:17:00 | 23211720 | 268.6542 |
+| JIO_ANDROID_TV | 6706 | 2026-07-31 10:32:00 | 23592180 | 273.0576 |
+| SONY_ANDROID_TV | 3394 | 2026-07-31 10:31:00 | 11875860 | 137.4521 |
+| SAMSUNG_HTML_TV | 1210 | 2026-07-31 11:23:00 | 4289280 | 49.6444 |
+| Web | 1050 | 2026-07-31 11:16:00 | 3578760 | 41.4208 |
+| FIRE_TV | 1013 | 2026-07-31 10:31:00 | 3564780 | 41.259 |
+| LG_HTML_TV | 943 | 2026-07-31 10:32:00 | 3307440 | 38.2806 |
+| IPHONE | 778 | 2026-07-31 11:16:00 | 2486160 | 28.775 |
+| XIAOMI_ANDROID_TV | 709 | 2026-07-31 10:31:00 | 2362200 | 27.3403 |
+| ANDROID_TAB | 322 | 2026-07-31 11:17:00 | 1009080 | 11.6792 |
+| IPAD | 176 | 2026-07-31 10:41:00 | 582720 | 6.7444 |
+| SONY_HTML_TV | 148 | 2026-07-31 10:33:00 | 469500 | 5.434 |
+| Mweb | 128 | 2026-07-31 11:16:00 | 378840 | 4.3847 |
+| SKYWORTH_HTML_TV | 116 | 2026-07-31 10:35:00 | 383100 | 4.434 |
+| VIDAA_HTML_TV | 114 | 2026-07-31 10:52:00 | 367320 | 4.2514 |
+| APPLE_TV | 41 | 2026-07-31 11:08:00 | 133440 | 1.5444 |
+| KEPLER_HTML_TV | 10 | 2026-07-31 11:23:00 | 22920 | 0.2653 |
+| NETRANGE_HTML_TV | 2 | 2026-07-31 10:34:00 | 3420 | 0.0396 |
+| ROKU_TV | 2 | 2026-07-31 11:01:00 | 3240 | 0.0375 |
+
+Serving path: `cc_hour_agg` cube level 1 — a sort-key-prefix equality read. Each platform's curve was materialised separately at build time.
+
+
+### 6.2 · country (query s03)
+
+| country | peak | peak_minute | integral | avg_concurrent |
+| --- | ---: | --- | ---: | ---: |
+| india | 23324 | 2026-07-31 11:17:00 | 81621960 | 944.6986 |
+
+The unseen day carries a single country value, so this filter is exercised but
+degenerate — the country slice IS the total. Stated rather than presented as an
+independent result.
+
+
+### 6.3 · content_id — top 10 by day peak (query s04)
+
+| content_id | title | video_type | peak | peak_minute | integral | avg_concurrent |
+| --- | --- | --- | ---: | --- | ---: | ---: |
+| 2078157818 | wekek ked | live | 9143 | 2026-07-31 11:16:00 | 28758660 | 332.8549 |
+| 2078157680 | wimim big | live | 732 | 2026-07-31 11:16:00 | 1417980 | 16.4118 |
+| 2078157821 | jewuw keh | live | 597 | 2026-07-31 10:32:00 | 1618140 | 18.7285 |
+| 2078155112 | poziz lih | vod | 436 | 2026-07-31 10:32:00 | 1289700 | 14.9271 |
+| 2078155114 | dirir fad | vod | 415 | 2026-07-31 10:37:00 | 1250100 | 14.4688 |
+| 2078155445 | nenan cif | (blank) | 390 | 2026-07-31 11:29:00 | 488820 | 5.6576 |
+| 2078157683 | maror feh | live | 383 | 2026-07-31 11:17:00 | 777660 | 9.0007 |
+| 2078158511 | dakuk keg | vod | 311 | 2026-07-31 10:30:00 | 1008540 | 11.6729 |
+| 2078155219 | cuhuh hif | vod | 281 | 2026-07-31 10:35:00 | 832680 | 9.6375 |
+| 20995834 | hutut hed | vod | 250 | 2026-07-31 10:36:00 | 802080 | 9.2833 |
+
+Serving path: `cc_hour_agg` cube level 4, enriched from `content_dim` at read time. `content_id` is the key; `title` decorates.
+
+
+### 6.4 · video_type and category (queries s05, s06)
+
+| video_type | peak | peak_minute | integral | avg_concurrent | change_points_scanned |
+| --- | ---: | --- | ---: | ---: | ---: |
+| vod | 13850 | 2026-07-31 10:32:00 | 46535220 | 538.6021 | 575 |
+| live | 10778 | 2026-07-31 11:16:00 | 33359820 | 386.109 | 188 |
+| (blank) | 730 | 2026-07-31 11:29:00 | 1726920 | 19.9875 | 123 |
+
+| category | peak | peak_minute | integral | avg_concurrent | change_points_scanned |
+| --- | ---: | --- | ---: | ---: | ---: |
+| cdbgg | 9317 | 2026-07-31 11:16:00 | 29338560 | 339.5667 | 181 |
+| cgdgn | 850 | 2026-07-31 11:16:00 | 1857660 | 21.5007 | 96 |
+| ddddd | 816 | 2026-07-31 10:57:00 | 2660400 | 30.7917 | 141 |
+| bhdbj | 740 | 2026-07-31 10:32:00 | 2050860 | 23.7368 | 122 |
+| bhcfm | 630 | 2026-07-31 11:17:00 | 1761780 | 20.391 | 102 |
+| cfdgn | 580 | 2026-07-31 11:29:00 | 1242840 | 14.3847 | 111 |
+| dhfhp | 532 | 2026-07-31 10:32:00 | 1604520 | 18.5708 | 100 |
+| cffck | 470 | 2026-07-31 10:35:00 | 1358520 | 15.7236 | 135 |
+| dgbdl | 452 | 2026-07-31 10:31:00 | 1536120 | 17.7792 | 118 |
+| cjfck | 433 | 2026-07-31 10:33:00 | 1305000 | 15.1042 | 142 |
+
+Neither is a cube level: both ride off `content_id` through the catalogue, so the
+curve is rebuilt at minute grain from `cc_minute_delta`. `(blank)` is content
+whose catalogue row carries an empty attribute — kept visible rather than folded
+into a neighbour.
+
+
+### 6.5 · show_name and video_resolution — the two NEW unseen-day columns (queries s07, s08)
+
+| show_name | peak | peak_minute | integral | avg_concurrent | change_points_scanned |
+| --- | ---: | --- | ---: | ---: | ---: |
+| ggdkb | 9179 | 2026-07-31 11:16:00 | 28887000 | 334.3403 | 174 |
+| gdckb | 743 | 2026-07-31 11:16:00 | 1461420 | 16.9146 | 87 |
+| bjdjb | 676 | 2026-07-31 10:32:00 | 1887420 | 21.8451 | 110 |
+| djbdb | 541 | 2026-07-31 10:37:00 | 1730760 | 20.0319 | 122 |
+| hfgdb | 457 | 2026-07-31 10:32:00 | 1374600 | 15.9097 | 95 |
+| gjdcb | 429 | 2026-07-31 11:29:00 | 636600 | 7.3681 | 65 |
+| fhdbb | 399 | 2026-07-31 11:17:00 | 850020 | 9.8382 | 75 |
+| dgfdb | 395 | 2026-07-31 10:31:00 | 1300260 | 15.0493 | 96 |
+| hhfhb | 348 | 2026-07-31 10:32:00 | 1138080 | 13.1722 | 102 |
+| ckfcb | 310 | 2026-07-31 10:35:00 | 913380 | 10.5715 | 137 |
+
+`show_name` (new on the content file) reaches the model through `content_dim`, so
+it is served the same way as `category` — minute-tier delta scan, no rebuild
+needed to support it.
+
+| video_resolution | peak | peak_minute | integral | avg_concurrent |
+| --- | ---: | --- | ---: | ---: |
+| 1920*1080 | 5289 | 2026-07-31 10:32:00 | 18464880 | 213.7139 |
+| Auto-1280*720 | 3433 | 2026-07-31 11:17:00 | 11063220 | 128.0465 |
+| 960*540 | 2608 | 2026-07-31 11:16:00 | 8874960 | 102.7194 |
+| 1080*1920 | 2106 | 2026-07-31 11:17:00 | 7544940 | 87.3257 |
+| 1280*720 | 1967 | 2026-07-31 10:32:00 | 6704580 | 77.5993 |
+| Auto-1920*1080 | 1204 | 2026-07-31 11:17:00 | 3984900 | 46.1215 |
+| NA | 1058 | 2026-07-31 11:16:00 | 3436860 | 39.7785 |
+| Auto-960*540 | 1022 | 2026-07-31 11:17:00 | 2641500 | 30.5729 |
+| 1920 * 1080 | 778 | 2026-07-31 11:29:00 | 1896480 | 21.95 |
+| 640*360 | 514 | 2026-07-31 10:56:00 | 1779420 | 20.5951 |
+
+`video_resolution` (new on the raw file) is an EVENT-level dimension: it is not a
+key of `cc_minute_delta` and cannot be derived from the catalogue. It is served by
+the generic exact-filter fallback `v_session_minutes` — `session_intervals`
+expanded to minutes. Correct, and 1,117 ms local / 6,949 ms Cloud against
+12 ms local / 49 ms Cloud for the promoted total tier: two orders of magnitude on
+either host, which is the honest cost of a dimension the serving layer was not
+pre-cut for. The gap is not a local-container artefact — it is wider on Cloud, not
+narrower.
+Note also that the raw values are dirty — `1920*1080` and `1920 * 1080` are
+separate rows here because they are separate strings in the file; the pipeline
+does not silently merge them.
+
+
+### 6.6 · Partial filter — platform IN (two values) (query s09)
+
+| platforms | peak_true_union | peak_minute | integral | avg_concurrent | wrong_max_of_peaks | wrong_sum_of_peaks | change_points_scanned |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| ['ANDROID_PHONE','JIO_ANDROID_TV'] | 13723 | 2026-07-31 11:17:00 | 46803900 | 541.7118 | 7163 | 13869 | 498 |
+
+The shape the cube deliberately does not serve. `ANDROID_PHONE` u `JIO_ANDROID_TV`
+truly peaks at 13,723 at 2026-07-31 11:17:00. Taking the max of the two
+stored cube peaks gives 7,163 (47.8% low); summing them gives 13,869 (1.1% high).
+The correct answer costs a 498-change-point minute scan and
+7 ms local / 59 ms Cloud.
+
+
+### 6.7 · Combined filter — platform AND video_type (query s10)
+
+| platform | video_type | peak | peak_minute | integral | avg_concurrent | change_points_scanned |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| ANDROID_PHONE | vod | 2921 | 2026-07-31 10:56:00 | 10281420 | 118.9979 | 487 |
+
+Crosses the two dimension families in one predicate: an event-level key of `cc_minute_delta` and a catalogue attribute resolved through `content_dim`.
+
+
+### 6.8 · Dimension-filtered at hour and minute grain (queries s12, s16)
+
+The dimension filters above are shown at day grain for compactness; the same filters answer at the other two grains without a different code path.
+
+| hour | peak | peak_minute | integral | avg_concurrent |
+| --- | ---: | --- | ---: | ---: |
+| 2026-07-31 00:00:00 | 4 | 2026-07-31 00:49:00 | 6060 | 1.6833 |
+| 2026-07-31 01:00:00 | 3 | 2026-07-31 01:00:00 | 4560 | 1.2667 |
+| 2026-07-31 02:00:00 | 5 | 2026-07-31 02:57:00 | 7620 | 2.1167 |
+| 2026-07-31 03:00:00 | 8 | 2026-07-31 03:48:00 | 12780 | 3.55 |
+| 2026-07-31 04:00:00 | 10 | 2026-07-31 04:38:00 | 24540 | 6.8167 |
+| 2026-07-31 05:00:00 | 11 | 2026-07-31 05:07:00 | 22320 | 6.2 |
+| 2026-07-31 06:00:00 | 14 | 2026-07-31 06:44:00 | 31200 | 8.6667 |
+| 2026-07-31 07:00:00 | 15 | 2026-07-31 07:30:00 | 41940 | 11.65 |
+| 2026-07-31 08:00:00 | 30 | 2026-07-31 08:54:00 | 71580 | 19.8833 |
+| 2026-07-31 09:00:00 | 53 | 2026-07-31 09:54:00 | 132780 | 36.8833 |
+| 2026-07-31 10:00:00 | 6734 | 2026-07-31 10:56:00 | 11428740 | 3174.65 |
+| 2026-07-31 11:00:00 | 7163 | 2026-07-31 11:17:00 | 11427600 | 3174.3333 |
+
+| platform | minute_buckets | peak | peak_minute | avg_concurrent | integral |
+| --- | ---: | ---: | --- | ---: | ---: |
+| ANDROID_PHONE | 1440 | 7163 | 2026-07-31 11:17:00 | 268.6542 | 23211720 |
+
+
+### 6.9 · Content-level concurrency inside the peak hour (query s13)
+
+| content_id | title | show_name | peak | peak_minute | avg_concurrent |
+| --- | --- | --- | ---: | --- | ---: |
+| 2078157818 | wekek ked | ggdkb | 9143 | 2026-07-31 11:16:00 | 4091.1 |
+| 2078157680 | wimim big | gdckb | 732 | 2026-07-31 11:16:00 | 254.9333 |
+| 2078157821 | jewuw keh | bjdjb | 458 | 2026-07-31 11:29:00 | 188.7667 |
+| 2078155445 | nenan cif | gjdcb | 390 | 2026-07-31 11:29:00 | 100.0333 |
+| 2078157683 | maror feh | fhdbb | 383 | 2026-07-31 11:17:00 | 127.85 |
+| 2078155112 | poziz lih | hfgdb | 338 | 2026-07-31 11:00:00 | 166.05 |
+| 2078155114 | dirir fad | djbdb | 332 | 2026-07-31 11:01:00 | 161.4667 |
+| 2078158511 | dakuk keg | dgfdb | 289 | 2026-07-31 11:02:00 | 134.8333 |
+| 2078155219 | cuhuh hif | ckfcb | 224 | 2026-07-31 11:21:00 | 102.6667 |
+| 2078157820 | dodud dad | djgdb | 224 | 2026-07-31 11:16:00 | 109.85 |
+
+
+### 6.10 · Day grain across every output date (query x06, top 15 of 102)
+
+| day | peak | peak_minute | integral | avg_concurrent | active_hours |
+| --- | ---: | --- | ---: | ---: | ---: |
+| 2026-07-31 | 23324 | 2026-07-31 11:17:00 | 81621960 | 944.6986 | 16 |
+| 2026-07-30 | 23 | 2026-07-30 17:17:00 | 398640 | 4.6139 | 24 |
+| 2026-07-29 | 7 | 2026-07-29 18:16:00 | 90600 | 1.0486 | 20 |
+| 2026-07-28 | 4 | 2026-07-28 09:52:00 | 48120 | 0.5569 | 18 |
+| 2026-03-07 | 3 | 2026-03-07 13:27:00 | 360 | 0.0042 | 1 |
+| 2026-07-27 | 3 | 2026-07-27 10:51:00 | 27120 | 0.3139 | 19 |
+| 2024-01-18 | 2 | 2024-01-18 10:42:00 | 240 | 0.0028 | 1 |
+| 2025-09-21 | 2 | 2025-09-21 17:41:00 | 540 | 0.0062 | 3 |
+| 2025-09-28 | 2 | 2025-09-28 16:03:00 | 1200 | 0.0139 | 6 |
+| 2026-05-15 | 2 | 2026-05-15 06:54:00 | 360 | 0.0042 | 1 |
+| 2026-07-22 | 2 | 2026-07-22 10:21:00 | 2280 | 0.0264 | 5 |
+| 2026-07-26 | 2 | 2026-07-26 10:45:00 | 1980 | 0.0229 | 7 |
+| 2026-08-01 | 2 | 2026-08-01 10:48:00 | 2640 | 0.0306 | 3 |
+| 2021-01-27 | 1 | 2021-01-27 04:15:00 | 120 | 0.0014 | 1 |
+| 2022-05-18 | 1 | 2022-05-18 19:23:00 | 120 | 0.0014 | 1 |
+
+
+## 7 · Query latencies — from system.query_log, joined on query_id
+
+One discarded warm-up plus three measured executions per query, each with its own
+`query_id`; the median run is reported and its `query_id` is the one to look up.
+`elapsed_ms` is `query_duration_ms`; `read_rows` / `read_bytes` are what the
+engine actually touched. Query cache disabled per execution.
+
+The same 27 queries were executed twice under the identical protocol: once on the
+local container (2026-08-02 03:18 UTC) and once on ClickHouse Cloud
+`sonyliv_official` (2026-08-02 03:39 UTC). Both runs are given.
+
+
+### 7.1 · What differed between the two builds — the finding
+
+Every **result** agreed. The comparison was made by byte-diffing each query's
+output on the two hosts, not by eye:
+
+- **26 of 27** queries: output byte-identical, local vs Cloud `sonyliv_official`.
+- **1 of 27** (`s01`): could not be executed on `sonyliv_official` at all.
+
+**FINDING 1 — `sonyliv_official` is missing three view objects the local build has.**
+
+`s01_day_total` reads the parameterised view `v_cc_window_range`. On Cloud
+`sonyliv_official` all four executions failed identically:
+
+```
+Code: 46. DB::Exception: Unknown table function v_cc_window_range.
+(UNKNOWN_FUNCTION) (version 26.2.1.525)
+```
+
+The four `ExceptionBeforeStart` rows are in `query-log-cloud.tsv` with their
+query_ids — the failure is logged, not narrated. Comparing the object lists of the
+two databases:
+
+| | objects |
+| --- | --- |
+| in LOCAL, absent from `sonyliv_official` | `v_cc_window_range`, `v_cc_watermark`, `v_cc_tumbling_hour` |
+| in `sonyliv_official`, absent from LOCAL | `cc_publish_batch`, `cc_publish_consumed`, `cc_publish_lease`, `cc_publish_runs`, `v_cc_publish_lag`, `session_dirty`, `mv_session_dirty` |
+
+All three missing views are defined in **one file**, `sql/85_windows.sql`.
+`sonyliv_official` was applied from a SQL set that did not include that file — the
+sibling Cloud build `sonyliv_final` **was** (its run manifest lists
+`sql/85_windows.sql` at fingerprint `0e278f3516e3`,
+evidence/unseen/cloud-final-20260802.txt) and it has all three views. This is a
+**build-provenance defect, not a model defect**: no stored data is affected, and
+the reconcile gate — which does not use these views — passed on `sonyliv_official`
+with 3,201,716 minutes compared and 0 mismatched. But it means the SQL printed in
+§9.1 does not run against `sonyliv_official` as it stands, and it means
+`sql/85_windows.sql` must be applied to that database before it is served from.
+Named here rather than worked around.
+
+`s01` **was** measured on Cloud, on the sibling Cloud build `sonyliv_final` — the
+other 7,000,000-row Cloud database, which does carry `v_cc_window_range`. It
+returned output byte-identical to the local run (peak 23,324 @ 2026-07-31
+11:17:00, integral 81,621,960, avg 944.6986), and `x04_dataset_extent` on
+`sonyliv_final` is likewise byte-identical to local, so the two Cloud builds
+ingested the same file. The s01 Cloud latency below is therefore honestly labelled
+`sonyliv_final`, not `sonyliv_official`.
+
+**FINDING 2 — two queries read a different number of rows on the two engines.**
+
+| query | local read_rows | cloud read_rows | delta | output |
+| --- | ---: | ---: | ---: | --- |
+| s13 | 66,094 | 57,902 | -8,192 | byte-identical |
+| x04 | 7,757,650 | 7,895,198 | +137,548 | byte-identical |
+
+These are **engine counters, not answers**. Both differences are consistent with a
+different part layout and a different granule-pruning outcome on
+SharedMergeTree-over-object-storage versus MergeTree-on-disk (`s13` reads exactly
+one 8,192-row granule fewer on Cloud; `x04` is a full scan whose row count tracks
+part composition). The answers they produce are identical. No other query differs
+on `read_rows`, `read_bytes` or `result_rows`.
+
+**Nothing else differed.** Not one value in sections 3, 4, 5, 6, 8 or 10 changes
+between the two builds.
+
+
+### 7.2 · Latency, side by side — local container vs ClickHouse Cloud
+
+`C/L` is Cloud median / local median. Counters and query_id shown are the **Cloud**
+run's; the local run's counters and query_ids are preserved unchanged in §7.3.
+
+| query | grain | filter | LOCAL ms | local 3 runs | CLOUD ms | cloud 3 runs | C/L | read_rows | read_bytes | result_rows | peak_mem | cloud query_id (median run) | serving path |
+| --- | --- | --- | ---: | --- | ---: | --- | ---: | ---: | --- | ---: | --- | --- | --- |
+| s01_day_total \* | day | none | 12 | 10/41/12 | 49 | 49/46/81 | 4.1x | 8,193 | 272.00 KiB | 1 | 7.35 MiB | 083a5bde-e111-4378-a2b7-6a93d7080515 | hour tier (cube 0), hour-aligned |
+| s02_day_platform | day | platform (all 19) | 4 | 4/4/3 | 14 | 14/12/38 | 3.5x | 64,590 | 2.16 MiB | 19 | 10.32 MiB | 27d51488-42c7-4402-9e31-237a3e1208cc | hour tier cube 1 |
+| s03_day_country | day | country | 2 | 2/2/2 | 28 | 9/95/28 | 14.0x | 24,576 | 840.07 KiB | 1 | 10.32 MiB | 0b7a91eb-39a3-49a5-8386-bc15d9829099 | hour tier cube 2 |
+| s04_day_content_top10 | day | content_id (top 10) | 6 | 6/6/6 | 125 | 116/127/125 | 20.8x | 57,902 | 1.49 MiB | 10 | 12.96 MiB | 55206583-c546-446c-b369-0439ccbcd259 | hour tier cube 4 + catalogue join |
+| s05_day_video_type | day | video_type | 10 | 10/10/10 | 110 | 156/110/102 | 11.0x | 170,936 | 2.91 MiB | 3 | 13.32 MiB | ec0af311-fa34-4474-9a56-71e71cc249ba | minute tier + catalogue |
+| s06_day_category | day | category | 11 | 11/12/11 | 210 | 283/210/152 | 19.1x | 170,936 | 2.91 MiB | 10 | 13.32 MiB | d50eca45-f716-4fb3-8802-824dad9ce025 | minute tier + catalogue |
+| s07_day_show_name | day | show_name (NEW) | 13 | 13/13/15 | 168 | 152/257/168 | 12.9x | 170,936 | 3.58 MiB | 10 | 25.26 MiB | 13bc418a-44b2-4b58-9127-a4f7105c8992 | minute tier + catalogue |
+| s08_day_video_resolution | day | video_resolution (NEW) | 1,117 | 1367/1117/1036 | 6,949 | 6949/6485/7434 | 6.2x | 192,752 | 18.12 MiB | 10 | 793.22 MiB | 12893b8e-5959-4de1-8bfa-bd7e6728d667 | v_session_minutes fallback |
+| s09_day_platform_partial | day | platform IN (2) | 7 | 7/80/7 | 59 | 59/40/161 | 8.4x | 98,304 | 1.38 MiB | 1 | 9.90 MiB | 23d33656-43bc-4935-a777-279e94121e2a | minute tier recompute |
+| s10_day_combined_platform_videotype | day | platform AND video_type | 5 | 6/5/5 | 28 | 31/28/22 | 5.6x | 74,286 | 1.11 MiB | 1 | 6.44 MiB | 1550a6d8-72c5-4f6c-b488-a457df7b375e | minute tier + catalogue |
+| s11_hour_total | hour | none (24 rows) | 3 | 3/3/3 | 17 | 19/17/14 | 5.7x | 8,192 | 344.00 KiB | 16 | 6.86 MiB | 68d8f391-e46b-4b0d-beed-4bf11409e226 | hour tier, stored rows |
+| s11b_hour_total_summary | hour | none (rolled up) | 3 | 3/23/3 | 19 | 19/18/54 | 6.3x | 8,192 | 280.00 KiB | 1 | 6.82 MiB | fb3f23ed-5668-439c-9a03-c952810f765b | hour tier, stored rows |
+| s12_hour_platform | hour | platform | 3 | 2/3/3 | 10 | 6/17/10 | 3.3x | 8,192 | 344.00 KiB | 12 | 5.79 MiB | 8058488c-cc24-4cd5-a825-220edebc90dd | hour tier cube 1 |
+| s13_hour_top_content | hour | content_id (top 10 in peak hour) | 9 | 9/8/9 | 41 | 28/41/47 | 4.6x | 57,902 | 2.16 MiB | 10 | 9.47 MiB | f780216f-d8cb-46b8-b97b-8db94bd8b366 | hour tier cube 4 + catalogue join |
+| s14_minute_day_summary | minute | none (1,440 buckets) | 13 | 13/20/4 | 28 | 23/28/80 | 2.2x | 137,610 | 1.57 MiB | 1 | 5.64 MiB | afd45d9b-29d4-4a1f-8535-93e9fc3f15b1 | delta tier + densify |
+| s15_minute_peak_hour_series | minute | none (60 buckets) | 3 | 3/3/4 | 15 | 15/16/13 | 5.0x | 137,610 | 1.57 MiB | 60 | 5.45 MiB | 4e561bdb-b96e-45de-950c-389987e52ef4 | delta tier + densify |
+| s16_minute_platform_day_summary | minute | platform | 4 | 4/3/4 | 38 | 26/38/48 | 9.5x | 40,960 | 520.00 KiB | 1 | 5.57 MiB | 8fbe7a51-29f9-4be2-8bde-308840545dc3 | delta tier + densify |
+| u01_day_total | day | none · USER tier | 38 | 38/45/32 | 323 | 290/323/360 | 8.5x | 486,742 | 94.70 MiB | 1 | 127.48 MiB | 727208d2-64fa-4b92-9d7e-9aeaeb0443b8 | uniqExact states |
+| u02_hour_total | hour | none · USER tier | 32 | 31/34/32 | 303 | 312/265/303 | 9.5x | 486,742 | 94.70 MiB | 16 | 123.49 MiB | c3017394-ae5e-4486-8e27-b081486ba5ce | uniqExact states |
+| u03_minute_peak_hour_series | minute | none · USER tier | 28 | 25/28/31 | 252 | 193/266/252 | 9.0x | 486,742 | 94.70 MiB | 60 | 75.27 MiB | 213ae822-e1c8-4fac-8846-c68523d6e99a | uniqExact states |
+| u04_day_platform | day | platform · USER tier | 40 | 45/40/40 | 283 | 244/327/283 | 7.1x | 486,742 | 95.16 MiB | 19 | 130.18 MiB | 28336cb9-c3f1-4143-9eeb-514b20166ec7 | uniqExact states |
+| x01_delta_vs_interval_expansion | minute | cross-check | 152 | 179/152/122 | 476 | 476/491/459 | 3.1x | 297,036 | 14.19 MiB | 1 | 92.37 MiB | 780fe738-5bdd-49cc-83bf-56c9ca784e7f | delta vs interval expansion |
+| x02_integral_crosscheck | day | cross-check | 139 | 139/139/136 | 1,107 | 1149/1075/1107 | 8.0x | 200,945 | 14.27 MiB | 1 | 571.09 MiB | 1ad32c33-b70c-4f4f-8f40-607dd8dcf8db | hour integral vs dense minutes |
+| x03_peak_not_summable | day | cross-check | 7 | 6/7/7 | 59 | 60/59/40 | 8.4x | 137,373 | 3.01 MiB | 1 | 7.61 MiB | 9d0afb67-8eba-45bd-b17e-abb17ca90625 | hour tier cube 0 vs cube 1 |
+| x04_dataset_extent | n/a | inventory | 341 | 375/341/339 | 2,179 | 2261/1979/2179 | 6.4x | 7,895,198 | 969.85 MiB | 1 | 33.22 MiB | 2f14fa0b-730d-4df8-9e7e-5bb71e38f3d2 | base tables |
+| x05_policy | n/a | inventory | 1 | 1/1/1 | 4 | 7/3/4 | 4.0x | 1 | 1.00 B | 1 | 5.30 MiB | f799bd60-476c-4d53-b9ec-9963c84927f3 | v_model_policy |
+| x06_day_all_dates | day | none (all 102 dates) | 5 | 5/5/5 | 37 | 35/37/43 | 7.4x | 9,056 | 309.53 KiB | 15 | 9.43 MiB | e743b7d8-fa72-4cac-b5be-0891ebe62245 | hour tier cube 0 |
+
+\* s01 Cloud figures are from `sonyliv_final`; on `sonyliv_official` the query
+cannot run (§7.1, finding 1). Every other Cloud row is `sonyliv_official`.
+
+
+### 7.3 · The local-container run, preserved — counters and query_ids
+
+Kept verbatim so the earlier evidence is not destroyed by the re-run. These are
+the **local** query_ids to look up in `evidence/submission/query-log.tsv`.
+
+| query | grain | filter | median ms | 3 runs ms | read_rows | read_bytes | result_rows | peak_mem | query_id (median run) | serving path |
+| --- | --- | --- | ---: | --- | ---: | --- | ---: | --- | --- | --- |
+| s01_day_total | day | none | 12 | 10/41/12 | 8,193 | 272.00 KiB | 1 | 6.42 MiB | 4a378614-ad79-4905-b926-39c2ad27d8b2 | hour tier (cube 0), hour-aligned |
+| s02_day_platform | day | platform (all 19) | 4 | 4/4/3 | 64,590 | 2.16 MiB | 19 | 5.29 MiB | e001dcff-f561-4f1e-8699-3df4b88951af | hour tier cube 1 |
+| s03_day_country | day | country | 2 | 2/2/2 | 24,576 | 840.00 KiB | 1 | 5.29 MiB | 07cd4134-9347-48fb-bc09-778d50ff2df4 | hour tier cube 2 |
+| s04_day_content_top10 | day | content_id (top 10) | 6 | 6/6/6 | 57,902 | 1.49 MiB | 10 | 9.79 MiB | d74bf702-465c-4d58-b8d3-5deab8182ecc | hour tier cube 4 + catalogue join |
+| s05_day_video_type | day | video_type | 10 | 10/10/10 | 170,936 | 2.91 MiB | 3 | 9.98 MiB | 14f17e18-7c81-4a84-8854-e19681b9ec48 | minute tier + catalogue |
+| s06_day_category | day | category | 11 | 11/12/11 | 170,936 | 2.91 MiB | 10 | 10.41 MiB | 69c00ee1-83f8-418b-b076-8e897f00cba1 | minute tier + catalogue |
+| s07_day_show_name | day | show_name (NEW) | 13 | 13/13/15 | 170,936 | 3.58 MiB | 10 | 12.21 MiB | e34a73e4-2444-4d84-8080-8342710c289a | minute tier + catalogue |
+| s08_day_video_resolution | day | video_resolution (NEW) | 1,117 | 1367/1117/1036 | 192,752 | 18.12 MiB | 10 | 753.59 MiB | d6f34d1b-bf19-4df3-aa7e-40161bc78b83 | v_session_minutes fallback |
+| s09_day_platform_partial | day | platform IN (2) | 7 | 7/80/7 | 98,304 | 1.38 MiB | 1 | 5.88 MiB | c6ec6492-3e23-48eb-92dd-a7671ae1e1e3 | minute tier recompute |
+| s10_day_combined_platform_videotype | day | platform AND video_type | 5 | 6/5/5 | 74,286 | 1.11 MiB | 1 | 6.27 MiB | 20f03627-f3ea-496c-9a52-8d566a463ed9 | minute tier + catalogue |
+| s11_hour_total | hour | none (24 rows) | 3 | 3/3/3 | 8,192 | 344.00 KiB | 16 | 5.35 MiB | 74d75a60-803a-49d7-9aff-28480acb8a83 | hour tier, stored rows |
+| s11b_hour_total_summary | hour | none (rolled up) | 3 | 3/23/3 | 8,192 | 280.00 KiB | 1 | 5.36 MiB | 23ef16bf-35fe-4040-9c8e-45a22ae2be9e | hour tier, stored rows |
+| s12_hour_platform | hour | platform | 3 | 2/3/3 | 8,192 | 344.00 KiB | 12 | 5.30 MiB | 037c145c-e987-4bb3-a2b7-107ef0c899a2 | hour tier cube 1 |
+| s13_hour_top_content | hour | content_id (top 10 in peak hour) | 9 | 9/8/9 | 66,094 | 2.28 MiB | 10 | 18.10 MiB | 05a1353b-8228-46bd-ab64-8f5e575f5af6 | hour tier cube 4 + catalogue join |
+| s14_minute_day_summary | minute | none (1,440 buckets) | 13 | 13/20/4 | 137,610 | 1.57 MiB | 1 | 5.59 MiB | c95d943d-75aa-4221-bcf4-af3563cb30e4 | delta tier + densify |
+| s15_minute_peak_hour_series | minute | none (60 buckets) | 3 | 3/3/4 | 137,610 | 1.57 MiB | 60 | 5.26 MiB | f7672bbf-cbe7-4617-8f48-1f33c9233fc5 | delta tier + densify |
+| s16_minute_platform_day_summary | minute | platform | 4 | 4/3/4 | 40,960 | 520.00 KiB | 1 | 5.46 MiB | d2013bad-5ca0-4c78-b363-2bab3e516569 | delta tier + densify |
+| u01_day_total | day | none · USER tier | 38 | 38/45/32 | 486,742 | 94.70 MiB | 1 | 88.55 MiB | 80c5fb8c-618f-4673-b592-23b9e8bcee46 | uniqExact states |
+| u02_hour_total | hour | none · USER tier | 32 | 31/34/32 | 486,742 | 94.70 MiB | 16 | 88.59 MiB | ab0a835c-6cdb-4668-a9c9-9daeea220c97 | uniqExact states |
+| u03_minute_peak_hour_series | minute | none · USER tier | 28 | 25/28/31 | 486,742 | 94.70 MiB | 60 | 60.28 MiB | 894aa3c9-fafb-458d-b2ff-a9bb49cf0fcb | uniqExact states |
+| u04_day_platform | day | platform · USER tier | 40 | 45/40/40 | 486,742 | 95.16 MiB | 19 | 111.92 MiB | db947e38-6ef0-4004-9691-e16aa29d6d0b | uniqExact states |
+| x01_delta_vs_interval_expansion | minute | cross-check | 152 | 179/152/122 | 297,036 | 14.19 MiB | 1 | 132.92 MiB | 6ae889b3-1aeb-4853-abe6-02d793ea7acb | delta vs interval expansion |
+| x02_integral_crosscheck | day | cross-check | 139 | 139/139/136 | 200,945 | 14.27 MiB | 1 | 410.63 MiB | 7b4d3614-4af5-46af-946c-8519d8e58d7b | hour integral vs dense minutes |
+| x03_peak_not_summable | day | cross-check | 7 | 6/7/7 | 137,373 | 3.01 MiB | 1 | 5.50 MiB | 50f6e78f-0cfe-4630-8263-79d35c27d8ef | hour tier cube 0 vs cube 1 |
+| x04_dataset_extent | n/a | inventory | 341 | 375/341/339 | 7,757,650 | 969.33 MiB | 1 | 15.98 MiB | 5db6fdae-da35-459b-9471-73a0914bf304 | base tables |
+| x05_policy | n/a | inventory | 1 | 1/1/1 | 1 | 1.00 B | 1 | 5.22 MiB | 3a91cce1-2de5-4396-875f-360d410c4c68 | v_model_policy |
+| x06_day_all_dates | day | none (all 102 dates) | 5 | 5/5/5 | 9,056 | 309.53 KiB | 15 | 8.01 MiB | 4eacc88d-0c9d-4fa7-b5e6-c88dc9277df4 | hour tier cube 0 |
+
+### 7.4 · Shape of the distribution, on both hosts
+
+Over the 21 serving queries (the `x*` rows are audit and inventory queries, not
+answers a dashboard would ask for):
+
+| band | queries | LOCAL median ms | CLOUD median ms |
+| --- | --- | --- | --- |
+| promoted session tiers (hour cube + delta tier), every grain, filtered or not | s01-s07, s09-s16 (16) | 2-13 | 10-210 |
+| user tier (uniqExact state merge), every grain | u01-u04 (4) | 28-40 | 252-323 |
+| generic exact-filter fallback (no cube level for this dimension) | s08 (1) | 1,117 | 6,949 |
+
+The **shape** is the same on both hosts and that is the result worth keeping: the
+promoted tiers are an order of magnitude cheaper than the user tier, which is an
+order of magnitude cheaper than the un-cut fallback. What changed is a roughly
+uniform scale factor.
+
+Cloud is slower than the local container on every one of the 27 queries. The
+per-query ratio runs **2.2x** (`s14`) to **20.8x** (`s04`), **median 7.1x**. That is
+expected and is not a defect of the model: the Cloud service is 3 vCPU / 12 GiB
+against a 10-core container, and it reads SharedMergeTree parts from object storage
+rather than a local disk page cache. `read_rows` and `read_bytes` are essentially
+unchanged between the hosts (§7.1, finding 2), so the model is doing the same
+work — it is doing it on a third of the cores and across a network to storage.
+Absolute Cloud latencies remain dashboard-grade for the promoted tiers: 16 of the
+21 serving queries answer in under 210 ms, and the whole-day minute curve (`s14`,
+1,440 buckets) in 28 ms.
+
+The one outlier on both hosts is `s08_day_video_resolution`:
+1,117 ms local / 6,949 ms Cloud, 18.12 MiB read,
+753.59 MiB local / 793.22 MiB Cloud peak memory — the generic exact-filter fallback
+for a dimension that is not a key of any serving table. That is a real cost and it
+is reported rather than excluded — see section 10. The two audit queries
+(`x01` 152 ms local / 476 ms Cloud, `x02` 139 ms local / 1,107 ms Cloud) and the
+inventory scan (`x04` 341 ms local / 2,179 ms Cloud over ~7.9 M rows) are
+deliberately expensive: they recompute the answer a second way, which is the point
+of them.
+
+
+## 8 · Correctness cross-checks run against these same numbers
+
+
+### 8.1 · Served minute curve vs independent interval expansion (query x01)
+
+| minutes_compared | mismatched | max_abs_diff | served_peak | truth_peak | verdict |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 1440 | 0 | 0 | 23324 | 23324 | PASS |
+
+The serving path (hour-clipped deltas, hour-partitioned running sum) against a
+different arithmetic entirely: `session_intervals` expanded to minutes and counted
+with `uniqExact(video_session_id)`. An error in either shows up as a disagreement
+rather than cancelling. All 1,440 minutes of the day agree exactly, and both
+paths report peak 23,324.
+
+This is the same shape as the repo gate `sql/90_reconcile.sql`, which on this
+build compared 3,201,716 minutes across all 102 output dates with 0 mismatches
+(evidence/unseen/official-20260802-codex-validation.txt), and which on the Cloud
+build `sonyliv_official` compared the same 3,201,716 minutes with 0 mismatched,
+max_abs_diff 0 and peak 23,324 (evidence/unseen/reconcile-cloud-official.txt).
+Query `x01` itself returns byte-identical output on both hosts: 1,440 minutes
+compared, 0 mismatched, PASS, on the container and on Cloud.
+
+
+### 8.2 · Time-weighted integral vs a dense minute count (query x02)
+
+| hour_tier_integral | dense_session_minute_integral | difference | verdict |
+| ---: | ---: | ---: | --- |
+| 81621960 | 81621960 | 0 | PASS |
+
+The hour tier's stored integral is a sum of change-point levels weighted by hold
+duration. The check recomputes it as (minute, session) pairs x 60 s from the dense
+expansion: 81,621,960 = 81,621,960, difference 0.
+So every average in this file is exact, not an artefact of the delta encoding.
+
+
+### 8.3 · Peak non-additivity (query x03)
+
+Reported in section 2.1.
+
+
+### 8.4 · Determinism
+
+All 27 queries returned byte-identical output across the warm-up and all three
+measured runs. Peak-minute ties are resolved by a total order — earliest minute
+wins, encoded as `argMax(minute, (concurrent, -toInt64(toUInt32(minute))))` — so
+the answer cannot depend on merge order or thread count.
+
+Confirmed a second time on 2026-08-02 against ClickHouse Cloud: all 27 queries were
+again byte-identical across warm-up + 3 reps **there**, and byte-identical to the
+local run — on a different ClickHouse version (26.2.1.525 vs 26.7.1.1315), a
+different table engine family (SharedMergeTree vs MergeTree), a different storage
+substrate (object storage vs local disk) and a different thread count (3 vs 10).
+The tie-break claim is therefore not just theory: it survived the thread count
+changing by more than 3x.
+
+
+## 9 · Exact SQL — one representative query per grain and per serving path
+
+
+### 9.1 · DAY grain, no filter (s01) — the ragged-range decomposition
+
+```sql
+-- s01 · DAY grain · no filter · session tier
+-- Serving path: v_cc_window_range -> hour-aligned range, answered entirely from
+-- stored cc_hour_agg rows (cube_level 0). avg is TIME-WEIGHTED: integral / range_seconds.
+SELECT range_start, range_end, range_seconds,
+       peak, peak_minute, integral,
+       round(avg_concurrent, 4) AS avg_concurrent,
+       hours_from_hour_tier, change_points_from_minute_tier
+FROM v_cc_window_range(
+    p_start      = '2026-07-31 00:00:00',
+    p_end        = '2026-08-01 00:00:00',
+    p_platform   = '*',
+    p_country    = '*',
+    p_content_id = -1)
+FORMAT TSVWithNames
+```
+
+
+### 9.2 · HOUR grain, no filter (s11) — stored rows, no recomputation
+
+```sql
+-- s11 · HOUR grain · no filter · session tier. The hour IS the storage grain of
+-- cc_hour_agg: peak / peak_minute / integral are READ, not computed.
+-- avg_concurrent here is the hour's own time-weighted average (integral / 3600).
+SELECT hour, peak, peak_minute, integral, round(avg_concurrent, 4) AS avg_concurrent
+FROM v_concurrency_hour_total
+WHERE hour >= '2026-07-31 00:00:00' AND hour < '2026-08-01 00:00:00'
+ORDER BY hour
+FORMAT TSVWithNames
+```
+
+
+### 9.3 · MINUTE grain, no filter (s15) — the densify recipe
+
+```sql
+-- s15 · MINUTE grain · no filter · the peak hour, all 60 minute buckets.
+-- This is the dashboard curve. Same densify recipe as s14, one hour wide.
+SELECT minute, concurrent
+FROM
+(
+    SELECT minute,
+           toInt64(sum(d) OVER (PARTITION BY toStartOfHour(minute) ORDER BY minute
+                                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) AS concurrent
+    FROM
+    (
+        SELECT minute, sum(delta) AS d
+        FROM cc_minute_delta
+        WHERE minute >= '2026-07-31 11:00:00' AND minute < toDateTime('2026-07-31 11:00:00') + INTERVAL 1 HOUR
+        GROUP BY minute
+        ORDER BY minute WITH FILL FROM toDateTime('2026-07-31 11:00:00')
+                        TO toDateTime('2026-07-31 11:00:00') + INTERVAL 1 HOUR STEP toIntervalSecond(60)
+    )
+)
+ORDER BY minute
+FORMAT TSVWithNames
+```
+
+
+### 9.4 · DIMENSION filter on a cube level (s02)
+
+```sql
+-- s02 · DAY grain · platform filter · session tier
+-- cube_level = 1 => platform is REAL, country/content collapsed to sentinels.
+-- Each platform's curve was materialised separately, so every peak here is a
+-- genuine max of a genuine curve. These peaks DO NOT SUM to the total peak.
+SELECT platform,
+       max(cc_hour_agg.peak) AS peak,
+       argMax(cc_hour_agg.peak_minute,
+              (cc_hour_agg.peak, -toInt64(toUInt32(cc_hour_agg.peak_minute)))) AS peak_minute,
+       sum(cc_hour_agg.integral) AS integral,
+       round(sum(cc_hour_agg.integral) / 86400, 4) AS avg_concurrent
+FROM cc_hour_agg FINAL
+WHERE cube_level = 1 AND country = '*' AND content_id = -1
+  AND hour >= '2026-07-31 00:00:00' AND hour < '2026-08-01 00:00:00'
+  AND (cc_hour_agg.peak != 0 OR cc_hour_agg.integral != 0)
+GROUP BY platform
+ORDER BY peak DESC, platform ASC
+FORMAT TSVWithNames
+```
+
+
+### 9.5 · DIMENSION filter with no cube level — the fallback (s08)
+
+```sql
+-- s08 · DAY grain · video_resolution filter (NEW column on the unseen day) · session tier.
+-- video_resolution is an EVENT-level dimension, not a key of cc_minute_delta and not
+-- derivable from content_dim, so it is served by the generic exact-filter fallback
+-- v_session_minutes (session_intervals expanded to minutes, joined to the catalog).
+-- v_session_minutes is DENSE per active minute, so integral = sum(concurrent) * 60 exactly.
+SELECT video_resolution,
+       max(c) AS peak,
+       argMax(minute, (c, -toInt64(toUInt32(minute)))) AS peak_minute,
+       sum(c) * 60 AS integral,
+       round(sum(c) * 60 / 86400, 4) AS avg_concurrent
+FROM
+(
+    SELECT video_resolution, minute, uniqExact(video_session_id) AS c
+    FROM v_session_minutes
+    WHERE minute >= '2026-07-31 00:00:00' AND minute < '2026-08-01 00:00:00'
+    GROUP BY video_resolution, minute
+)
+GROUP BY video_resolution
+ORDER BY peak DESC, video_resolution ASC
+LIMIT 10
+FORMAT TSVWithNames
+```
+
+
+### 9.6 · PARTIAL filter — and the two wrong shortcuts (s09)
+
+```sql
+-- s09 · DAY grain · PARTIAL platform filter (platform IN two values) · session tier.
+-- THE SHAPE THE CUBE DOES NOT SERVE. max(peak_A, peak_B) is NOT peak(A u B) --
+-- they peak at different minutes. The union peak must be recomputed at minute grain.
+-- This query returns the TRUE union peak next to the two wrong shortcuts, so the
+-- size of the error is visible rather than asserted.
+WITH change_points AS
+(
+    SELECT toStartOfHour(minute) AS hour, minute, sum(delta) AS dd
+    FROM cc_minute_delta
+    WHERE minute >= '2026-07-31 00:00:00' AND minute < '2026-08-01 00:00:00'
+      AND platform IN ('ANDROID_PHONE', 'JIO_ANDROID_TV')
+    GROUP BY hour, minute
+),
+curve AS
+(
+    SELECT hour, minute,
+           toInt64(sum(dd) OVER w_run) AS concurrent,
+           leadInFrame(toUInt32(minute), 1, toUInt32(toUInt32(hour) + 3600)) OVER w_fwd
+               - toUInt32(minute) AS hold_s
+    FROM change_points
+    WINDOW
+        w_run AS (PARTITION BY hour ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW),
+        w_fwd AS (PARTITION BY hour ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+),
+shortcut AS
+(
+    SELECT max(peak) AS max_of_cube_peaks, sum(peak) AS sum_of_cube_peaks
+    FROM
+    (
+        SELECT platform, max(peak) AS peak
+        FROM cc_hour_agg FINAL
+        WHERE cube_level = 1 AND country = '*' AND content_id = -1
+          AND platform IN ('ANDROID_PHONE', 'JIO_ANDROID_TV')
+          AND hour >= '2026-07-31 00:00:00' AND hour < '2026-08-01 00:00:00'
+        GROUP BY platform
+    )
+)
+SELECT ['ANDROID_PHONE', 'JIO_ANDROID_TV'] AS platforms,
+       max(concurrent) AS peak_true_union,
+       argMax(minute, (concurrent, -toInt64(toUInt32(minute)))) AS peak_minute,
+       sum(concurrent * hold_s) AS integral,
+       round(sum(concurrent * hold_s) / 86400, 4) AS avg_concurrent,
+       any(shortcut.max_of_cube_peaks) AS wrong_max_of_peaks,
+       any(shortcut.sum_of_cube_peaks) AS wrong_sum_of_peaks,
+       count() AS change_points_scanned
+FROM curve CROSS JOIN shortcut
+FORMAT TSVWithNames
+```
+
+
+### 9.7 · USER tier, day grain (u01)
+
+```sql
+-- u01 · DAY grain · no filter · USER tier.
+-- User concurrency is a SET CARDINALITY per minute, not a running sum of deltas:
+-- one user can hold several concurrent sessions, so +1/-1 deltas over-count.
+-- cc_user_minute stores an AggregateFunction(uniqExact, String) state per
+-- (dims, minute); collapsing dimensions means MERGING states, never summing counts.
+WITH series AS
+(
+    SELECT minute, uniqExactMerge(active_state) AS concurrent_users
+    FROM cc_user_minute FINAL
+    WHERE minute >= '2026-07-31 00:00:00' AND minute < '2026-08-01 00:00:00'
+    GROUP BY minute
+)
+SELECT max(concurrent_users) AS peak_users,
+       argMax(minute, (concurrent_users, -toInt64(toUInt32(minute)))) AS peak_minute,
+       sum(concurrent_users) * 60 AS integral_user_seconds,
+       round(sum(concurrent_users) * 60 / 86400, 4) AS avg_users,
+       count() AS active_minute_buckets
+FROM series
+FORMAT TSVWithNames
+```
+
+
+### 9.8 · The cross-check (x01)
+
+```sql
+-- x01 · CROSS-CHECK. The served minute curve (delta model, running sum) against an
+-- INDEPENDENT arithmetic: session_intervals expanded to minutes and counted with
+-- uniqExact(video_session_id). Different arithmetic, so an error disagrees rather
+-- than cancelling. This is the shape of the gate in sql/90_reconcile.sql.
+WITH served AS
+(
+    SELECT minute,
+           toInt64(sum(d) OVER (PARTITION BY toStartOfHour(minute) ORDER BY minute
+                                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) AS concurrent
+    FROM
+    (
+        SELECT minute, sum(delta) AS d
+        FROM cc_minute_delta
+        WHERE minute >= '2026-07-31 00:00:00' AND minute < '2026-08-01 00:00:00'
+        GROUP BY minute
+        ORDER BY minute WITH FILL FROM toDateTime('2026-07-31 00:00:00') TO toDateTime('2026-08-01 00:00:00') STEP toIntervalSecond(60)
+    )
+),
+truth AS
+(
+    SELECT minute, toInt64(concurrent) AS concurrent
+    FROM v_concurrency_minute_intervals
+    WHERE minute >= '2026-07-31 00:00:00' AND minute < '2026-08-01 00:00:00'
+)
+SELECT count() AS minutes_compared,
+       countIf(s_c != t_c) AS mismatched,
+       max(abs(s_c - t_c)) AS max_abs_diff,
+       max(s_c) AS served_peak,
+       max(t_c) AS truth_peak,
+       if(countIf(s_c != t_c) = 0, 'PASS', 'MISMATCH') AS verdict
+FROM
+(
+    SELECT served.minute AS minute, served.concurrent AS s_c, ifNull(truth.concurrent, 0) AS t_c
+    FROM served LEFT JOIN truth ON served.minute = truth.minute
+)
+FORMAT TSVWithNames
+```
+
+
+## 10 · NOT PRODUCED AND WHY
+
+Named gaps, so nothing here is a silent omission. Each is a limitation of this
+artifact or of the run, not a guess dressed as a result.
+
+1. **[RESOLVED 2026-08-02 03:39 UTC]** LATENCIES ARE LOCAL-CONTAINER, NOT CLICKHOUSE CLOUD.
+
+   The limitation as it stood, kept intact:
+
+   > "The official 7,000,000-row unseen file was loaded and built only into the
+   > local ClickHouse 26.7 container, database
+   > `codex_official_green_20260802_075132`. The graded Cloud database `sonyliv`
+   > still holds the original 905,558-row file, and the Cloud database
+   > `sonyliv_unseen` holds only the 30,097-row rehearsal slice — neither is the
+   > unseen day. Every millisecond in section 7 is therefore a local single-node
+   > number (Docker container, 10 visible cores, `max_threads=auto(10)`) and is NOT
+   > comparable to a Cloud service tier. The correctness numbers are unaffected:
+   > they are properties of the model, not of the host. Reproducing these latencies
+   > on Cloud needs the file loaded there, which is a load, not a re-derivation."
+
+   **How it was resolved.** The load happened. The 7,000,000-row unseen build was
+   loaded to ClickHouse Cloud as database `sonyliv_official` and gated there
+   (3,201,716 minutes compared, 0 mismatched, peak 23,324 —
+   evidence/unseen/reconcile-cloud-official.txt). On 2026-08-02 at 03:39 UTC all 27
+   queries were re-run against it under the identical protocol — 1 discarded
+   warm-up + 3 measured reps, caller-supplied `query_id` per execution,
+   `log_comment = unseen-matrix-cloud/<query>/<rep>`, `use_query_cache=0`,
+   `SYSTEM FLUSH LOGS` then joined back on `query_id`. Section 7 now carries the
+   Cloud figures next to the local ones, and the raw extract is
+   `evidence/submission/query-log-cloud.tsv` (112 rows).
+
+   The graded database `sonyliv` was **not** touched by any of this — it still
+   holds the original 905,558-row file, and every statement issued against
+   `sonyliv_official` was a `SELECT`.
+
+   **What survives of the limitation.** Two residues, both small and both named:
+
+   - (a) `s01_day_total` could not run on `sonyliv_official` — that database is
+     missing `v_cc_window_range` (§7.1, finding 1). Its Cloud latency is measured
+     on the sibling Cloud build `sonyliv_final` instead and is labelled as such
+     everywhere it appears.
+   - (b) The Cloud service measured is a 3 vCPU / 12 GiB instance. These are real
+     hosted-service numbers, but they are one service tier's numbers, not a claim
+     about Cloud in general.
+
+2. DISTRIBUTED TRACES WERE NOT CAPTURED FOR THIS RUN.
+   The pipeline-evidence requirement is met with `system.query_log`: every
+   execution carries a caller-supplied `query_id` and a `log_comment` of
+   `unseen-matrix/<query>/<rep>`, and section 7 is a join of the run manifest
+   against `system.query_log` on that id. OpenTelemetry spans into ClickStack
+   (`tools/clickstack-observability.sh`, docs/OBSERVABILITY.md) exist in this repo
+   but were NOT attached to this run, so there is no trace waterfall to show. Query
+   log, yes; traces, no.
+
+3. THE COUNTRY DIMENSION IS DEGENERATE ON THIS DAY.
+   `country` carries exactly one value across the whole unseen file, so section 6.2
+   is the total under a different heading. It is reported as a filter that was
+   exercised, not as an independent slice.
+
+4. DIMENSION FILTERS ARE FANNED OUT AT DAY GRAIN ONLY.
+   Sections 6.1-6.7 give every dimension at day grain, and section 6.8 shows the
+   same filter answered at hour and minute grain to prove the path exists. The full
+   cross-product (every dimension value x every grain) is not enumerated: it is
+   thousands of rows and it adds no new shape.
+
+5. THE 101 NON-HEADLINE OUTPUT DATES ARE GIVEN AT DAY GRAIN ONLY.
+   Section 6.10 lists the top 15 by peak of the 102 dates the model emits. Their
+   hour and minute curves exist in the same tables and answer with the same
+   queries, but the file is a single day of events and these dates are the tail of
+   sessions whose `session_start_epoch` reaches back years; enumerating them at
+   minute grain would be volume without information.
+
+6. THIS RUN READS THE CANONICAL TIER TABLES, NOT A COMMITTED GENERATION.
+   The generation-pinned serving surface (ADR 0034) exists in this database but its
+   generation 1 is still `status=building`, `is_active=0` — the generation build was
+   interrupted after the disposable tiers and before stage/verify/commit, as
+   recorded in evidence/unseen/official-20260802-codex-validation.txt. Every number
+   in this file is read from `cc_minute_delta` / `cc_hour_agg` / `cc_user_minute`
+   directly, which is the same data the gate reconciled. What is NOT demonstrated
+   here is the generation-pinned read path on the unseen day.
+
+7. NO IST-DAY GRAIN, AND NO SUB-MINUTE GRAIN.
+   `day` is the UTC day. An IST day starts at 18:30 UTC, which is not hour-aligned,
+   so its peak is max(the 23 whole hours, a minute scan of the two half hours) —
+   `v_cc_window_range` implements exactly that decomposition and would answer it,
+   but no IST-day number was asked for and none is stated. Sub-minute concurrency
+   is not modelled at all: the minute is the finest bucket the delta tier stores.
+
+8. THREE EVENTS WERE QUARANTINED AND ARE EXCLUDED FROM EVERY NUMBER ABOVE.
+   3 of 7,000,000 raw events carry timestamps outside the accepted range (down to
+   2014-12-31). They sit in `ev_quarantine`, are excluded from both the model and
+   the reconciliation truth, and are therefore absent from every peak and average
+   here. 6,999,997 events were modelled.
+
+
+## Appendix A · Every execution, every query_id
+
+**A.1 · The local-container run.** 27 queries x 4 executions (1 warm-up + 3
+measured) = 108 rows in `system.query_log`, all tagged
+`log_comment LIKE 'unseen-matrix/%'`. Raw extract:
+`evidence/submission/query-log.tsv`.
+
+| query | rep | query_id | elapsed_ms |
+| --- | --- | --- | ---: |
+| s01_day_total | warmup | 69018116-8974-4897-9aa8-cb4843fe023c | 39 |
+| s01_day_total | r1 | 2676ac0a-242c-4b8e-9eb5-7fdb7205f79e | 10 |
+| s01_day_total | r2 | 4be4eaab-02b7-4010-ac65-52d3ebf10534 | 41 |
+| s01_day_total | r3 | 4a378614-ad79-4905-b926-39c2ad27d8b2 | 12 |
+| s02_day_platform | warmup | 25bdca0b-8c32-4f35-907a-0260f5380848 | 4 |
+| s02_day_platform | r1 | e001dcff-f561-4f1e-8699-3df4b88951af | 4 |
+| s02_day_platform | r2 | 386a6966-de55-40ae-a973-1ff82f248286 | 4 |
+| s02_day_platform | r3 | ad9c4945-14c0-466f-80a1-eb903ade64d0 | 3 |
+| s03_day_country | warmup | 8125ce29-88a0-48a9-a44e-aa43a1e72482 | 2 |
+| s03_day_country | r1 | 07cd4134-9347-48fb-bc09-778d50ff2df4 | 2 |
+| s03_day_country | r2 | a9488f1c-4cb0-4a36-99c7-fe01628a6127 | 2 |
+| s03_day_country | r3 | ba3a96f7-6110-4c9c-ac96-ad46ad876c44 | 2 |
+| s04_day_content_top10 | warmup | d64aff91-1aff-4d27-a4a9-42abf7681d83 | 9 |
+| s04_day_content_top10 | r1 | d74bf702-465c-4d58-b8d3-5deab8182ecc | 6 |
+| s04_day_content_top10 | r2 | bacd8e5f-0bc2-4891-ba6b-709652e0b67b | 6 |
+| s04_day_content_top10 | r3 | bc20425d-53c9-4d50-94a6-e7d05b90c716 | 6 |
+| s05_day_video_type | warmup | af5e4e9d-d432-4722-a02f-fa06f4b0744a | 17 |
+| s05_day_video_type | r1 | 14f17e18-7c81-4a84-8854-e19681b9ec48 | 10 |
+| s05_day_video_type | r2 | 55668f8a-da10-4fc1-85ea-fcde2fa8b0f7 | 10 |
+| s05_day_video_type | r3 | ad7daf60-7ca3-4464-8d33-0ef5e3a0859f | 10 |
+| s06_day_category | warmup | 401711cf-e4e4-4d11-807b-f70a9dc080ae | 11 |
+| s06_day_category | r1 | 69c00ee1-83f8-418b-b076-8e897f00cba1 | 11 |
+| s06_day_category | r2 | 47713dd3-1e80-4175-a3d8-08a994e65e06 | 12 |
+| s06_day_category | r3 | f0de4b4b-afcf-45f5-ae90-dbb0088d89e7 | 11 |
+| s07_day_show_name | warmup | c59688ec-21ef-404f-9b84-c8205d1245cc | 13 |
+| s07_day_show_name | r1 | e34a73e4-2444-4d84-8080-8342710c289a | 13 |
+| s07_day_show_name | r2 | 9ece0ade-7888-4ff6-8cd5-baebf92ed4ed | 13 |
+| s07_day_show_name | r3 | f66e5887-8d3d-4a37-8c41-681a2c48e867 | 15 |
+| s08_day_video_resolution | warmup | db83bdee-3d77-439a-880f-1ce52e500a6a | 1,763 |
+| s08_day_video_resolution | r1 | 74447894-aaf9-4744-b7b3-12d1f60ac255 | 1,367 |
+| s08_day_video_resolution | r2 | d6f34d1b-bf19-4df3-aa7e-40161bc78b83 | 1,117 |
+| s08_day_video_resolution | r3 | 6e846566-5f18-4e29-81ae-f985d96b9cb5 | 1,036 |
+| s09_day_platform_partial | warmup | c503837c-8bd9-49ed-aac4-99241aec3545 | 40 |
+| s09_day_platform_partial | r1 | c6ec6492-3e23-48eb-92dd-a7671ae1e1e3 | 7 |
+| s09_day_platform_partial | r2 | c429e754-f647-4521-adf5-7bd185a2e4db | 80 |
+| s09_day_platform_partial | r3 | ca8655c0-7866-43eb-ba3b-d77e520be108 | 7 |
+| s10_day_combined_platform_videotype | warmup | 9d99dedb-ed95-42e2-b7ab-e776b0307d27 | 13 |
+| s10_day_combined_platform_videotype | r1 | b5ed667a-8260-4ffb-9369-4664f9cc14a5 | 6 |
+| s10_day_combined_platform_videotype | r2 | 20f03627-f3ea-496c-9a52-8d566a463ed9 | 5 |
+| s10_day_combined_platform_videotype | r3 | 736ec928-b3c8-4fe9-b5ff-093d418ba7e3 | 5 |
+| s11_hour_total | warmup | a73157fc-693f-4ecb-b5b7-21d1f64e2436 | 31 |
+| s11_hour_total | r1 | 74d75a60-803a-49d7-9aff-28480acb8a83 | 3 |
+| s11_hour_total | r2 | af3c5048-700f-40b2-b703-271a7bda0598 | 3 |
+| s11_hour_total | r3 | f9ba7b6e-948b-4b9c-811c-cf1d13620e05 | 3 |
+| s11b_hour_total_summary | warmup | c10f0452-a9e7-4402-91bd-c52144196bdf | 4 |
+| s11b_hour_total_summary | r1 | 23ef16bf-35fe-4040-9c8e-45a22ae2be9e | 3 |
+| s11b_hour_total_summary | r2 | cf218fbf-49c7-4f40-b879-0616a682f027 | 23 |
+| s11b_hour_total_summary | r3 | 49697e13-13ce-4c79-be41-3a152ae972bb | 3 |
+| s12_hour_platform | warmup | 6bb0076f-e85c-47e4-aa56-543134acc673 | 3 |
+| s12_hour_platform | r1 | 9ecc5a3d-2030-46e8-9b30-c926c40a08a8 | 2 |
+| s12_hour_platform | r2 | 037c145c-e987-4bb3-a2b7-107ef0c899a2 | 3 |
+| s12_hour_platform | r3 | 1f6fd725-bb98-4984-b920-f630d5e370c5 | 3 |
+| s13_hour_top_content | warmup | 34bcd565-b4e5-4581-82cb-792dcdf03387 | 18 |
+| s13_hour_top_content | r1 | 05a1353b-8228-46bd-ab64-8f5e575f5af6 | 9 |
+| s13_hour_top_content | r2 | 3d9706f0-6611-4f7c-bfaf-c8dc0cb2e213 | 8 |
+| s13_hour_top_content | r3 | bab6ce67-07f1-4d69-bb3c-7b41095b2ba2 | 9 |
+| s14_minute_day_summary | warmup | db104b06-59d7-49b7-9a99-3a017f3b787a | 24 |
+| s14_minute_day_summary | r1 | c95d943d-75aa-4221-bcf4-af3563cb30e4 | 13 |
+| s14_minute_day_summary | r2 | 33924324-d323-4498-b36c-be971a4f8290 | 20 |
+| s14_minute_day_summary | r3 | 5ba7f494-c272-4f42-8021-17258254fa21 | 4 |
+| s15_minute_peak_hour_series | warmup | 483304f5-931e-4ca2-92b8-74df26c8a58c | 4 |
+| s15_minute_peak_hour_series | r1 | f7672bbf-cbe7-4617-8f48-1f33c9233fc5 | 3 |
+| s15_minute_peak_hour_series | r2 | 9bec09b1-365f-4bee-9f78-49f799f14fc3 | 3 |
+| s15_minute_peak_hour_series | r3 | 085fa404-a28b-489f-922e-43c9b40f15f8 | 4 |
+| s16_minute_platform_day_summary | warmup | 20492ef5-02d5-489a-b9d6-446266a022d8 | 4 |
+| s16_minute_platform_day_summary | r1 | d2013bad-5ca0-4c78-b363-2bab3e516569 | 4 |
+| s16_minute_platform_day_summary | r2 | 5563acc8-388a-4913-a51a-c83e998cc136 | 3 |
+| s16_minute_platform_day_summary | r3 | ed639c16-eb54-408d-9632-4d322472e499 | 4 |
+| u01_day_total | warmup | ab9b57d3-9f79-4970-a658-de0d40cbfc9a | 58 |
+| u01_day_total | r1 | 80c5fb8c-618f-4673-b592-23b9e8bcee46 | 38 |
+| u01_day_total | r2 | 0aed5bc7-4298-4aa0-a3b5-06f7361d589d | 45 |
+| u01_day_total | r3 | 936de00d-33bf-43e4-8ba1-125f04d1e574 | 32 |
+| u02_hour_total | warmup | b96f1ab5-9a0f-42c3-ac1c-bd33852c8182 | 31 |
+| u02_hour_total | r1 | 9f3e8848-45e1-42ff-bb4e-8fb6e71c8a36 | 31 |
+| u02_hour_total | r2 | 47565398-b141-4694-ae96-6d246a2a20e6 | 34 |
+| u02_hour_total | r3 | ab0a835c-6cdb-4668-a9c9-9daeea220c97 | 32 |
+| u03_minute_peak_hour_series | warmup | 34bb3e05-b5b8-463e-88fe-8d6a2d4d1273 | 27 |
+| u03_minute_peak_hour_series | r1 | 3baf31aa-1e13-45db-b426-73c60cb1ad27 | 25 |
+| u03_minute_peak_hour_series | r2 | 894aa3c9-fafb-458d-b2ff-a9bb49cf0fcb | 28 |
+| u03_minute_peak_hour_series | r3 | 279fff99-e909-47b6-8a7c-6c64ec40edea | 31 |
+| u04_day_platform | warmup | 354743e6-cb4f-453b-b9ef-210ea784df2d | 51 |
+| u04_day_platform | r1 | e3582aa1-5e2c-41d1-81bc-1b5eacb63a55 | 45 |
+| u04_day_platform | r2 | db947e38-6ef0-4004-9691-e16aa29d6d0b | 40 |
+| u04_day_platform | r3 | 1c3283ef-2784-423c-bc66-64175ba21134 | 40 |
+| x01_delta_vs_interval_expansion | warmup | f46d52d9-42f4-4f7f-8c47-89bb21a62030 | 202 |
+| x01_delta_vs_interval_expansion | r1 | 319b8445-a184-45e9-91ca-047ae26fdbd0 | 179 |
+| x01_delta_vs_interval_expansion | r2 | 6ae889b3-1aeb-4853-abe6-02d793ea7acb | 152 |
+| x01_delta_vs_interval_expansion | r3 | f1542f12-c86c-49b2-89bb-e41f97304e37 | 122 |
+| x02_integral_crosscheck | warmup | 6a0dd2d3-ecfa-417d-b1f3-10596c0d5af9 | 284 |
+| x02_integral_crosscheck | r1 | 7b4d3614-4af5-46af-946c-8519d8e58d7b | 139 |
+| x02_integral_crosscheck | r2 | 871bc816-bc85-4ee9-adde-f1fdc1c10441 | 139 |
+| x02_integral_crosscheck | r3 | a76920bd-6dd0-4170-8355-115f58744d1e | 136 |
+| x03_peak_not_summable | warmup | 7adf1283-82d2-40ef-bc73-f284438b8516 | 8 |
+| x03_peak_not_summable | r1 | 0b1965bb-49be-472e-ab10-67fb7d6ad448 | 6 |
+| x03_peak_not_summable | r2 | 50f6e78f-0cfe-4630-8263-79d35c27d8ef | 7 |
+| x03_peak_not_summable | r3 | 5165fab1-c8ff-474a-bfbd-8f4d3cf93624 | 7 |
+| x04_dataset_extent | warmup | 74f40efe-14e8-4540-a656-ebf273809239 | 394 |
+| x04_dataset_extent | r1 | 4cff37e2-4164-46f8-a287-707fef3a86dd | 375 |
+| x04_dataset_extent | r2 | 5db6fdae-da35-459b-9471-73a0914bf304 | 341 |
+| x04_dataset_extent | r3 | 3c9020b0-91c4-4c1c-9916-f60be4d9d19f | 339 |
+| x05_policy | warmup | 5922e3ff-1db3-466e-b844-2d5b8a45fa59 | 1 |
+| x05_policy | r1 | 3a91cce1-2de5-4396-875f-360d410c4c68 | 1 |
+| x05_policy | r2 | dc70fe44-0f10-44b6-9181-fa23858ad698 | 1 |
+| x05_policy | r3 | 1ee47b7e-07bc-40ca-aeac-f68626c375fb | 1 |
+| x06_day_all_dates | warmup | 7f885e13-95c7-4d44-9bcf-61c45ba9c634 | 17 |
+| x06_day_all_dates | r1 | 4eacc88d-0c9d-4fa7-b5e6-c88dc9277df4 | 5 |
+| x06_day_all_dates | r2 | 41d96e21-eebc-4278-953b-c7c4e662d66a | 5 |
+| x06_day_all_dates | r3 | 77b25674-6245-41f6-bfe5-3783a5282f0d | 5 |
+
+
+**A.2 · The Cloud re-run (2026-08-02).** 27 queries x 4 executions = 112 rows in
+`system.query_log` on the Cloud service, tagged
+`log_comment LIKE 'unseen-matrix-cloud/%'` (database `sonyliv_official`) and
+`LIKE 'unseen-matrix-cloudfinal/%'` (database `sonyliv_final`, s01 only — see
+§7.1). 112 not 108 because s01 was attempted 4x on `sonyliv_official`, failed 4x
+with error 46, and was then run 4x on `sonyliv_final`; all eight are logged below.
+Raw extract: `evidence/submission/query-log-cloud.tsv`.
+
+| query | rep | database | cloud query_id | elapsed_ms |
+| --- | --- | --- | --- | ---: |
+| s01_day_total | warmup | sonyliv_final | a8c68e3b-ca29-4d82-af3e-5e9d66f804ca | 42 |
+| s01_day_total | r1 | sonyliv_final | 083a5bde-e111-4378-a2b7-6a93d7080515 | 49 |
+| s01_day_total | r2 | sonyliv_final | 58c871ab-82a3-4486-8c58-a3096d8cf666 | 46 |
+| s01_day_total | r3 | sonyliv_final | 60aaf693-9c72-4872-a108-f526a06da782 | 81 |
+| s01_day_total | warmup | sonyliv_official | ff0d4c58-d5c0-47a3-ad9e-027bbfe2cbd5 | n/a (error 46) |
+| s01_day_total | r1 | sonyliv_official | 3bc47182-94d0-4bdc-ace8-1c2510ae62d2 | n/a (error 46) |
+| s01_day_total | r2 | sonyliv_official | 5575f4a0-e7d2-401c-807b-f01d90cf7edf | n/a (error 46) |
+| s01_day_total | r3 | sonyliv_official | 0f4b5d62-9ae1-4f20-a7a0-e058bac49a60 | n/a (error 46) |
+| s02_day_platform | warmup | sonyliv_official | 8ffcd6f5-c998-4ac8-b244-d5ab42c8889a | 15 |
+| s02_day_platform | r1 | sonyliv_official | 27d51488-42c7-4402-9e31-237a3e1208cc | 14 |
+| s02_day_platform | r2 | sonyliv_official | fb25bf00-2a0b-496a-87de-220a79acd058 | 12 |
+| s02_day_platform | r3 | sonyliv_official | d8cc93e6-3d0c-4560-a7f4-d02b031aae33 | 38 |
+| s03_day_country | warmup | sonyliv_official | 6c1bfb98-8577-4e37-95fc-92699cf4a174 | 100 |
+| s03_day_country | r1 | sonyliv_official | 1d98f723-ef7e-432b-87ff-d6066ff77ae1 | 9 |
+| s03_day_country | r2 | sonyliv_official | 97f1bf8e-fbd5-41a4-bdcd-2b71d8faf352 | 95 |
+| s03_day_country | r3 | sonyliv_official | 0b7a91eb-39a3-49a5-8386-bc15d9829099 | 28 |
+| s04_day_content_top10 | warmup | sonyliv_official | b6752e82-d722-4415-87c1-e470570b75eb | 82 |
+| s04_day_content_top10 | r1 | sonyliv_official | 4e5f3023-abb7-48e7-bc5b-d255bc2c2859 | 116 |
+| s04_day_content_top10 | r2 | sonyliv_official | 55d478e7-d941-48f9-b959-e856b3a819ff | 127 |
+| s04_day_content_top10 | r3 | sonyliv_official | 55206583-c546-446c-b369-0439ccbcd259 | 125 |
+| s05_day_video_type | warmup | sonyliv_official | cc9a2dc4-1129-4969-a534-15a1b2ffd78d | 77 |
+| s05_day_video_type | r1 | sonyliv_official | 62de9033-a588-4858-9e4e-905e23099f86 | 156 |
+| s05_day_video_type | r2 | sonyliv_official | ec0af311-fa34-4474-9a56-71e71cc249ba | 110 |
+| s05_day_video_type | r3 | sonyliv_official | 675f46c4-f61d-467e-8451-a9b5dbde58fc | 102 |
+| s06_day_category | warmup | sonyliv_official | 46dd2048-add2-4913-beb0-7d983c0eac5c | 150 |
+| s06_day_category | r1 | sonyliv_official | c76080d4-b8ef-4703-8f49-bdcc3ee3d904 | 283 |
+| s06_day_category | r2 | sonyliv_official | d50eca45-f716-4fb3-8802-824dad9ce025 | 210 |
+| s06_day_category | r3 | sonyliv_official | caadfe7d-fb5f-4556-aff7-021cdb7be8cc | 152 |
+| s07_day_show_name | warmup | sonyliv_official | a36ac8f6-a8d0-41d1-9157-607ce6094934 | 235 |
+| s07_day_show_name | r1 | sonyliv_official | 52083a04-dd5c-4768-8215-b4012aa314e4 | 152 |
+| s07_day_show_name | r2 | sonyliv_official | 7b5704c6-a4a6-444a-a580-ab405af223b9 | 257 |
+| s07_day_show_name | r3 | sonyliv_official | 13bc418a-44b2-4b58-9127-a4f7105c8992 | 168 |
+| s08_day_video_resolution | warmup | sonyliv_official | 8cff769b-9f41-46f6-bbc1-5896851c2328 | 6,901 |
+| s08_day_video_resolution | r1 | sonyliv_official | 12893b8e-5959-4de1-8bfa-bd7e6728d667 | 6,949 |
+| s08_day_video_resolution | r2 | sonyliv_official | ab8d51ae-c3f7-4476-8c7e-d59e40872939 | 6,485 |
+| s08_day_video_resolution | r3 | sonyliv_official | 27412442-a6cb-4023-8773-78e10a11ed23 | 7,434 |
+| s09_day_platform_partial | warmup | sonyliv_official | a74d1e18-a7c0-4402-98df-706d0c126ba6 | 36 |
+| s09_day_platform_partial | r1 | sonyliv_official | 23d33656-43bc-4935-a777-279e94121e2a | 59 |
+| s09_day_platform_partial | r2 | sonyliv_official | 9055ee02-55a8-49a9-b049-c700ddefeb4c | 40 |
+| s09_day_platform_partial | r3 | sonyliv_official | e68a8734-f85e-42a1-a729-bc8a6baa2b9f | 161 |
+| s10_day_combined_platform_videotype | warmup | sonyliv_official | af0fc975-6d25-4128-b318-113b4b612c0b | 23 |
+| s10_day_combined_platform_videotype | r1 | sonyliv_official | 1167a8a9-d86e-4d43-a977-9dcfd129220e | 31 |
+| s10_day_combined_platform_videotype | r2 | sonyliv_official | 1550a6d8-72c5-4f6c-b488-a457df7b375e | 28 |
+| s10_day_combined_platform_videotype | r3 | sonyliv_official | 23182b4f-8ebb-47ed-9fee-0a3839b315ee | 22 |
+| s11_hour_total | warmup | sonyliv_official | 45574faa-ad59-46ae-8fdc-379b235f369f | 25 |
+| s11_hour_total | r1 | sonyliv_official | 353c0bb9-1286-43a4-832d-62b64443f106 | 19 |
+| s11_hour_total | r2 | sonyliv_official | 68d8f391-e46b-4b0d-beed-4bf11409e226 | 17 |
+| s11_hour_total | r3 | sonyliv_official | f76e989d-5995-4d26-b2c9-3b2b47f45244 | 14 |
+| s11b_hour_total_summary | warmup | sonyliv_official | 4722c376-1bb5-4281-922f-ed4ad069bbc3 | 14 |
+| s11b_hour_total_summary | r1 | sonyliv_official | fb3f23ed-5668-439c-9a03-c952810f765b | 19 |
+| s11b_hour_total_summary | r2 | sonyliv_official | 8f3a0086-b5d9-42ee-811d-f1e32c232174 | 18 |
+| s11b_hour_total_summary | r3 | sonyliv_official | 6172d2bf-4b68-4119-a318-a910e8c6a4d9 | 54 |
+| s12_hour_platform | warmup | sonyliv_official | 95ba54b3-d306-4ced-832e-e7c27ab997f3 | 12 |
+| s12_hour_platform | r1 | sonyliv_official | 4c48fd6b-39a0-4521-81bc-7289472729f1 | 6 |
+| s12_hour_platform | r2 | sonyliv_official | 75ecc20f-d34f-44e9-aa61-0f14b62ec58e | 17 |
+| s12_hour_platform | r3 | sonyliv_official | 8058488c-cc24-4cd5-a825-220edebc90dd | 10 |
+| s13_hour_top_content | warmup | sonyliv_official | d811b384-0882-43e3-896d-0da9cdeccecf | 57 |
+| s13_hour_top_content | r1 | sonyliv_official | e8a028a4-94b4-4ee2-bfea-3bf07f83e1bf | 28 |
+| s13_hour_top_content | r2 | sonyliv_official | f780216f-d8cb-46b8-b97b-8db94bd8b366 | 41 |
+| s13_hour_top_content | r3 | sonyliv_official | 6f00be39-e1d9-4f0f-9562-db380bbaa345 | 47 |
+| s14_minute_day_summary | warmup | sonyliv_official | 341be069-15de-4f9a-8e65-e1dfb156bf9d | 16 |
+| s14_minute_day_summary | r1 | sonyliv_official | c974a024-ed60-4b10-bbad-ef52544a1069 | 23 |
+| s14_minute_day_summary | r2 | sonyliv_official | afd45d9b-29d4-4a1f-8535-93e9fc3f15b1 | 28 |
+| s14_minute_day_summary | r3 | sonyliv_official | a0301306-e2b4-4ad7-a054-4ff890ecc375 | 80 |
+| s15_minute_peak_hour_series | warmup | sonyliv_official | 182a9d4e-3df3-467d-8c67-d08f03941bd8 | 16 |
+| s15_minute_peak_hour_series | r1 | sonyliv_official | 4e561bdb-b96e-45de-950c-389987e52ef4 | 15 |
+| s15_minute_peak_hour_series | r2 | sonyliv_official | 5ff28997-fbcf-438e-ac0d-26c112d88ec5 | 16 |
+| s15_minute_peak_hour_series | r3 | sonyliv_official | 8e7998fb-78f5-4137-b2b2-c07e0aaff547 | 13 |
+| s16_minute_platform_day_summary | warmup | sonyliv_official | e00976c9-8f4c-4a80-a1f7-289d1dfaaabe | 21 |
+| s16_minute_platform_day_summary | r1 | sonyliv_official | 5326ae6f-e912-466b-bc2b-fa41cb8ffa82 | 26 |
+| s16_minute_platform_day_summary | r2 | sonyliv_official | 8fbe7a51-29f9-4be2-8bde-308840545dc3 | 38 |
+| s16_minute_platform_day_summary | r3 | sonyliv_official | a7572312-8ca0-4314-a672-e14e6bc37371 | 48 |
+| u01_day_total | warmup | sonyliv_official | 31d13bbb-21a5-4190-8ec6-38e3a8225a5d | 333 |
+| u01_day_total | r1 | sonyliv_official | 5b780c48-42d6-4b99-99ff-78afaf33d6cb | 290 |
+| u01_day_total | r2 | sonyliv_official | 727208d2-64fa-4b92-9d7e-9aeaeb0443b8 | 323 |
+| u01_day_total | r3 | sonyliv_official | de47a826-39eb-46f4-8662-1c42689e00f0 | 360 |
+| u02_hour_total | warmup | sonyliv_official | 0fef5eb6-0b85-478a-8508-ca366be1e04c | 302 |
+| u02_hour_total | r1 | sonyliv_official | 3128e16a-40b0-4209-9040-fbb5835ad0c8 | 312 |
+| u02_hour_total | r2 | sonyliv_official | 61a2ee11-91ff-4c07-90c4-cf14e11369c4 | 265 |
+| u02_hour_total | r3 | sonyliv_official | c3017394-ae5e-4486-8e27-b081486ba5ce | 303 |
+| u03_minute_peak_hour_series | warmup | sonyliv_official | 6ffbfb84-298c-4e98-880e-71a9c450992c | 179 |
+| u03_minute_peak_hour_series | r1 | sonyliv_official | 3e36b75d-087e-403c-b0d4-5c8a751d3113 | 193 |
+| u03_minute_peak_hour_series | r2 | sonyliv_official | df523812-baea-4352-97d3-6d4a6ac1193c | 266 |
+| u03_minute_peak_hour_series | r3 | sonyliv_official | 213ae822-e1c8-4fac-8846-c68523d6e99a | 252 |
+| u04_day_platform | warmup | sonyliv_official | ffbbd5ba-e60a-4bf7-a5a8-2d9717b55d8a | 230 |
+| u04_day_platform | r1 | sonyliv_official | fb1a2107-c4cd-4fea-89ab-bb8c6fdbfadb | 244 |
+| u04_day_platform | r2 | sonyliv_official | 6edb36b0-0688-49eb-a1eb-62e8e1b2768c | 327 |
+| u04_day_platform | r3 | sonyliv_official | 28336cb9-c3f1-4143-9eeb-514b20166ec7 | 283 |
+| x01_delta_vs_interval_expansion | warmup | sonyliv_official | 09bf65ce-81d6-4a6f-8372-178231a7d9e3 | 509 |
+| x01_delta_vs_interval_expansion | r1 | sonyliv_official | 780fe738-5bdd-49cc-83bf-56c9ca784e7f | 476 |
+| x01_delta_vs_interval_expansion | r2 | sonyliv_official | 630e34a8-8b7d-4e48-9290-80906d2a392c | 491 |
+| x01_delta_vs_interval_expansion | r3 | sonyliv_official | 3f9c52af-6266-41bc-884c-cde4b1ebd0e2 | 459 |
+| x02_integral_crosscheck | warmup | sonyliv_official | 58e65f48-f29b-4440-a1f1-a39f685b2b96 | 1,041 |
+| x02_integral_crosscheck | r1 | sonyliv_official | 44fd1d2d-9516-4d24-acce-35478d127b3c | 1,149 |
+| x02_integral_crosscheck | r2 | sonyliv_official | c776c76b-340c-4e15-b1bd-c62cb32e0802 | 1,075 |
+| x02_integral_crosscheck | r3 | sonyliv_official | 1ad32c33-b70c-4f4f-8f40-607dd8dcf8db | 1,107 |
+| x03_peak_not_summable | warmup | sonyliv_official | 33fab35a-fa4f-477a-8ebd-286a388b260f | 63 |
+| x03_peak_not_summable | r1 | sonyliv_official | 7f648f45-b8a1-4dff-a62f-da3900f83324 | 60 |
+| x03_peak_not_summable | r2 | sonyliv_official | 9d0afb67-8eba-45bd-b17e-abb17ca90625 | 59 |
+| x03_peak_not_summable | r3 | sonyliv_official | 9cf791a9-186e-4752-af79-7b702d4f7dbd | 40 |
+| x04_dataset_extent | warmup | sonyliv_official | 42373646-64a3-44c8-ad41-e01f1a25fc73 | 2,529 |
+| x04_dataset_extent | r1 | sonyliv_official | 679c53e3-5bad-4995-ab76-46c8c9f4f5bf | 2,261 |
+| x04_dataset_extent | r2 | sonyliv_official | 922e1722-f783-4c74-93b9-30001ee915dc | 1,979 |
+| x04_dataset_extent | r3 | sonyliv_official | 2f14fa0b-730d-4df8-9e7e-5bb71e38f3d2 | 2,179 |
+| x05_policy | warmup | sonyliv_official | 72200627-e34f-4f72-890e-ecf2cfdfa30e | 8 |
+| x05_policy | r1 | sonyliv_official | 843df915-28c2-4b33-97ca-2d85f672ff6b | 7 |
+| x05_policy | r2 | sonyliv_official | 8ed07a35-666a-4358-bc91-84911a850e46 | 3 |
+| x05_policy | r3 | sonyliv_official | f799bd60-476c-4d53-b9ec-9963c84927f3 | 4 |
+| x06_day_all_dates | warmup | sonyliv_official | 41623ce1-4518-406b-98bc-0ada71c58432 | 17 |
+| x06_day_all_dates | r1 | sonyliv_official | 05166d08-d5f1-4436-9168-67afa6a98399 | 35 |
+| x06_day_all_dates | r2 | sonyliv_official | e743b7d8-fa72-4cac-b5be-0891ebe62245 | 37 |
+| x06_day_all_dates | r3 | sonyliv_official | e89c3ce3-cb31-4761-881b-236da8a73f8f | 43 |
+
+
+## Appendix B · Files shipped alongside this one
+
+  evidence/submission/results-matrix.txt   this file
+  evidence/submission/results-matrix.md    the same content as markdown tables
+  evidence/submission/queries/*.sql        all 27 queries, verbatim, as executed on BOTH hosts
+  evidence/submission/query-log.tsv        raw system.query_log extract, LOCAL container, 108 executions
+  evidence/submission/query-log-cloud.tsv  raw system.query_log extract, CLICKHOUSE CLOUD, 112 executions
+                                           (adds `database` and `type` columns; the 4 s01
+                                           ExceptionBeforeStart rows are included, not filtered out)
+
+
+## Appendix C · Reproducing this artifact
+
+```bash
+# 1. the model must already be built for the unseen day (do NOT rebuild):
+#    database codex_official_green_20260802_075132 on the local server
+#    built by  tools/apply-sql.sh -> tools/load.sh -> tools/build-model.sh
+#    gated by  sql/90_reconcile.sql   (PASS, 3,201,716 minutes, 0 mismatched)
+
+# 2. each query is executed with its own query_id and a log_comment:
+curl -sS "http://localhost:8123/?database=$DB&query_id=$UUID\
+&log_comment=unseen-matrix/$NAME/$REP&use_query_cache=0" --data-binary @$NAME.sql
+
+# 3. latencies are read back AFTER the fact, joined on query_id:
+SYSTEM FLUSH LOGS;
+SELECT query_id, query_duration_ms, read_rows, read_bytes, result_rows, log_comment
+FROM system.query_log
+WHERE type = 'QueryFinish' AND log_comment LIKE 'unseen-matrix/%'
+ORDER BY log_comment;
+```
+
+The **Cloud** re-run (2026-08-02), identical protocol:
+
+```bash
+# 1c. the model must already be built for the unseen day on Cloud:
+#     database sonyliv_official on the ClickHouse Cloud service
+#     gated by  sql/90_reconcile.sql   (PASS, 3,201,716 minutes, 0 mismatched)
+#     NOTE: sonyliv_official is missing sql/85_windows.sql — apply it before
+#           s01_day_total will run there (section 7.1, finding 1).
+
+# 2c. same 4 executions per query, cloud-tagged log_comment:
+curl -sS "https://$CH_HOST:$CH_PORT/?database=sonyliv_official&query_id=$UUID\
+&log_comment=unseen-matrix-cloud/$NAME/$REP&use_query_cache=0" \
+--user "$CH_USER:$CH_PASSWORD" --data-binary @$NAME.sql
+
+# 3c. read back from the Cloud query log (clusterAllReplicas, so the row is
+#     found whichever replica served it):
+SYSTEM FLUSH LOGS;
+SELECT query_id, type, query_duration_ms, read_rows, read_bytes, result_rows, log_comment
+FROM clusterAllReplicas('default', system.query_log)
+WHERE log_comment LIKE 'unseen-matrix-cloud%'
+ORDER BY log_comment;
+
+# 4c. and the equality check that makes the re-run worth anything — byte-diff
+#     each query's output between the two hosts:
+diff local-out/$NAME.out cloud-out/$NAME.r1.out   # 26/27 empty; s01 errors on
+                                                  # sonyliv_official, matches on
+                                                  # sonyliv_final
+```

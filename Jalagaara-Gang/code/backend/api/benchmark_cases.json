@@ -1,0 +1,8 @@
+[
+  {"id": "A", "metric": "fill_rate", "window": "2026-06-23..25", "expect_segment": {"os_version": "Android 15"}},
+  {"id": "B", "metric": "ecpm",      "window": "2026-06-19..22", "expect_segment": {"category": "finance"}},
+  {"id": "C", "metric": "requests",  "window": "2026-06-21",     "expect_segment": null},
+  {"id": "D", "metric": "fill_rate", "window": "2026-06-28..30", "expect_segment": {"region": "APAC", "os_version": "iOS 18.1"}},
+  {"id": "E", "metric": "ecpm",      "window": "2026-06-16..18", "expect_segment": null,
+   "note": "NEGATIVE CASE. Jun 16-20 holds a real eCPM redistribution across ad_format (interstitial 2.72->2.42, -8.6%; native 1.96->2.11, +7.6%; both revert Jun 23). The two offset, so the POPULATION eCPM barely moves (+0.4%) - there is no global gap to attribute, and drilling anyway invents a culprit (it used to return vertical=auto -> publisher_tier=tier_2 -> region=NAM -> device_model=Redmi Note 12 on a +0.4% move). Correct behaviour is to localise to NOTHING. Window stops at Jun 18 so the Jun 19 finance anomaly does not bleed in. The redistribution itself is a segment-scan finding (rca.incidents), not a drill-down one."}
+]

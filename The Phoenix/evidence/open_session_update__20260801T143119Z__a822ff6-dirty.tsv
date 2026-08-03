@@ -1,0 +1,47 @@
+# evidence: open_session_update
+# what: curve at T, events arrive, curve at T+1, and the diff attributed to exactly the sessions that received events
+# run_utc: 2026-08-01 14:31:19
+# git: a822ff6-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 14:31:19   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+cutoff_T	2026-07-26 10:45:00
+events_arrive_until	2026-07-26 10:50:00
+sessions_in_table_at_T	4385
+sessions_open_at_T	2474
+sessions_that_received_events	3543
+asserted_runs_at_T	5852
+asserted_runs_at_T1	7484
+retraction_rows_written	2876
+peak_at_T	2300
+peak_at_T1	2604
+untouched_sessions_disturbed	0
+verdict	PASS
+#
+# the published curve, minute by minute, before and after the arrival:
+#	minute	concurrency_at_T	concurrency_at_T1	change
+#	2026-07-26 10:40:00	1903	1903	+0
+#	2026-07-26 10:41:00	2022	2022	+0
+#	2026-07-26 10:42:00	2158	2158	+0
+#	2026-07-26 10:43:00	2254	2254	+0
+#	2026-07-26 10:44:00	2300	2300	+0
+#	2026-07-26 10:45:00	1945	2358	+413
+#	2026-07-26 10:46:00	1571	2416	+845
+#	2026-07-26 10:47:00	0	2483	+2483
+#	2026-07-26 10:48:00	0	2566	+2566
+#	2026-07-26 10:49:00	0	2604	+2604
+#
+# Read the last column. Minutes at or after the cutoff move, because the sessions
+#   that received events are still watching through them. Minutes before the cutoff
+#   that were already closed do not move at all.
+# untouched_sessions_disturbed = 0 is the incremental claim: not one session that
+#   received no events had any run retracted. The serving layer absorbed the
+#   arrival by rewriting 3543 sessions out of 4385, not by recomputing.

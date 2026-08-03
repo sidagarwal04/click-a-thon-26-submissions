@@ -1,0 +1,44 @@
+# evidence: seeding_position
+# what: read volume against window position and window width, three windows, two of them sharing an upper bound
+# run_utc: 2026-08-01 16:39:47
+# git: 2b1442f-dirty
+# host: ss-cric
+# row_count: 2106839
+# event_watermark: 2026-08-01 16:39:37.019
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 16:39:48   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+window	from_ts	to_ts	width_minutes	read_rows	read_bytes	query_ms
+start_1h	2026-07-14 15:43:00	2026-07-14 16:43:00	60	30662	155416	8
+end_1h	2026-07-26 10:31:00	2026-07-26 11:31:00	60	30662	245296	10
+whole_corpus	2026-07-14 15:43:00	2026-07-26 11:31:00	17028	30662	245296	485
+#
+#	corpus_first_minute	2026-07-14 15:43:00
+#	corpus_last_minute	2026-07-26 11:31:00
+#	query	sql/queries/serving/concurrency_curve.sql
+#
+#	MEASURED CONCLUSION, and it contradicts the property this test was written to confirm.
+#
+#	The hypothesis was: read volume scales with the POSITION of to_ts and never with the
+#	WIDTH of the window. Measured, read_rows is IDENTICAL across all three windows at the
+#	full delta table. It scales with NEITHER position nor width. The hypothesis is false
+#	for rows and true only for read_bytes, which does track the position of to_ts.
+#
+#	Why: `minute` is the LAST column of the ORDER BY, deliberately, so that a time predicate
+#	cannot prune the prefix a cumulative sum needs. That choice is what makes the curve
+#	correct for a window opening mid-stream, and its unavoidable price is that no time
+#	predicate prunes GRANULES either. The `minute < to_ts` push-down reduces bytes
+#	decompressed, not rows scanned.
+#
+#	The honest statement of this design is therefore: READ VOLUME SCALES WITH THE SIZE OF
+#	THE CORPUS, and only a DIMENSION filter reduces it (platform prunes to 16,384 rows of
+#	30,662, evidence: filter_shapes). That is a real scaling limit, not a pass, and it is
+#	exactly what makes the 100x question a day-boundary-snapshot question.
+#
+#	What the old test got right by accident: reads really are equal for end_1h and
+#	whole_corpus. What it got wrong was concluding anything from that, because it compared
+#	two windows sharing an upper bound and never varied the thing it claimed to test.

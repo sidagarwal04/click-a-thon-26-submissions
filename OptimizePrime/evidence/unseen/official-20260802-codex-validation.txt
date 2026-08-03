@@ -1,0 +1,138 @@
+OFFICIAL SONYLIV UNSEEN — INDEPENDENT LOCAL VALIDATION
+generated: 2026-08-02 Asia/Kolkata
+database: codex_official_green_20260802_075132
+git HEAD at start: b5d3eba
+target: LOCAL ONLY; graded sonyliv was not read or written
+
+VERDICT
+  Canonical fresh load + build + independent raw reconciliation: PASS.
+  No max_partitions_per_insert_block override was used. The canonical builder
+  handled 102 output dates as two Cloud-legal chunks of 64 and 38 dates.
+
+OFFICIAL INPUTS
+  raw:
+    /tmp/sonyliv-unseen-20260802/unseen_data_sonyliv/ch-hackathon-raw-data_surprise.csv
+    sha256 06897bd68b1a5f5729cd1668525c059eb969cfe4e4acdccfe4a6849787775c95
+  content:
+    /tmp/sonyliv-unseen-20260802/unseen_data_sonyliv/ch-hackathon-content-data_surprise.csv
+    sha256 709c36fc9b25a6431dd82fb576b564674700cc717d04cf4d2e4ae8fde5c9daae
+
+COMMAND SHAPE
+  CREATE DATABASE codex_official_green_20260802_075132
+  CH_DATABASE_LOCAL=codex_official_green_20260802_075132 \
+    tools/apply-sql.sh sql/00_schema.sql sql/01_policy.sql sql/10_intervals.sql
+  CH_DATABASE_LOCAL=codex_official_green_20260802_075132 \
+    tools/load.sh --database codex_official_green_20260802_075132 <raw> <content>
+  CH_DATABASE_LOCAL=codex_official_green_20260802_075132 tools/build-model.sh
+  docker exec -i ch clickhouse-client \
+    --database codex_official_green_20260802_075132 --multiquery < sql/90_reconcile.sql
+  CH_DATABASE_LOCAL=codex_official_green_20260802_075132 \
+    tools/apply-sql.sh sql/80_content.sql sql/85_windows.sql sql/87_viz.sql sql/95_generations.sql
+
+LOAD
+  RC 0; wall 17 s
+  ev_landing 7,000,000 = ev_raw 7,000,000 + cast rejects 0
+  content_landing 33,326 = content_dim 33,326 + cast rejects 0
+  new raw field video_resolution retained in extra['video_resolution']
+  new content field show_name retained in extra['show_name']
+
+CANONICAL BUILD — RC 0; WALL 18 s
+  policy v1 e965954b23d4: GAP_S=150 TAIL_S=60
+  accepted input 6,999,997 / lossless raw 7,000,000; quarantined 3
+  session_intervals 159,426 over 103,022 sessions
+  user backfill: 64 + 38 output dates; 496,631 buckets
+  delta backfill: 64 + 38 output dates; 139,925 rows
+  delta opens 134,711; closes 112,437
+  cc_hour_agg 122,798 physical rows, 102 dates, 28 months
+  output extent 2021-01-27 through 2026-08-03
+  headline peak 23,324 at 2026-07-31 11:17:00
+
+BUILDER GATES
+  session delta vs interval expansion:
+    PASS; 2,900,579 minutes; peak 23,324
+  user tier vs interval expansion:
+    PASS; 4,334 active minutes; user peak 22,279
+  hour peak vs minute peak:
+    PASS; 23,324 = 23,324
+
+INDEPENDENT sql/90_reconcile.sql — WALL 20 s
+  PASS; minutes_compared=3,201,716; mismatched=0; max_abs_diff=0;
+  peak=23,324; policy=v1/e965954b23d4
+  The shorter spine than the lossless raw span is intentional: SQL30 and SQL90
+  both read v_ev_model_input. The three quarantined timestamp outliers remain
+  in ev_raw and ev_quarantine but are excluded from both model and truth.
+
+DYNAMIC DIMENSION AND FILTER CHECKS
+  raw profile:
+    video_resolution: 7,000,000 rows; 6,984,039 non-empty; 2,071 values
+    show_name: 33,326 rows; 33,326 non-empty; 360 values
+  v_session_minutes:
+    1,370,363 rows = 1,370,363 distinct (minute, session) pairs; duplicates 0
+    video_type values 3; category values 84; show_name values 360
+    served video_resolution values 1,485; unknown content rows 0
+  at 2026-07-31 11:17:
+    total 23,324 = sum(resolution slices) 23,324 = sum(show slices) 23,324
+    video_resolution='1920*1080': named 5,043 = extra-map 5,043
+    show_name='ggdkb': named 8,863 = content-map 8,863
+    combined: named 1,243 = both maps 1,243
+  v_session_minutes vs v_concurrency_minute_intervals:
+    4,334 active minutes; mismatches 0; max absolute difference 0
+
+LOCAL QUERY-LOG SAMPLE — ONE WARM RUN, QUERY CACHE DISABLED
+  total 24 h curve:
+    15 ms; read_rows 139,925; read 1.60 MiB; memory 768.73 KiB
+  video_resolution='1920*1080' 24 h curve:
+    1,310 ms; read_rows 192,752; read 18.12 MiB; memory 749.97 MiB
+  show_name='ggdkb' 24 h curve:
+    450 ms; read_rows 192,752; read 14.79 MiB; memory 410.60 MiB
+  combined resolution + show 24 h curve:
+    1,727 ms; read_rows 192,752; read 18.82 MiB; memory 753.75 MiB
+  Interpretation: the promoted total tier is fast. The generic exact-filter
+  fallback is correct on 7 M events but memory-heavy; it is not evidence of
+  production-scale latency for arbitrary future dimensions.
+
+CONTENT PORTABILITY
+  The direct content-table join used by v_session_minutes passed: video_type,
+  category, show_name and their generic content map were populated, with zero
+  unknown rows. Local dict_content self-source still fails authentication for
+  the password-protected default user; dictionary-backed legacy content views
+  therefore require target-specific credentials or the direct-join surface.
+
+GENERATION CAVEAT
+  A full generation build was started after the canonical run. An unrelated
+  local evsem_merge build began concurrently and interrupted orchestration after
+  the disposable build tiers completed, before stage/verify/commit. Generation
+  1 remains status=building and active generation=0 in this scratch database.
+  This is not a canonical-build failure and is not a generation PASS. A prior
+  isolated 100,000-row official-day generation smoke committed generation 1
+  and passed row-count, delta-vs-interval and hour-vs-minute staging gates, but
+  it does not replace a full 7 M generation validation.
+
+EXACT PIPELINE FINGERPRINTS (sha256 prefix, captured before load and unchanged after)
+  f27f6a974d08a544 sql/00_schema.sql
+  79fbef58da60f3f4 sql/01_policy.sql
+  4d1ab60d9148f276 sql/05_landing.sql
+  365f70a2a78df7ef sql/10_intervals.sql
+  e4e0b166c104d2f0 sql/15_normalise.sql
+  4ffca75940bfb827 sql/20_views.sql
+  9b8a46b79cfe9c22 sql/30_build_intervals.sql
+  11e3fece7acf9b22 sql/40_deltas.sql
+  54e473ced67f62bd sql/45_user_concurrency.sql
+  20fefccc47052fff sql/50_hour_agg.sql
+  51a07cc98c2487d5 sql/80_content.sql
+  0e278f3516e3f5f2 sql/85_windows.sql
+  7c2bba0c76e36065 sql/87_viz.sql
+  9de2db20e9866be3 sql/90_reconcile.sql
+  5b8a3b1fd987c197 sql/95_generations.sql
+  d1ba1336960bb71a tools/load.sh
+  0a9e62e94a2d8930 tools/build-model.sh
+  9c38a4538d3f4fb5 tools/chunked-backfill.sh
+  86a192940f483418 tools/unseen-run.sh
+  3318b2f9b9e79a94 tools/publish.sh
+
+FULL LOCAL SOURCE OUTPUTS (not tracked; session-temporary)
+  /tmp/codex_official_green_20260802_075132-load.txt
+  /tmp/codex_official_green_20260802_075132-canonical-build.txt
+  /tmp/codex_official_green_20260802_075132-raw-reconcile.txt
+  /tmp/codex_official_green_20260802_075132-fingerprints-start.txt
+  /tmp/codex_official_green_20260802_075132-full-generation.txt

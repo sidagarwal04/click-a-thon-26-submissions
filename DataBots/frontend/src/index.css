@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar — light mode */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: rgba(241, 245, 249, 0.8); }
+  ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.6); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.8); }
+
+  /* datetime-local: force light color scheme */
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: none;
+    cursor: pointer;
+    opacity: 0.5;
+  }
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+}
+
+@layer components {
+  /* Cards */
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-slate-300 hover:shadow-md;
+  }
+  .card-selected {
+    @apply card border-brand-400 ring-2 ring-brand-100 shadow-glow-blue;
+  }
+
+  /* Mono pill */
+  .mono-pill {
+    @apply font-mono text-[11px] px-2 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200;
+  }
+
+  /* Status badges */
+  .badge       { @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border; }
+  .badge-red   { @apply badge bg-red-50 text-red-700 border-red-200; }
+  .badge-amber { @apply badge bg-amber-50 text-amber-700 border-amber-200; }
+  .badge-green { @apply badge bg-emerald-50 text-emerald-700 border-emerald-200; }
+  .badge-blue  { @apply badge bg-blue-50 text-blue-700 border-blue-200; }
+  .badge-muted { @apply badge bg-slate-100 text-slate-500 border-slate-200; }
+
+  /* Section label */
+  .section-label { @apply text-[11px] font-semibold uppercase tracking-wider text-slate-400; }
+
+  /* Buttons */
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700
+           text-white font-semibold text-xs transition-all duration-150 shadow-sm;
+  }
+  .btn-ghost {
+    @apply flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-semibold text-xs
+           border border-slate-200 transition-all duration-150 shadow-sm;
+  }
+
+  /* Subtle shadows */
+  .glow-red   { box-shadow: 0 0 14px rgba(239, 68, 68, 0.12); }
+  .glow-green { box-shadow: 0 0 14px rgba(16, 185, 129, 0.1); }
+  .glow-blue  { box-shadow: 0 0 14px rgba(59, 130, 246, 0.1); }
+}

@@ -1,0 +1,82 @@
+{
+  "call_id": "CALL-11-HARD",
+  "category": "Hard",
+  "title": "ClickHouse windowFunnel 4-Stage Conversion Across User Journey",
+  "question": "What is the strict chronological 4-stage funnel conversion progression within a 24-hour sliding window (86,400s) across device types and acquisition channels?",
+  "database": "default",
+  "target_tables": "destination_card_clicked, application_started, document_uploaded, purchase_completed",
+  "timestamp": "2026-08-02T00:14:33.681212+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 388.53,
+    "row_count": 8,
+    "columns_count": 4,
+    "columns": [
+      "device_type",
+      "acquisition_channel",
+      "total_cohort_users",
+      "furthest_funnel_stage_reached"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_hard_11",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/68c5f426fac299a34e5ce78959ab1800",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    device_type,\n    if(gclid != '', 'Paid Search (gclid)', 'Organic / Direct') AS acquisition_channel,\n    count(DISTINCT user_id) AS total_cohort_users,\n    windowFunnel(86400)(\n        timestamp,\n        stage = 1,\n        stage = 2,\n        stage = 3,\n        stage = 4\n    ) AS furthest_funnel_stage_reached\nFROM (\n    SELECT timestamp, user_id, device_type, gclid, 1 AS stage FROM default.destination_card_clicked\n    UNION ALL\n    SELECT timestamp, user_id, device_type, gclid, 2 AS stage FROM default.application_started\n    UNION ALL\n    SELECT timestamp, user_id, device_type, gclid, 3 AS stage FROM default.document_uploaded\n    UNION ALL\n    SELECT timestamp, user_id, device_type, gclid, 4 AS stage FROM default.purchase_completed\n)\nGROUP BY device_type, acquisition_channel\nORDER BY total_cohort_users DESC",
+  "result_sample": [
+    {
+      "device_type": "ios",
+      "acquisition_channel": "Organic / Direct",
+      "total_cohort_users": 328206,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "android",
+      "acquisition_channel": "Organic / Direct",
+      "total_cohort_users": 257011,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "web-user-b2c",
+      "acquisition_channel": "Organic / Direct",
+      "total_cohort_users": 140339,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "ios",
+      "acquisition_channel": "Paid Search (gclid)",
+      "total_cohort_users": 92632,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "android",
+      "acquisition_channel": "Paid Search (gclid)",
+      "total_cohort_users": 72631,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "Desktop",
+      "acquisition_channel": "Organic / Direct",
+      "total_cohort_users": 54558,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "web-user-b2c",
+      "acquisition_channel": "Paid Search (gclid)",
+      "total_cohort_users": 39218,
+      "furthest_funnel_stage_reached": 4
+    },
+    {
+      "device_type": "Desktop",
+      "acquisition_channel": "Paid Search (gclid)",
+      "total_cohort_users": 15405,
+      "furthest_funnel_stage_reached": 4
+    }
+  ],
+  "full_results_count": 8,
+  "summary": "Query executed successfully against ClickHouse default database in 388.53ms, returning 8 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "High-complexity unified event union across all 4 funnel tables utilizing native ClickHouse windowFunnel(86400) temporal sliding sequence match."
+}

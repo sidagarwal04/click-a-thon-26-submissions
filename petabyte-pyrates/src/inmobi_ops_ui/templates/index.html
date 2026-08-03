@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anomaly Radar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">InMobi RCA</p>
+          <h1>Anomaly Radar</h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <label class="search" for="search-input">
+          <span class="sr-only">Search anomalies</span>
+          <input id="search-input" type="search" placeholder="Search metric, region, slice…" autocomplete="off" />
+        </label>
+        <button id="refresh-btn" class="btn btn-primary" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <section class="stats-grid" id="stats-grid" aria-live="polite">
+      <article class="stat-card">
+        <p class="stat-label">Total</p>
+        <p class="stat-value" id="stat-total">—</p>
+      </article>
+      <article class="stat-card stat-open">
+        <p class="stat-label">Open</p>
+        <p class="stat-value" id="stat-open">—</p>
+      </article>
+      <article class="stat-card stat-closed">
+        <p class="stat-label">Closed</p>
+        <p class="stat-value" id="stat-closed">—</p>
+      </article>
+      <article class="stat-card stat-rca">
+        <p class="stat-label">With RCA</p>
+        <p class="stat-value" id="stat-rca">—</p>
+      </article>
+      <article class="stat-card stat-latest">
+        <p class="stat-label">Latest hour</p>
+        <p class="stat-value stat-value-sm" id="stat-latest">—</p>
+      </article>
+    </section>
+
+    <section class="toolbar">
+      <div class="filters" role="group" aria-label="Filter anomalies">
+        <button class="chip chip-active" data-filter="all" type="button">All</button>
+        <button class="chip" data-filter="open" type="button">Open</button>
+        <button class="chip" data-filter="closed" type="button">Closed</button>
+        <button class="chip" data-filter="pending" type="button">Pending RCA</button>
+        <button class="chip" data-filter="confirmed" type="button">Confirmed</button>
+        <button class="chip" data-filter="false_positive" type="button">False positive</button>
+      </div>
+      <p class="meta" id="result-meta">Loading…</p>
+    </section>
+
+    <div class="layout">
+      <main class="table-panel">
+        <div class="table-wrap">
+          <table class="incidents-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Segment</th>
+                <th>Metric</th>
+                <th>Delta</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Disposition</th>
+              </tr>
+            </thead>
+            <tbody id="incidents-body">
+              <tr><td colspan="7" class="empty">Scanning for anomalies…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+
+      <aside class="detail-panel" id="detail-panel" aria-live="polite">
+        <div class="detail-empty" id="detail-empty">
+          <p class="detail-empty-title">Select an anomaly</p>
+          <p class="detail-empty-copy">Click a blip on the radar to see detection context, RCA narrative, and evidence.</p>
+        </div>
+        <div class="detail-content hidden" id="detail-content">
+          <header class="detail-header">
+            <div>
+              <p class="detail-eyebrow" id="detail-id"></p>
+              <h2 id="detail-title"></h2>
+            </div>
+            <button id="close-detail" class="btn btn-ghost" type="button" aria-label="Close detail panel">×</button>
+          </header>
+          <div class="detail-badges" id="detail-badges"></div>
+          <dl class="detail-metrics" id="detail-metrics"></dl>
+          <section class="detail-section">
+            <h3>RCA summary</h3>
+            <p class="rca-text" id="detail-rca"></p>
+          </section>
+          <section class="detail-section">
+            <h3>Evidence</h3>
+            <pre class="evidence-block" id="detail-evidence"></pre>
+          </section>
+          <section class="detail-section hidden" id="error-section">
+            <h3>Last error</h3>
+            <p class="error-text" id="detail-error"></p>
+          </section>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast" role="status"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

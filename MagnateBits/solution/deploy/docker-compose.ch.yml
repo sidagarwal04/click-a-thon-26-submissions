@@ -1,0 +1,40 @@
+# Provisions the ClickHouse dev instance from scratch — container name `atlys-ch`,
+# database/user/password `atlys`/`atlys`/`atlys`.
+#
+# This is deliberately a SEPARATE file from docker-compose.yml. That file's own
+# comment says "DO NOT add a clickhouse service here" because it only ever ATTACHES
+# to an already-running atlys-ch; this file is what actually creates it. Run once
+# (idempotently) via `make ch-up` — everything else in the repo assumes this
+# container exists under this name.
+
+name: atlys-ch
+
+networks:
+  atlys-net:
+    external: true
+
+volumes:
+  atlys-ch-data:
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: atlys-ch
+    networks:
+      atlys-net:
+        aliases: [clickhouse]
+    ports:
+      - "8123:8123" # HTTP (clickhouse-connect, mcp-clickhouse)
+      - "9000:9000" # native (clickhouse-client)
+    environment:
+      CLICKHOUSE_DB: atlys
+      CLICKHOUSE_USER: atlys
+      CLICKHOUSE_PASSWORD: atlys
+    volumes:
+      - atlys-ch-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped

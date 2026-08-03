@@ -1,0 +1,26 @@
+services:
+  api:
+    environment:
+      FEATURELENS_MCP_URL: http://host.docker.internal:8080/mcp
+      OPENROUTER_KEY: ${OPENROUTER_KEY:-user_provided}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      LANGFUSE_TRACING_ENABLED: ${LANGFUSE_TRACING_ENABLED:-true}
+      LANGFUSE_TRACING_ENVIRONMENT: ${LANGFUSE_TRACING_ENVIRONMENT:-featurelens-librechat-local}
+    volumes:
+      - type: bind
+        source: ${FEATURELENS_LIBRECHAT_CONFIG}
+        target: /app/librechat.yaml
+        read_only: true
+
+  # The separate admin panel is not needed for the Product Manager chat PoC.
+  # Opt in explicitly with: docker compose --profile admin-panel up -d
+  admin-panel:
+    profiles:
+      - admin-panel
+
+  # LibreChat's default MongoDB image requires AVX. This version is compatible
+  # with Apple Silicon Macs used for the local FeatureLens demo.
+  mongodb:
+    image: mongo:4.4.18

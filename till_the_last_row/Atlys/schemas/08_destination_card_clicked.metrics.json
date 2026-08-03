@@ -1,0 +1,85 @@
+{
+  "spec_name": "08_destination_card_clicked",
+  "database": "atlys",
+  "base_table": "atlys.destination_card_clicked",
+  "discriminator": "payload.event = 'destination_card_clicked'",
+  "generated_by": "instrumentation-agent",
+  "metrics": [
+    {
+      "name": "destination_click_to_application_conversion",
+      "pm_question": "What is the click -> application_started conversion rate, sliced by destination and visa_type?",
+      "formula": "count(application_started keyed to a prior destination_card_clicked) / count(destination_card_clicked), grouped by destination, visa_type",
+      "numerator_paths": ["10_application_started: payload.event = 'application_started'"],
+      "denominator_paths": ["payload.event = 'destination_card_clicked'"],
+      "dimensions": ["destination", "visa_type"],
+      "cross_spec": true,
+      "joins_spec": "10_application_started",
+      "serving_mv": null,
+      "note": "Cross-event conversion — not materialized here; computed at query time joining spec 10. Denominator clicks are available pre-aggregated in destination_click_daily_agg.",
+      "confirmed_by_user": true
+    },
+    {
+      "name": "page_version_ctr_to_application",
+      "pm_question": "Does page_version v4 outperform v3 on click-through to application_started?",
+      "formula": "conversion (application_started / destination_card_clicked) compared across page_version in {v3, v4}",
+      "numerator_paths": ["10_application_started: payload.event = 'application_started'"],
+      "denominator_paths": ["payload.event = 'destination_card_clicked'"],
+      "dimensions": ["page_version"],
+      "cross_spec": true,
+      "joins_spec": "10_application_started",
+      "serving_mv": null,
+      "note": "Cross-event. Click denominator by page_version is pre-aggregated in destination_click_daily_agg.",
+      "confirmed_by_user": true
+    },
+    {
+      "name": "guest_browse_click_share",
+      "pm_question": "What share of destination card clicks come from is_guest_browse = 1 sessions?",
+      "formula": "sum(guest_clicks) / count(clicks), where guest_clicks = clicks with is_guest_browse = 1",
+      "numerator_paths": ["payload.is_guest_browse = 1"],
+      "denominator_paths": ["payload.event = 'destination_card_clicked'"],
+      "dimensions": ["destination", "visa_type", "page_version", "flow", "day"],
+      "cross_spec": false,
+      "serving_mv": "atlys.destination_click_daily_agg_mv -> atlys.destination_click_daily_agg (sumMerge(guest_clicks) / countMerge(clicks))",
+      "confirmed_by_user": true
+    },
+    {
+      "name": "guest_browse_conversion",
+      "pm_question": "Do guest-browse clicks convert to application_started at a different rate than logged-in clicks?",
+      "formula": "conversion split by is_guest_browse (0/1)",
+      "numerator_paths": ["10_application_started: payload.event = 'application_started'"],
+      "denominator_paths": ["payload.event = 'destination_card_clicked'", "payload.is_guest_browse"],
+      "dimensions": ["is_guest_browse"],
+      "cross_spec": true,
+      "joins_spec": "10_application_started",
+      "serving_mv": null,
+      "note": "Cross-event. Guest click denominator is pre-aggregated in destination_click_daily_agg.",
+      "confirmed_by_user": true
+    },
+    {
+      "name": "flow_conversion",
+      "pm_question": "How does conversion differ between explore and search flows?",
+      "formula": "conversion (application_started / destination_card_clicked) grouped by flow",
+      "numerator_paths": ["10_application_started: payload.event = 'application_started'"],
+      "denominator_paths": ["payload.event = 'destination_card_clicked'"],
+      "dimensions": ["flow"],
+      "cross_spec": true,
+      "joins_spec": "10_application_started",
+      "serving_mv": null,
+      "note": "Cross-event. Click denominator by flow is pre-aggregated in destination_click_daily_agg.",
+      "confirmed_by_user": true
+    },
+    {
+      "name": "co_travelers_effect",
+      "pm_question": "Does co_travelers > 0 change which destinations are clicked / their conversion?",
+      "formula": "click volume and conversion by destination, split on co_travelers > 0 vs = 0",
+      "numerator_paths": ["payload.co_travelers"],
+      "denominator_paths": ["payload.event = 'destination_card_clicked'"],
+      "dimensions": ["destination", "co_travelers"],
+      "cross_spec": true,
+      "joins_spec": "10_application_started",
+      "serving_mv": null,
+      "note": "Click-volume-by-destination half is single-table; conversion half is cross-event with spec 10. co_travelers is not a dimension of destination_click_daily_agg, so this is computed at query time from the base table.",
+      "confirmed_by_user": true
+    }
+  ]
+}

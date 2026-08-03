@@ -1,0 +1,579 @@
+{
+  "context_version": {
+    "context_version": "v6",
+    "parent_version": "v5",
+    "source": "instrumentation",
+    "feature_id": "unseen_data",
+    "is_current": true,
+    "summary": "Instrumentation reconcile for unseen_data; pipeline=create_pipeline; Created 6 ClickHouse event table(s) from meta_events and 6 materialized view(s) into activity_events.",
+    "created_at": "2026-08-02 03:50:15.593849+00:00",
+    "updated_at": "2026-08-02 03:50:15.593849+00:00"
+  },
+  "items": [
+    {
+      "kind": "entity",
+      "item_key": "activity_events",
+      "label": "Single Activity Schema",
+      "payload": {
+        "table": "atlys.activity_events",
+        "columns": [
+          "event_name",
+          "ch_table",
+          "timestamp",
+          "user_id",
+          "application_id",
+          "device_type",
+          "os",
+          "geoip_country_code",
+          "destination",
+          "payload"
+        ],
+        "definition": "One row per event (Instrumentation SAS). Envelope columns are top-level; event-specific fields live in payload (JSON). timestamp is DateTime64(3) \u2014 use toDateTime(timestamp) in windowFunnel."
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "application",
+      "label": "Visa application",
+      "payload": {
+        "definition": "Created at application_started; empty on destination_card_clicked.",
+        "primary_id_field": "application_id"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "feature:01_express_checkout",
+      "label": "01_express_checkout",
+      "payload": {
+        "events": [
+          {
+            "ch_table": "express_checkout_shown",
+            "event_name": "express_checkout_shown",
+            "journey_order": 1
+          },
+          {
+            "ch_table": "express_checkout_selected",
+            "event_name": "express_checkout_selected",
+            "journey_order": 2
+          },
+          {
+            "ch_table": "saved_method_used",
+            "event_name": "saved_method_used",
+            "journey_order": 3
+          },
+          {
+            "ch_table": "otp_entered",
+            "event_name": "otp_entered",
+            "journey_order": 4
+          },
+          {
+            "ch_table": "express_payment_confirmed",
+            "event_name": "express_payment_confirmed",
+            "journey_order": 5
+          }
+        ],
+        "feature_id": "01_express_checkout",
+        "events_linked": [],
+        "events_created": [
+          "express_checkout_shown",
+          "express_checkout_selected",
+          "saved_method_used",
+          "otp_entered",
+          "express_payment_confirmed"
+        ],
+        "feature_summary": "A one-tap checkout feature for returning travellers with saved payment methods, allowing them to bypass the full payment form using an OTP verification. Its primary goal is to reduce payment latency and increase checkout-to-success conversion rates.",
+        "pipeline_action": "create_pipeline",
+        "pipeline_changes": [
+          "CREATE TABLE IF NOT EXISTS activity_events",
+          "CREATE TABLE IF NOT EXISTS express_checkout_selected",
+          "CREATE TABLE IF NOT EXISTS express_checkout_shown",
+          "CREATE TABLE IF NOT EXISTS express_payment_confirmed",
+          "CREATE TABLE IF NOT EXISTS otp_entered",
+          "CREATE TABLE IF NOT EXISTS saved_method_used",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_express_checkout_selected_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_express_checkout_shown_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_express_payment_confirmed_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_otp_entered_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_saved_method_used_to_activity"
+        ],
+        "events_to_materialize": [
+          "express_checkout_selected",
+          "express_checkout_shown",
+          "express_payment_confirmed",
+          "otp_entered",
+          "saved_method_used"
+        ]
+      },
+      "created_at": "2026-08-02 03:37:11.461868+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "feature:02_group_family",
+      "label": "02_group_family",
+      "payload": {
+        "events": [
+          {
+            "ch_table": "group_started",
+            "event_name": "group_started",
+            "journey_order": 1
+          },
+          {
+            "ch_table": "traveller_added",
+            "event_name": "traveller_added",
+            "journey_order": 2
+          },
+          {
+            "ch_table": "traveller_removed",
+            "event_name": "traveller_removed",
+            "journey_order": 3
+          },
+          {
+            "ch_table": "group_submitted",
+            "event_name": "group_submitted",
+            "journey_order": 4
+          }
+        ],
+        "feature_id": "02_group_family",
+        "events_linked": [],
+        "events_created": [
+          "group_started",
+          "traveller_added",
+          "traveller_removed",
+          "group_submitted"
+        ],
+        "feature_summary": "Allows a primary traveller to create a single application for a group, manage co-traveller details and documents, and submit all travellers together to boost multi-traveller conversion.",
+        "pipeline_action": "create_pipeline",
+        "pipeline_changes": [
+          "CREATE TABLE IF NOT EXISTS activity_events",
+          "CREATE TABLE IF NOT EXISTS group_started",
+          "CREATE TABLE IF NOT EXISTS group_submitted",
+          "CREATE TABLE IF NOT EXISTS traveller_added",
+          "CREATE TABLE IF NOT EXISTS traveller_removed",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_group_started_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_group_submitted_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_traveller_added_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_traveller_removed_to_activity"
+        ],
+        "events_to_materialize": [
+          "group_started",
+          "group_submitted",
+          "traveller_added",
+          "traveller_removed"
+        ]
+      },
+      "created_at": "2026-08-02 03:37:26.034739+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "feature:03_status_sharing",
+      "label": "03_status_sharing",
+      "payload": {
+        "events": [
+          {
+            "ch_table": "share_clicked",
+            "event_name": "share_clicked",
+            "journey_order": 1
+          },
+          {
+            "ch_table": "channel_selected",
+            "event_name": "channel_selected",
+            "journey_order": 2
+          },
+          {
+            "ch_table": "link_generated",
+            "event_name": "link_generated",
+            "journey_order": 3
+          },
+          {
+            "ch_table": "link_opened",
+            "event_name": "link_opened",
+            "journey_order": 4
+          },
+          {
+            "ch_table": "recipient_cta_clicked",
+            "event_name": "recipient_cta_clicked",
+            "journey_order": 5
+          }
+        ],
+        "feature_id": "03_status_sharing",
+        "events_linked": [],
+        "events_created": [
+          "share_clicked",
+          "channel_selected",
+          "link_generated",
+          "link_opened",
+          "recipient_cta_clicked"
+        ],
+        "feature_summary": "Allows travellers to share their live visa application status via a link across channels like WhatsApp, SMS, or email. Recipients view the status and receive a call-to-action to start their own application, creating a viral acquisition loop.",
+        "pipeline_action": "create_pipeline",
+        "pipeline_changes": [
+          "CREATE TABLE IF NOT EXISTS activity_events",
+          "CREATE TABLE IF NOT EXISTS channel_selected",
+          "CREATE TABLE IF NOT EXISTS link_generated",
+          "CREATE TABLE IF NOT EXISTS link_opened",
+          "CREATE TABLE IF NOT EXISTS recipient_cta_clicked",
+          "CREATE TABLE IF NOT EXISTS share_clicked",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_channel_selected_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_link_generated_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_link_opened_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_recipient_cta_clicked_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_share_clicked_to_activity"
+        ],
+        "events_to_materialize": [
+          "channel_selected",
+          "link_generated",
+          "link_opened",
+          "recipient_cta_clicked",
+          "share_clicked"
+        ]
+      },
+      "created_at": "2026-08-02 03:39:32.351016+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "feature:04_abandoned_checkout_recovery",
+      "label": "04_abandoned_checkout_recovery",
+      "payload": {
+        "events": [
+          {
+            "ch_table": "abandonment_detected",
+            "event_name": "abandonment_detected",
+            "journey_order": 1
+          },
+          {
+            "ch_table": "reminder_sent",
+            "event_name": "reminder_sent",
+            "journey_order": 2
+          },
+          {
+            "ch_table": "reminder_opened",
+            "event_name": "reminder_opened",
+            "journey_order": 3
+          },
+          {
+            "ch_table": "reminder_cta_clicked",
+            "event_name": "reminder_cta_clicked",
+            "journey_order": 4
+          },
+          {
+            "ch_table": "resumed_at_step",
+            "event_name": "resumed_at_step",
+            "journey_order": 5
+          },
+          {
+            "ch_table": "reconverted",
+            "event_name": "reconverted",
+            "journey_order": 6
+          }
+        ],
+        "feature_id": "04_abandoned_checkout_recovery",
+        "events_linked": [],
+        "events_created": [
+          "abandonment_detected",
+          "reminder_sent",
+          "reminder_opened",
+          "reminder_cta_clicked",
+          "resumed_at_step",
+          "reconverted"
+        ],
+        "feature_summary": "Detects travellers who drop out at a funnel step without converting and sends a re-engagement nudge via push, email, or WhatsApp to bring them back to where they left off. Its goal is to recover conversions lost to funnel drop-off.",
+        "pipeline_action": "create_pipeline",
+        "pipeline_changes": [
+          "CREATE TABLE IF NOT EXISTS activity_events",
+          "CREATE TABLE IF NOT EXISTS abandonment_detected",
+          "CREATE TABLE IF NOT EXISTS reconverted",
+          "CREATE TABLE IF NOT EXISTS reminder_cta_clicked",
+          "CREATE TABLE IF NOT EXISTS reminder_opened",
+          "CREATE TABLE IF NOT EXISTS reminder_sent",
+          "CREATE TABLE IF NOT EXISTS resumed_at_step",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_abandonment_detected_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_reconverted_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_reminder_cta_clicked_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_reminder_opened_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_reminder_sent_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_resumed_at_step_to_activity"
+        ],
+        "events_to_materialize": [
+          "abandonment_detected",
+          "reconverted",
+          "reminder_cta_clicked",
+          "reminder_opened",
+          "reminder_sent",
+          "resumed_at_step"
+        ]
+      },
+      "created_at": "2026-08-02 03:39:44.969909+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "feature:05_instant_forex",
+      "label": "05_instant_forex",
+      "payload": {
+        "events": [
+          {
+            "ch_table": "forex_offer_shown",
+            "event_name": "forex_offer_shown",
+            "journey_order": 1
+          },
+          {
+            "ch_table": "currency_selected",
+            "event_name": "currency_selected",
+            "journey_order": 2
+          },
+          {
+            "ch_table": "amount_entered",
+            "event_name": "amount_entered",
+            "journey_order": 3
+          },
+          {
+            "ch_table": "forex_added_to_cart",
+            "event_name": "forex_added_to_cart",
+            "journey_order": 4
+          },
+          {
+            "ch_table": "forex_purchased",
+            "event_name": "forex_purchased",
+            "journey_order": 5
+          }
+        ],
+        "feature_id": "05_instant_forex",
+        "events_linked": [],
+        "events_created": [
+          "forex_offer_shown",
+          "currency_selected",
+          "amount_entered",
+          "forex_added_to_cart",
+          "forex_purchased"
+        ],
+        "feature_summary": "At checkout, offers the traveller foreign currency for their destination. The user picks an amount, sees the rate, adds it to the cart, and pays for it alongside the visa.",
+        "pipeline_action": "create_pipeline",
+        "pipeline_changes": [
+          "CREATE TABLE IF NOT EXISTS activity_events",
+          "CREATE TABLE IF NOT EXISTS amount_entered",
+          "CREATE TABLE IF NOT EXISTS currency_selected",
+          "CREATE TABLE IF NOT EXISTS forex_added_to_cart",
+          "CREATE TABLE IF NOT EXISTS forex_offer_shown",
+          "CREATE TABLE IF NOT EXISTS forex_purchased",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_amount_entered_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_currency_selected_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_forex_added_to_cart_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_forex_offer_shown_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_forex_purchased_to_activity"
+        ],
+        "events_to_materialize": [
+          "amount_entered",
+          "currency_selected",
+          "forex_added_to_cart",
+          "forex_offer_shown",
+          "forex_purchased"
+        ]
+      },
+      "created_at": "2026-08-02 03:39:59.172463+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "feature:unseen_data",
+      "label": "unseen_data",
+      "payload": {
+        "events": [
+          {
+            "ch_table": "coupon_field_shown",
+            "event_name": "coupon_field_shown",
+            "journey_order": 1
+          },
+          {
+            "ch_table": "coupon_entered",
+            "event_name": "coupon_entered",
+            "journey_order": 2
+          },
+          {
+            "ch_table": "coupon_applied",
+            "event_name": "coupon_applied",
+            "journey_order": 3
+          },
+          {
+            "ch_table": "coupon_rejected",
+            "event_name": "coupon_rejected",
+            "journey_order": 4
+          },
+          {
+            "ch_table": "discount_shown",
+            "event_name": "discount_shown",
+            "journey_order": 5
+          },
+          {
+            "ch_table": "checkout_with_coupon",
+            "event_name": "checkout_with_coupon",
+            "journey_order": 6
+          }
+        ],
+        "feature_id": "unseen_data",
+        "events_linked": [],
+        "events_created": [
+          "coupon_field_shown",
+          "coupon_entered",
+          "coupon_applied",
+          "coupon_rejected",
+          "discount_shown",
+          "checkout_with_coupon"
+        ],
+        "feature_summary": "Adds a coupon field to the checkout screen where travellers enter promo codes to apply discounts. Validated codes adjust the total price before payment, aiming to lift conversion while controlling margin cost.",
+        "pipeline_action": "create_pipeline",
+        "pipeline_changes": [
+          "CREATE TABLE IF NOT EXISTS activity_events",
+          "CREATE TABLE IF NOT EXISTS checkout_with_coupon",
+          "CREATE TABLE IF NOT EXISTS coupon_applied",
+          "CREATE TABLE IF NOT EXISTS coupon_entered",
+          "CREATE TABLE IF NOT EXISTS coupon_field_shown",
+          "CREATE TABLE IF NOT EXISTS coupon_rejected",
+          "CREATE TABLE IF NOT EXISTS discount_shown",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_checkout_with_coupon_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_coupon_applied_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_coupon_entered_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_coupon_field_shown_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_coupon_rejected_to_activity",
+          "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_discount_shown_to_activity"
+        ],
+        "events_to_materialize": [
+          "checkout_with_coupon",
+          "coupon_applied",
+          "coupon_entered",
+          "coupon_field_shown",
+          "coupon_rejected",
+          "discount_shown"
+        ]
+      },
+      "created_at": "2026-08-02 03:50:15.593849+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "entity",
+      "item_key": "user",
+      "label": "Traveller",
+      "payload": {
+        "definition": "End-user / traveller across the Atlys journey.",
+        "primary_id_field": "user_id"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "funnel_step",
+      "item_key": "pre_purchase:1",
+      "label": "Destination card clicked",
+      "payload": {
+        "ch_table": "atlys.activity_events",
+        "step_name": "destination_card_clicked",
+        "funnel_key": "pre_purchase",
+        "step_order": 1,
+        "event_column": "event_name"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "funnel_step",
+      "item_key": "pre_purchase:2",
+      "label": "Application started",
+      "payload": {
+        "ch_table": "atlys.activity_events",
+        "step_name": "application_started",
+        "funnel_key": "pre_purchase",
+        "step_order": 2,
+        "event_column": "event_name"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "funnel_step",
+      "item_key": "pre_purchase:3",
+      "label": "Document uploaded",
+      "payload": {
+        "ch_table": "atlys.activity_events",
+        "step_name": "document_uploaded",
+        "funnel_key": "pre_purchase",
+        "step_order": 3,
+        "event_column": "event_name"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "funnel_step",
+      "item_key": "pre_purchase:4",
+      "label": "Purchase completed",
+      "payload": {
+        "ch_table": "atlys.activity_events",
+        "step_name": "purchase_completed",
+        "funnel_key": "pre_purchase",
+        "step_order": 4,
+        "event_column": "event_name"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "issue",
+      "item_key": "seed_required",
+      "label": "Catalog seed required",
+      "payload": {
+        "hook": "Conversation discover_schema uses catalog tools only; keep context_versions seeded via seed_v0 / publish. Fact table is atlys.activity_events."
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "join",
+      "item_key": "user_to_application",
+      "label": "User \u2192 application",
+      "payload": {
+        "to": "application_id",
+        "from": "user_id",
+        "keys": [
+          "user_id",
+          "application_id"
+        ],
+        "notes": "Whole journey on user_id; application grain from step 2+."
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "metric",
+      "item_key": "funnel_conversion",
+      "label": "Funnel conversion",
+      "payload": {
+        "grain": "user",
+        "table": "atlys.activity_events",
+        "caveats": "Prefer max(timestamp)-relative windows; payload metrics use JSONExtract on payload.",
+        "formula": "users reaching purchase_completed / users at destination_card_clicked (windowFunnel on atlys.activity_events using event_name + toDateTime(timestamp))",
+        "event_column": "event_name"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    },
+    {
+      "kind": "metric",
+      "item_key": "purchase_count",
+      "label": "Purchase count",
+      "payload": {
+        "grain": "event_or_user",
+        "table": "atlys.activity_events",
+        "formula": "count / uniqExact(user_id) where event_name = purchase_completed",
+        "event_column": "event_name"
+      },
+      "created_at": "2026-08-02 03:33:56.700175+00:00",
+      "updated_at": "2026-08-02 03:50:15.593849+00:00"
+    }
+  ]
+}

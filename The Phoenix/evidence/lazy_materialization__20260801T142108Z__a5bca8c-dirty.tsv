@@ -1,0 +1,30 @@
+# evidence: lazy_materialization
+# what: does query_plan_optimize_lazy_materialization engage on our access patterns, and what does it save
+# run_utc: 2026-08-01 14:21:08
+# git: a5bca8c-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 14:21:09   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+aggregation_plan_has_LazilyRead	no
+interval_detail_plan_has_LazilyRead	yes (LazilyReadFromMergeTree, 7 columns deferred)
+interval_detail_lazy_off_read_rows	599137
+interval_detail_lazy_off_read_bytes	92301846
+interval_detail_lazy_off_ms	26
+interval_detail_lazy_on_read_rows	656481
+interval_detail_lazy_on_read_bytes	17961584
+interval_detail_lazy_on_ms	15
+bytes_reduction_factor	5.1
+verdict	RECORDED
+#
+# aggregation query: SELECT minute, sum(delta) FROM concurrency_deltas GROUP BY minute
+# interval query: SELECT 9 wide columns FROM foreground_intervals ORDER BY interval_end DESC LIMIT 8
+# note: lazy reads MORE rows (two-pass) but 5.1x FEWER bytes, because the deferred
+#   columns are fetched only for the 8 rows that survive the LIMIT.

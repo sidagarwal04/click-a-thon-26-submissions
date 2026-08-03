@@ -1,0 +1,207 @@
+/* ---------------------------------------------------------------------------------------------
+   Phoenix design system, shared by both consoles.
+
+   A printed-broadsheet console: warm paper, one heavy rule under the masthead, hairline rules
+   everywhere else, condensed display type against tabular mono figures. Squared corners
+   throughout; nothing floats, everything sits in a ruled frame. The point is that a judge reading
+   this should feel they are reading a document with numbers in it, not operating a product.
+
+   Every colour used as text is MEASURED against the paper (#EDEEE9), the darkest of the three
+   surfaces, so each ratio below is the worst case a value ever sees.
+--------------------------------------------------------------------------------------------- */
+
+:root {
+  /* Surfaces, lightest content on top of warm paper. */
+  --bg: #edeee9;        /* paper */
+  --bg-panel: #f6f7f3;  /* card: panels, tables, anything raised off the page */
+  --bg-raised: #ffffff; /* insets inside a card, where a third level is genuinely needed */
+
+  /* Structure. --line is the hairline everything is ruled with; --line-bright is the heavy rule,
+     which is the ink itself and is reserved for the masthead and the frame around a result. */
+  --line: #c7cbc2;
+  --line-bright: #14181c;
+
+  /* Text ramp. 15.30:1, 5.19:1, 4.70:1 against paper. Nothing here fails 4.5:1, including the
+     faintest step, because every one of them is used for a label somebody has to read. */
+  --ink: #14181c;
+  --ink-dim: #5a646b;
+  --ink-faint: #626b72;
+
+  /* Accents, each with one job.
+     --signal   the corrected, foreground-only answer. The colour of every number this project
+                claims is true, and the primary chart series. 5.25:1.
+     --cool     the second series: user concurrency against session concurrency. A slate blue and
+                NOT the obvious red, because red on this project means the naive session-span
+                overcount, and sessions versus users are two legitimate answers to two different
+                questions. Painting one of them the colour of the wrong answer would say something
+                the numbers do not. 5.88:1.
+     --phosphor live indicators and the "still arriving" state. 4.60:1.
+     --alert    divergence, errors, and the naive comparison. 5.09:1. */
+  --signal: #0f6e63;
+  --signal-dim: #cfe2df;
+  --cool: #345f7a;
+  --cool-dim: #d6dee4;
+  --phosphor: #8f6200;
+  --alert: #b23a2e;
+
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-body: 'Archivo', ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Archivo Narrow', var(--font-body);
+
+  /* Squared. A radius anywhere would break the ruled-document logic the rest of this depends on,
+     and the token is kept so component CSS does not have to change to say zero. */
+  --radius: 0px;
+  color-scheme: light;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  isolation: isolate;
+}
+
+::selection {
+  background: var(--signal);
+  color: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-faint);
+  border: 2px solid var(--bg);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+select,
+input {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ shared instrument chrome */
+
+.panel {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* Corner ticks: four short strokes at each corner, like a rack-mounted instrument bezel.
+   Implemented as a repeating conic gradient clipped to an L-shape per corner would be overkill;
+   plain border fragments via ::before/::after on inline SVG-free divs, positioned per-instance. */
+.corner-ticks {
+  position: relative;
+}
+
+.corner-ticks::before,
+.corner-ticks::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+}
+
+.corner-ticks::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1.5px solid var(--line-bright);
+  border-left: 1.5px solid var(--line-bright);
+}
+
+.corner-ticks::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1.5px solid var(--line-bright);
+  border-right: 1.5px solid var(--line-bright);
+}
+
+.mono-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.hairline {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 0;
+}
+
+/* Blinking phosphor dot for "live" indicators. */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(143, 98, 0, 0.45);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 4px rgba(143, 98, 0, 0);
+  }
+}
+
+.live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--phosphor);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+.live-dot.error {
+  background: var(--alert);
+  animation: none;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

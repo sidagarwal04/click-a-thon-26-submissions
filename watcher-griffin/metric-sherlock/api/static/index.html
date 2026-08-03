@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Automated Root-Cause Analyst</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+  label { display: block; font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem; }
+  input, select, button { font-size: 0.95rem; padding: 0.4rem 0.6rem; }
+  button { cursor: pointer; font-weight: 600; }
+  .tile { display: inline-block; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; margin: 0.5rem 0; }
+  .tile.green { background: #1e7e34; color: white; }
+  .tile.amber { background: #b8860b; color: white; }
+  .tile.red { background: #b02a37; color: white; }
+  .card { border: 1px solid rgba(128,128,128,0.35); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  .seg { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(128,128,128,0.2); padding: 0.35rem 0; font-size: 0.9rem; }
+  .ruled-out { font-size: 0.85rem; opacity: 0.85; padding: 0.25rem 0; }
+  .narration { font-size: 1.05rem; line-height: 1.5; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 0.75rem; max-height: 300px; overflow: auto; background: rgba(128,128,128,0.1); padding: 0.75rem; border-radius: 6px; }
+  #error { color: #b02a37; font-weight: 600; }
+  .muted { opacity: 0.6; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+  <h1>Automated Root-Cause Analyst</h1>
+  <p class="muted">ClickHouse computes, the LLM only narrates. Every number below is reproducible from the "queries" trace.</p>
+
+  <div class="row">
+    <div>
+      <label for="metric">Metric</label>
+      <select id="metric"></select>
+    </div>
+    <div>
+      <label for="start">Window start</label>
+      <input id="start" type="datetime-local" value="2026-06-29T00:00">
+    </div>
+    <div>
+      <label for="end">Window end</label>
+      <input id="end" type="datetime-local" value="2026-06-30T00:00">
+    </div>
+    <div>
+      <button id="go">Investigate</button>
+    </div>
+  </div>
+
+  <div id="error"></div>
+  <div id="results"></div>
+
+  <script>
+    async function loadMetrics() {
+      const res = await fetch('/api/metrics');
+      const data = await res.json();
+      const sel = document.getElementById('metric');
+      sel.innerHTML = data.metrics.map(m => `<option value="${m}" ${m === 'revenue' ? 'selected' : ''}>${m}</option>`).join('');
+    }
+
+    function tileClass(isAnomalous, zscore) {
+      if (isAnomalous) return 'red';
+      if (Math.abs(zscore) > 1.5) return 'amber';
+      return 'green';
+    }
+
+    function renderSegments(title, segments) {
+      if (!segments.length) return `<p class="muted">${title}: none</p>`;
+      const rows = segments.map(s => `
+        <div class="seg">
+          <span>${s.dimension} = <strong>${s.value}</strong></span>
+          <span>${s.metric_now.toFixed(4)} vs baseline ${s.metric_baseline.toFixed(4)} (share ${(s.share_of_deviation * 100).toFixed(1)}%)
+            <span class="muted">&mdash; ${s.source_step}</span></span>
+        </div>`).join('');
+      return `<h3>${title}</h3>${rows}`;
+    }
+
+    function renderDrilldownLevels(levels) {
+      if (!levels || !levels.length) return '<p class="muted">Ranked segments: none</p>';
+      return levels.map((level, i) =>
+        renderSegments(i === 0 ? 'Top contributing segments' : `Drill-down level ${i}`, level)
+      ).join('');
+    }
+
+    function renderRuledOut(items) {
+      if (!items.length) return '';
+      const rows = items.map(r => `<div class="ruled-out">&#10003; <strong>${r.check}</strong> -- ${r.reason}</div>`).join('');
+      return `<h3>Checked and ruled out</h3>${rows}`;
+    }
+
+    async function investigate() {
+      const errorEl = document.getElementById('error');
+      const resultsEl = document.getElementById('results');
+      errorEl.textContent = '';
+      resultsEl.innerHTML = '<p class="muted">Running investigation...</p>';
+
+      const metric = document.getElementById('metric').value;
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+
+      try {
+        const res = await fetch('/investigate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ metric, window_start: start, window_end: end }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+        const ev = data.evidence;
+        const cls = tileClass(ev.is_anomalous, ev.zscore);
+        const pct = (ev.pct_change * 100).toFixed(1);
+
+        let html = '';
+        html += `<div class="tile ${cls}">${ev.metric}: ${ev.current_value.toFixed(4)} (baseline ${ev.baseline_mean.toFixed(4)}, ${pct}%, z=${ev.zscore.toFixed(2)})</div>`;
+        html += `<div class="card"><div class="narration">${data.narration.available ? data.narration.text : '<em>Narration unavailable ('+data.narration.provider+'): '+(data.narration.error||'')+'</em>'}</div></div>`;
+
+        if (ev.factor_breakdown && ev.factor_breakdown.length) {
+          html += '<div class="card"><h3>Revenue decomposition</h3>';
+          html += ev.factor_breakdown.map(f => `<div class="seg"><span>${f.factor}${f.factor === ev.primary_factor ? ' (primary)' : ''}</span><span>${f.now.toFixed(4)} vs ${f.baseline.toFixed(4)} (share ${(f.share*100).toFixed(1)}%)</span></div>`).join('');
+          html += '</div>';
+        }
+
+        html += `<div class="card">${renderDrilldownLevels(ev.drilldown_levels)}</div>`;
+        html += `<div class="card">${renderRuledOut(ev.ruled_out)}</div>`;
+
+        if (data.langfuse_trace_url) {
+          html += `<p><a href="${data.langfuse_trace_url}" target="_blank">Open Langfuse trace</a></p>`;
+        }
+
+        html += `<details><summary>Raw evidence JSON (${ev.queries.length} queries traced)</summary><pre>${JSON.stringify(ev, null, 2)}</pre></details>`;
+
+        resultsEl.innerHTML = html;
+      } catch (e) {
+        errorEl.textContent = e.message;
+        resultsEl.innerHTML = '';
+      }
+    }
+
+    document.getElementById('go').addEventListener('click', investigate);
+    loadMetrics();
+  </script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+{
+  "schema_version": "8.1",
+  "scan_summary": {
+    "metrics_swept": [
+      "requests",
+      "fill_rate",
+      "ecpm"
+    ],
+    "windows_swept": 35,
+    "incidents_found": 7,
+    "ruled_out_lookalikes": 40,
+    "wall_clock_s": 44.01,
+    "source": "blind e2e run vs rca"
+  },
+  "investigations": [
+    {
+      "incident_id": "REAL\u00b7inv_ctr_2026-06-22",
+      "title": "[REAL] DISCOVERY (undocumented) #2: ctr -20.5% at publisher_tier=tier_3",
+      "severity": "warn",
+      "verdict": "LOCALIZED_1D",
+      "metric": "ctr",
+      "panes": [
+        "ctr"
+      ],
+      "incident_window": {
+        "start": "2026-06-22T00:00:00Z",
+        "end": "2026-06-26T23:59:59Z"
+      },
+      "headline": {
+        "observed": 0.00856,
+        "baseline": 0.01077,
+        "delta_pct": -20.5,
+        "unit": "rate"
+      },
+      "culprit": {
+        "dimension": "publisher_tier",
+        "value": "tier_3",
+        "co_cut": null
+      },
+      "uniformity": "uniform -15..-30% across every sub-dimension inside tier_3; tier_1/tier_2 flat",
+      "mechanism": "Tier-3 click suppression Jun 22-26: CTR steps 0.0108->0.0086 for 5 days then snaps back; revenue, eCPM, fill and render untouched (revenue-neutral, single-sided). Hidden under the docs' 'CTR is flat globally' claim - global CTR only dips ~-5% because tier_3 is ~29% of impressions. Verified from rca.cube.",
+      "contribution": "clicks-only; no revenue factor moved",
+      "confidence": "high - clean step in/out, ~7-10x daily noise",
+      "ruled_out": [
+        "tier_1 / tier_2 CTR: flat through the window",
+        "tier_3 eCPM 2.40-2.47 and revenue/day 144-150: unchanged",
+        "fill_rate / render_rate: flat -> not a funnel event"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Treat CTR as scannable per-segment - the 'CTR flat' doc claim only holds globally"
+        },
+        {
+          "urgency": "next",
+          "text": "Check tier_3 click tracking / SDK build for Jun 22-26 in a real-world analogue"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_ecpm_2026-06-16",
+      "title": "DISCOVERY (undocumented): ecpm +23.5% at ad_format=native \u00d7 region=EU",
+      "severity": "warn",
+      "verdict": "LOCALIZED_2D",
+      "metric": "ecpm",
+      "panes": [
+        "ecpm",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-16T00:00:00Z",
+        "end": "2026-06-18T23:59:59Z"
+      },
+      "headline": {
+        "observed": 2.9257,
+        "baseline": 2.3693,
+        "delta_pct": 23.5,
+        "unit": "usd"
+      },
+      "culprit": {
+        "dimension": "ad_format\u00d7region",
+        "value": "ad_format=native \u00d7 region=EU",
+        "co_cut": null
+      },
+      "uniformity": "isolated to ad_format\u00d7region=ad_format=native \u00d7 region=EU; sibling segments move within noise",
+      "mechanism": "Revenue-neutral EU format swap Jun 16-20: interstitial eCPM 3.25->2.28 while native 2.34->2.93, rest-of-world flat. Not in the organizer answer key; verified from raw ad_events. ecpm at ad_format\u00d7region=ad_format=native \u00d7 region=EU fell +23.5% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "ecpm is the driver (+23.5%)",
+      "confidence": "medium",
+      "ruled_out": [
+        "ad_format=native (+7.2%): dilution \u2014 explained by ad_format=native \u00d7 region=EU"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect ad_format\u00d7region=ad_format=native \u00d7 region=EU supply/demand path for 2026-06-16..2026-06-18"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff ecpm config/releases scoped to ad_format\u00d7region=ad_format=native \u00d7 region=EU"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_ecpm_2026-06-16",
+      "title": "DISCOVERY (undocumented): ecpm -30.6% at ad_format=interstitial \u00d7 region=EU",
+      "severity": "warn",
+      "verdict": "LOCALIZED_2D",
+      "metric": "ecpm",
+      "panes": [
+        "ecpm",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-16T00:00:00Z",
+        "end": "2026-06-20T23:59:59Z"
+      },
+      "headline": {
+        "observed": 2.2534,
+        "baseline": 3.2463,
+        "delta_pct": -30.6,
+        "unit": "usd"
+      },
+      "culprit": {
+        "dimension": "ad_format\u00d7region",
+        "value": "ad_format=interstitial \u00d7 region=EU",
+        "co_cut": null
+      },
+      "uniformity": "isolated to ad_format\u00d7region=ad_format=interstitial \u00d7 region=EU; sibling segments move within noise",
+      "mechanism": "Revenue-neutral EU format swap Jun 16-20: interstitial eCPM 3.25->2.28 while native 2.34->2.93, rest-of-world flat. Not in the organizer answer key; verified from raw ad_events. ecpm at ad_format\u00d7region=ad_format=interstitial \u00d7 region=EU fell -30.6% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "ecpm is the driver (-30.6%)",
+      "confidence": "high",
+      "ruled_out": [
+        "region\u00d7ad_format=region=EU \u00d7 ad_format=native (+25.0%): explained by ad_format=native \u00d7 region=EU (residual - outside it)",
+        "country\u00d7ad_format=country=ES \u00d7 ad_format=native (+24.9%): explained by ad_format=native \u00d7 region=EU (residual - outside it)",
+        "os_version\u00d7ad_format=os_version=Android 14 \u00d7 ad_format=native (+11.7%): explained by ad_format=native \u00d7 region=EU (residual -1.2% outside it)",
+        "country\u00d7ad_format=country=UK \u00d7 ad_format=native (+24.9%): explained by ad_format=native \u00d7 region=EU (residual - outside it)",
+        "device_model\u00d7ad_format=device_model=Pixel 7 \u00d7 ad_format=native (+12.8%): explained by ad_format=native \u00d7 region=EU (residual -1.0% outside it)",
+        "os_version\u00d7ad_format=os_version=Android 15 \u00d7 ad_format=native (+12.3%): explained by ad_format=native \u00d7 region=EU (residual -1.0% outside it)",
+        "country\u00d7ad_format=country=DE \u00d7 ad_format=native (+25.1%): explained by ad_format=native \u00d7 region=EU (residual - outside it)",
+        "country\u00d7ad_format=country=FR \u00d7 ad_format=native (+25.1%): explained by ad_format=native \u00d7 region=EU (residual - outside it)",
+        "ad_format=interstitial (-9.7%): dilution \u2014 explained by ad_format=interstitial \u00d7 region=EU",
+        "region\u00d7ad_format=region=EU \u00d7 ad_format=interstitial (-30.6%): explained by ad_format=interstitial \u00d7 region=EU (residual - outside it)",
+        "country\u00d7ad_format=country=ES \u00d7 ad_format=interstitial (-30.6%): explained by ad_format=interstitial \u00d7 region=EU (residual - outside it)",
+        "os_version\u00d7ad_format=os_version=Android 14 \u00d7 ad_format=interstitial (-15.4%): explained by ad_format=interstitial \u00d7 region=EU (residual -1.1% outside it)",
+        "device_model\u00d7ad_format=device_model=Pixel 7 \u00d7 ad_format=interstitial (-16.7%): explained by ad_format=interstitial \u00d7 region=EU (residual -1.3% outside it)",
+        "country\u00d7ad_format=country=UK \u00d7 ad_format=interstitial (-30.6%): explained by ad_format=interstitial \u00d7 region=EU (residual - outside it)",
+        "os_version\u00d7ad_format=os_version=Android 15 \u00d7 ad_format=interstitial (-14.9%): explained by ad_format=interstitial \u00d7 region=EU (residual -0.9% outside it)",
+        "os_version\u00d7ad_format=os_version=iOS 18.1 \u00d7 ad_format=interstitial (-13.9%): explained by ad_format=interstitial \u00d7 region=EU (residual -1.3% outside it)"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect ad_format\u00d7region=ad_format=interstitial \u00d7 region=EU supply/demand path for 2026-06-16..2026-06-20"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff ecpm config/releases scoped to ad_format\u00d7region=ad_format=interstitial \u00d7 region=EU"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_ecpm_2026-06-19",
+      "title": "ecpm -34.8% at category=finance",
+      "severity": "warn",
+      "verdict": "LOCALIZED_1D",
+      "metric": "ecpm",
+      "panes": [
+        "ecpm",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-19T00:00:00Z",
+        "end": "2026-06-22T23:59:59Z"
+      },
+      "headline": {
+        "observed": 1.6132,
+        "baseline": 2.4728,
+        "delta_pct": -34.8,
+        "unit": "usd"
+      },
+      "culprit": {
+        "dimension": "category",
+        "value": "finance",
+        "co_cut": null
+      },
+      "uniformity": "isolated to category=finance; sibling segments move within noise",
+      "mechanism": "ecpm at category=finance fell -34.8% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "ecpm is the driver (-34.8%)",
+      "confidence": "high",
+      "ruled_out": [],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect category=finance supply/demand path for 2026-06-19..2026-06-22"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff ecpm config/releases scoped to category=finance"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_requests_2026-06-21",
+      "title": "requests moved -45.0% \u2014 global, no single segment",
+      "severity": "crit",
+      "verdict": "GLOBAL_UNLOCALIZED",
+      "metric": "requests",
+      "panes": [
+        "requests",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-21T00:00:00Z",
+        "end": "2026-06-21T23:59:59Z"
+      },
+      "headline": {
+        "observed": 126052.0,
+        "baseline": 260998.4706,
+        "delta_pct": -51.7,
+        "unit": "int"
+      },
+      "culprit": null,
+      "uniformity": "spread across many segments in several dimensions \u2014 no single culprit",
+      "mechanism": "requests moved -51.7% everywhere at once; that shape points to an upstream cause (pricing, ingestion, exchange), not a segment problem.",
+      "contribution": "uniform \u2014 no segment explains more than its traffic share",
+      "confidence": "high",
+      "ruled_out": [],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Check upstream systems for 2026-06-21..2026-06-21"
+        },
+        {
+          "urgency": "now",
+          "text": "Do NOT chase segments \u2014 global causes need global fixes"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_fill_rate_2026-06-23",
+      "title": "fill_rate -44.6% at os_version=Android 15",
+      "severity": "crit",
+      "verdict": "LOCALIZED_1D",
+      "metric": "fill_rate",
+      "panes": [
+        "fill_rate",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-23T00:00:00Z",
+        "end": "2026-06-25T23:59:59Z"
+      },
+      "headline": {
+        "observed": 0.4333,
+        "baseline": 0.7842,
+        "delta_pct": -44.6,
+        "unit": "rate"
+      },
+      "culprit": {
+        "dimension": "os_version",
+        "value": "Android 15",
+        "co_cut": null
+      },
+      "uniformity": "isolated to os_version=Android 15; sibling segments move within noise",
+      "mechanism": "fill_rate at os_version=Android 15 fell -44.6% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "fill_rate is the driver (-44.7%)",
+      "confidence": "high",
+      "ruled_out": [
+        "region=EU (-6.9%): explained by Android 15 (residual -0.2% outside it)",
+        "device_model=Galaxy A54 (-7.3%): explained by Android 15 (residual -0.3% outside it)",
+        "device_model=Redmi Note 12 (-10.8%): explained by Android 15 (residual +0.3% outside it)",
+        "region\u00d7device_model=region=EU \u00d7 device_model=Galaxy A54 (-24.9%): explained by Android 15 (residual +0.5% outside it)",
+        "device_model=Galaxy S23 (-12.4%): explained by Android 15 (residual -0.0% outside it)",
+        "country=ES (-6.4%): explained by Android 15 (residual -0.2% outside it)",
+        "country\u00d7device_model=country=ES \u00d7 device_model=Galaxy A54 (-36.6%): explained by Android 15 (residual -0.2% outside it)",
+        "country=ID (-7.9%): explained by Android 15 (residual -0.0% outside it)",
+        "country=UK (-10.0%): explained by Android 15 (residual -0.1% outside it)",
+        "country\u00d7device_model=country=ID \u00d7 device_model=Redmi Note 12 (-30.5%): explained by Android 15 (residual +0.6% outside it)",
+        "region\u00d7device_model=region=EU \u00d7 device_model=Galaxy S23 (-24.4%): explained by Android 15 (residual +0.0% outside it)",
+        "country\u00d7device_model=country=UK \u00d7 device_model=Galaxy S23 (-41.2%): explained by Android 15 (residual +0.7% outside it)",
+        "region\u00d7device_model=region=APAC \u00d7 device_model=Galaxy A54 (-15.9%): explained by Android 15 (residual -1.3% outside it)"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect os_version=Android 15 supply/demand path for 2026-06-23..2026-06-25"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff fill_rate config/releases scoped to os_version=Android 15"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_fill_rate_2026-06-28",
+      "title": "fill_rate -50.4% at region=APAC \u00d7 os_version=iOS 18.1",
+      "severity": "crit",
+      "verdict": "LOCALIZED_2D",
+      "metric": "fill_rate",
+      "panes": [
+        "fill_rate",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-28T00:00:00Z",
+        "end": "2026-06-30T23:59:59Z"
+      },
+      "headline": {
+        "observed": 0.3879,
+        "baseline": 0.7849,
+        "delta_pct": -50.4,
+        "unit": "rate"
+      },
+      "culprit": {
+        "dimension": "region\u00d7os_version",
+        "value": "region=APAC \u00d7 os_version=iOS 18.1",
+        "co_cut": null
+      },
+      "uniformity": "isolated to region\u00d7os_version=region=APAC \u00d7 os_version=iOS 18.1; sibling segments move within noise",
+      "mechanism": "fill_rate at region\u00d7os_version=region=APAC \u00d7 os_version=iOS 18.1 fell -50.4% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "fill_rate is the driver (-50.6%)",
+      "confidence": "high",
+      "ruled_out": [
+        "os_version=iOS 18.1 (-12.5%): explained by region=APAC \u00d7 os_version=iOS 18.1 (residual +0.2% outside it)",
+        "region\u00d7device_model=region=APAC \u00d7 device_model=iPhone 14 (-21.5%): explained by region=APAC \u00d7 os_version=iOS 18.1 (residual -0.7% outside it)",
+        "device_model=iPhone 14 (-5.7%): explained by region=APAC \u00d7 os_version=iOS 18.1 (residual -0.2% outside it)",
+        "country\u00d7os_version=country=JP \u00d7 os_version=iOS 18.1 (-49.7%): explained by region=APAC \u00d7 os_version=iOS 18.1 (residual - outside it)",
+        "country=JP (-10.9%): explained by region=APAC \u00d7 os_version=iOS 18.1 (residual -0.1% outside it)",
+        "country\u00d7device_model=country=JP \u00d7 device_model=iPhone 14 (-35.6%): explained by region=APAC \u00d7 os_version=iOS 18.1 (residual -1.0% outside it)"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect region\u00d7os_version=region=APAC \u00d7 os_version=iOS 18.1 supply/demand path for 2026-06-28..2026-06-30"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff fill_rate config/releases scoped to region\u00d7os_version=region=APAC \u00d7 os_version=iOS 18.1"
+        }
+      ],
+      "trace_url": ""
+    }
+  ]
+}

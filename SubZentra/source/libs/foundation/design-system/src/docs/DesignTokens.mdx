@@ -1,0 +1,254 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Getting Started/Design Tokens" />
+
+# Design Tokens
+
+Design tokens are the visual design atoms of the design system — the smallest pieces of style that are used to build components. They represent design decisions like colors, spacing, typography, and more.
+
+## Overview
+
+Our design tokens are implemented as CSS custom properties using Tailwind CSS 4's `@theme` directive. This provides several benefits:
+
+- **Single Source of Truth** — Tokens are defined once and used everywhere
+- **Runtime Theming** — Themes can be changed dynamically without rebuilding
+- **Tailwind Integration** — Tokens automatically become Tailwind utilities
+- **Type Safety** — TypeScript definitions for programmatic access
+
+## Using Tokens
+
+### In CSS/SCSS
+
+```css
+.my-component {
+  background-color: var(--color-primary);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+}
+```
+
+### In Tailwind Classes
+
+```tsx
+<div className="bg-primary p-4 rounded-md">Content</div>
+```
+
+### In JavaScript/TypeScript
+
+```tsx
+import { tokenValues } from '@open-zentra/foundation-design-system';
+
+const primaryColor = tokenValues.colorPrimary; // '#2563eb'
+```
+
+---
+
+## Color Tokens
+
+### Primitive Colors
+
+Primitive colors are the raw color palette. These should generally not be used directly in components — use semantic colors instead.
+
+#### Blue Palette
+
+| Token              | Value     | Usage           |
+| ------------------ | --------- | --------------- |
+| `--color-blue-50`  | `#eff6ff` | Lightest blue   |
+| `--color-blue-100` | `#dbeafe` | Very light blue |
+| `--color-blue-500` | `#3b82f6` | Mid blue        |
+| `--color-blue-600` | `#2563eb` | Primary blue    |
+| `--color-blue-900` | `#1e3a8a` | Darkest blue    |
+
+#### Gray Palette
+
+| Token              | Value     | Usage             |
+| ------------------ | --------- | ----------------- |
+| `--color-gray-50`  | `#f9fafb` | Background subtle |
+| `--color-gray-100` | `#f3f4f6` | Background muted  |
+| `--color-gray-500` | `#6b7280` | Muted text        |
+| `--color-gray-900` | `#111827` | Primary text      |
+
+### Semantic Colors
+
+Semantic colors communicate intent and should be used in components.
+
+#### Primary
+
+| Token                        | Value                   | Usage                |
+| ---------------------------- | ----------------------- | -------------------- |
+| `--color-primary`            | `var(--color-blue-600)` | Primary actions      |
+| `--color-primary-hover`      | `var(--color-blue-700)` | Hover state          |
+| `--color-primary-active`     | `var(--color-blue-800)` | Active/pressed state |
+| `--color-primary-foreground` | `#ffffff`               | Text on primary      |
+
+#### Danger
+
+| Token                       | Value                  | Usage               |
+| --------------------------- | ---------------------- | ------------------- |
+| `--color-danger`            | `var(--color-red-600)` | Destructive actions |
+| `--color-danger-hover`      | `var(--color-red-700)` | Hover state         |
+| `--color-danger-foreground` | `#ffffff`              | Text on danger      |
+
+#### Success
+
+| Token                        | Value                    | Usage             |
+| ---------------------------- | ------------------------ | ----------------- |
+| `--color-success`            | `var(--color-green-600)` | Positive feedback |
+| `--color-success-hover`      | `var(--color-green-700)` | Hover state       |
+| `--color-success-foreground` | `#ffffff`                | Text on success   |
+
+#### Warning
+
+| Token                        | Value                    | Usage             |
+| ---------------------------- | ------------------------ | ----------------- |
+| `--color-warning`            | `var(--color-amber-500)` | Cautionary states |
+| `--color-warning-foreground` | `#000000`                | Text on warning   |
+
+### Background & Foreground
+
+| Token                       | Value                   | Usage           |
+| --------------------------- | ----------------------- | --------------- |
+| `--color-background`        | `#ffffff`               | Page background |
+| `--color-background-subtle` | `var(--color-gray-50)`  | Subtle surfaces |
+| `--color-background-muted`  | `var(--color-gray-100)` | Muted surfaces  |
+| `--color-foreground`        | `var(--color-gray-900)` | Primary text    |
+| `--color-foreground-muted`  | `var(--color-gray-500)` | Secondary text  |
+
+### Border Colors
+
+| Token                    | Value                   | Usage           |
+| ------------------------ | ----------------------- | --------------- |
+| `--color-border`         | `var(--color-gray-200)` | Default borders |
+| `--color-border-hover`   | `var(--color-gray-300)` | Hover state     |
+| `--color-border-focus`   | `var(--color-blue-500)` | Focus ring      |
+| `--color-border-invalid` | `var(--color-red-500)`  | Error state     |
+
+---
+
+## Spacing
+
+Our spacing scale is based on a 4px grid system.
+
+| Token          | Value     | Pixels | Usage             |
+| -------------- | --------- | ------ | ----------------- |
+| `--spacing-0`  | `0`       | 0px    | No spacing        |
+| `--spacing-1`  | `0.25rem` | 4px    | Tiny gaps         |
+| `--spacing-2`  | `0.5rem`  | 8px    | Small gaps        |
+| `--spacing-3`  | `0.75rem` | 12px   | Component padding |
+| `--spacing-4`  | `1rem`    | 16px   | Default spacing   |
+| `--spacing-6`  | `1.5rem`  | 24px   | Section spacing   |
+| `--spacing-8`  | `2rem`    | 32px   | Large spacing     |
+| `--spacing-12` | `3rem`    | 48px   | Layout spacing    |
+| `--spacing-16` | `4rem`    | 64px   | Major sections    |
+
+---
+
+## Border Radius
+
+| Token              | Value      | Usage            |
+| ------------------ | ---------- | ---------------- |
+| `--radius-none`    | `0`        | Sharp corners    |
+| `--radius-sm`      | `0.125rem` | Subtle rounding  |
+| `--radius-default` | `0.25rem`  | Default rounding |
+| `--radius-md`      | `0.375rem` | Medium rounding  |
+| `--radius-lg`      | `0.5rem`   | Larger rounding  |
+| `--radius-xl`      | `0.75rem`  | Extra large      |
+| `--radius-full`    | `9999px`   | Circular/pill    |
+
+---
+
+## Shadows
+
+| Token              | Value          | Usage             |
+| ------------------ | -------------- | ----------------- |
+| `--shadow-sm`      | Small shadow   | Subtle elevation  |
+| `--shadow-default` | Default shadow | Cards, containers |
+| `--shadow-md`      | Medium shadow  | Dropdowns         |
+| `--shadow-lg`      | Large shadow   | Modals, dialogs   |
+| `--shadow-xl`      | Extra large    | Popovers          |
+
+---
+
+## Typography
+
+### Font Sizes
+
+| Token              | Value      | Usage            |
+| ------------------ | ---------- | ---------------- |
+| `--font-size-xs`   | `0.75rem`  | Captions, labels |
+| `--font-size-sm`   | `0.875rem` | Secondary text   |
+| `--font-size-base` | `1rem`     | Body text        |
+| `--font-size-lg`   | `1.125rem` | Large body       |
+| `--font-size-xl`   | `1.25rem`  | Subheadings      |
+| `--font-size-2xl`  | `1.5rem`   | Headings         |
+| `--font-size-3xl`  | `1.875rem` | Large headings   |
+
+### Font Weights
+
+| Token                    | Value | Usage           |
+| ------------------------ | ----- | --------------- |
+| `--font-weight-normal`   | `400` | Body text       |
+| `--font-weight-medium`   | `500` | Emphasis        |
+| `--font-weight-semibold` | `600` | Headings        |
+| `--font-weight-bold`     | `700` | Strong emphasis |
+
+---
+
+## Animation
+
+### Durations
+
+| Token               | Value   | Usage                |
+| ------------------- | ------- | -------------------- |
+| `--duration-fast`   | `100ms` | Micro-interactions   |
+| `--duration-normal` | `200ms` | Standard transitions |
+| `--duration-slow`   | `300ms` | Complex animations   |
+| `--duration-slower` | `500ms` | Page transitions     |
+
+### Easing
+
+| Token           | Value                          | Usage            |
+| --------------- | ------------------------------ | ---------------- |
+| `--ease-in`     | `cubic-bezier(0.4, 0, 1, 1)`   | Enter animations |
+| `--ease-out`    | `cubic-bezier(0, 0, 0.2, 1)`   | Exit animations  |
+| `--ease-in-out` | `cubic-bezier(0.4, 0, 0.2, 1)` | Standard easing  |
+
+---
+
+## Z-Index Scale
+
+| Token                | Value  | Usage               |
+| -------------------- | ------ | ------------------- |
+| `--z-dropdown`       | `1000` | Dropdown menus      |
+| `--z-sticky`         | `1020` | Sticky elements     |
+| `--z-modal-backdrop` | `1040` | Modal overlays      |
+| `--z-modal`          | `1050` | Modal dialogs       |
+| `--z-popover`        | `1060` | Popovers            |
+| `--z-tooltip`        | `1070` | Tooltips            |
+| `--z-toast`          | `1080` | Toast notifications |
+
+---
+
+## Dark Mode
+
+The design system includes automatic dark mode support through the `prefers-color-scheme` media query. Semantic tokens are automatically adjusted for dark backgrounds.
+
+Key changes in dark mode:
+
+- Background colors become dark grays
+- Foreground colors become light grays
+- Primary/accent colors remain consistent for brand recognition
+- Border colors are adjusted for contrast
+
+---
+
+## Focus Ring
+
+Accessibility-focused ring styles for keyboard navigation:
+
+| Token           | Value                       | Usage            |
+| --------------- | --------------------------- | ---------------- |
+| `--ring-width`  | `2px`                       | Ring thickness   |
+| `--ring-offset` | `2px`                       | Gap from element |
+| `--ring-color`  | `var(--color-border-focus)` | Ring color       |
+| `--ring-focus`  | Composite shadow            | Applied on focus |

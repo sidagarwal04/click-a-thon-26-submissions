@@ -1,0 +1,485 @@
+{
+  "$defs": {
+    "BriefAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "format": "uuid",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/VisualizationActionKind"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "label"
+      ],
+      "title": "BriefAction",
+      "type": "object"
+    },
+    "BriefClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "observed",
+            "interpretation"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 600,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text",
+        "citation_ids"
+      ],
+      "title": "BriefClaim",
+      "type": "object"
+    },
+    "BriefComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "current_display_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Current Display Value",
+          "type": "string"
+        },
+        "current_exact_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Current Exact Value",
+          "type": "string"
+        },
+        "current_label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Label"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "previous_display_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Previous Display Value",
+          "type": "string"
+        },
+        "previous_exact_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Previous Exact Value",
+          "type": "string"
+        },
+        "previous_label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Label"
+        },
+        "unit": {
+          "maxLength": 48,
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "previous_exact_value",
+        "previous_display_value",
+        "current_exact_value",
+        "current_display_value",
+        "unit",
+        "citation_ids"
+      ],
+      "title": "BriefComparison",
+      "type": "object"
+    },
+    "BriefMetric": {
+      "additionalProperties": false,
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "direction": {
+          "enum": [
+            "up",
+            "down",
+            "flat",
+            "not_applicable"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "display_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Display Value",
+          "type": "string"
+        },
+        "exact_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Exact Value",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "maxLength": 48,
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "exact_value",
+        "display_value",
+        "unit",
+        "direction",
+        "citation_ids"
+      ],
+      "title": "BriefMetric",
+      "type": "object"
+    },
+    "BriefSeries": {
+      "additionalProperties": false,
+      "properties": {
+        "dimensions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/BriefSeriesPoint"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Points",
+          "type": "array"
+        },
+        "unit": {
+          "maxLength": 48,
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "unit",
+        "points"
+      ],
+      "title": "BriefSeries",
+      "type": "object"
+    },
+    "BriefSeriesPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "display_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Display Value",
+          "type": "string"
+        },
+        "exact_value": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Exact Value",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "position": {
+          "maximum": 199,
+          "minimum": 0,
+          "title": "Position",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "position",
+        "label",
+        "exact_value",
+        "display_value",
+        "citation_ids"
+      ],
+      "title": "BriefSeriesPoint",
+      "type": "object"
+    },
+    "BriefTimeRange": {
+      "additionalProperties": false,
+      "properties": {
+        "end_label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "End Label",
+          "type": "string"
+        },
+        "start_label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Start Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_label",
+        "end_label"
+      ],
+      "title": "BriefTimeRange",
+      "type": "object"
+    },
+    "VisualizationActionKind": {
+      "enum": [
+        "continue_conversation",
+        "open_citation"
+      ],
+      "title": "VisualizationActionKind",
+      "type": "string"
+    },
+    "VisualizationView": {
+      "enum": [
+        "auto",
+        "line",
+        "area",
+        "bar",
+        "horizontal_bar",
+        "grouped_bar",
+        "stacked_bar",
+        "pie",
+        "radar",
+        "radial",
+        "table",
+        "metric_cards",
+        "structured_text"
+      ],
+      "title": "VisualizationView",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BriefAction"
+      },
+      "maxItems": 24,
+      "title": "Actions",
+      "type": "array"
+    },
+    "caveats": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Caveats",
+      "type": "array"
+    },
+    "claims": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BriefClaim"
+      },
+      "maxItems": 64,
+      "title": "Claims",
+      "type": "array"
+    },
+    "comparisons": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BriefComparison"
+      },
+      "maxItems": 32,
+      "title": "Comparisons",
+      "type": "array"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "headline": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Headline",
+      "type": "string"
+    },
+    "investigation_id": {
+      "format": "uuid",
+      "title": "Investigation Id",
+      "type": "string"
+    },
+    "metrics": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BriefMetric"
+      },
+      "maxItems": 32,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "outcome_kind": {
+      "enum": [
+        "confidence",
+        "validation"
+      ],
+      "title": "Outcome Kind",
+      "type": "string"
+    },
+    "question": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "series": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BriefSeries"
+      },
+      "maxItems": 12,
+      "title": "Series",
+      "type": "array"
+    },
+    "summary": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "time_range": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BriefTimeRange"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "view": {
+      "$ref": "#/$defs/VisualizationView",
+      "default": "auto"
+    }
+  },
+  "required": [
+    "investigation_id",
+    "question",
+    "headline",
+    "summary",
+    "outcome_kind"
+  ],
+  "title": "VisualizationBriefV1",
+  "type": "object"
+}

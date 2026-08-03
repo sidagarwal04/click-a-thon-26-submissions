@@ -1,0 +1,29 @@
+Expression ((Project names + (Before ORDER BY + (Projection + ((WHERE + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection)))))))) + (WHERE + Change column names to column identifiers)))) [lifted up part]))
+  Sorting (Sorting for ORDER BY)
+    Expression ((Before ORDER BY + (Projection + ((WHERE + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection)))))))) + (WHERE + Change column names to column identifiers)))))
+      Filter ((((WHERE + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection)))))))) + (WHERE + Change column names to column identifiers)))[split])
+        ReadFromMergeTree (sonyliv.cc_hour_agg)
+        Indexes:
+          MinMax
+            Keys:
+              hour
+            Condition: and((hour in (-Inf, 1785110399]), (hour in [1785024000, +Inf)))
+            Parts: 1/1
+            Granules: 4/4
+          Partition
+            Keys:
+              toYYYYMM(hour)
+            Condition: and((toYYYYMM(hour) in (-Inf, 202607]), (toYYYYMM(hour) in [202607, +Inf)))
+            Parts: 1/1
+            Granules: 4/4
+          PrimaryKey
+            Keys:
+              platform
+              country
+              content_id
+              hour
+            Condition: and(and((hour in (-Inf, 1785110399]), (hour in [1785024000, +Inf))), and((content_id in [-1, -1]), and((country in ['*', '*']), (platform in ['*', '*']))))
+            Parts: 1/1
+            Granules: 1/4
+            Search Algorithm: binary search
+          Ranges: 1

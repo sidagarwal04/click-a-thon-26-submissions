@@ -1,0 +1,157 @@
+# =====================================================================
+# THE SINGLE SOURCE OF TRUTH for what "active" means.
+#
+# Every path must implement this file and nothing else:
+#   - pipeline/sql/011_build_active_intervals.sql   (analytics intervals)
+#   - pipeline/sql/030_session_live_now.sql          (live viewership)
+#   - prototype/reference/ground_truth_generator.sql (the oracle)
+#
+# If any two disagree, this file wins and the other is the bug.
+# Changing a value here is a semantic change to the product: re-run the
+# oracle, re-validate the prototype, and record the measured delta in
+# docs/DECISIONS.md D1.
+#
+# Note: pause STOPS playback and the active predicate requires `playing`,
+# so paused-in-foreground is INACTIVE. This file always said so; D1 used
+# to contradict it. D1 was corrected on 2026-08-02 to match.
+# =====================================================================
+version: sonyliv-active-v1
+status: authoritative
+
+# Canonical time model.
+source_timestamp_format: unix_epoch_milliseconds
+source_timestamp_columns:
+  - event_timestamp
+  - session_start_epoch
+timezone: UTC
+persisted_timestamp_type: "DateTime64(3, 'UTC')"
+service_date_timezone: UTC
+local_timezone_policy: query_time_projection_only
+interval_convention: "[start, end)"
+same_timestamp_resolution:
+  coalesce_all_assignments: true
+  terminal_wins_all_axes: VideoSessionEnd
+  foreground_axis:
+    stopped_setter: AppBackgrounded
+    stopped_wins: true
+  playback_axis:
+    stopped_setters:
+      - VideoError
+      - pause
+    stopped_wins: true
+  liveness_evaluated_after_state_assignment: true
+
+# Primary answer is session concurrency. User concurrency is a separate metric and
+# requires unioning a user's overlapping session intervals before boundaries are
+# emitted.
+entities:
+  primary: session
+  additionally_materialized:
+    - user
+
+lifecycle:
+  start_event_type: VideoSessionStart
+  start_choice: first
+  end_event_type: VideoSessionEnd
+  end_choice: first
+  end_is_terminal: true
+  ignore_events_after_terminal_end: true
+  initial_foreground_after_start: true
+  initial_playing_after_start: false
+
+playback_state:
+  playing_setters:
+    - event_type: VideoPlay
+    - event_type: VideoHeartbeat
+      event: resume
+  stopped_setters:
+    - event_type: VideoHeartbeat
+      event: pause
+    - event_type: VideoError
+  # BufferStart is not defined as pause by the supplied contract. It remains
+  # active unless the benchmark clarification says otherwise.
+  buffering_is_stopped: false
+  error_is_terminal: false
+
+foreground_state:
+  background_setter: AppBackgrounded
+  foreground_setter: AppForegrounded
+  foreground_does_not_set_playing: true
+
+liveness:
+  timeout_ms: 120000
+  provenance: field_heuristic
+  rationale: >-
+    The dictionary says heartbeats currently arrive every 60 seconds; clean
+    periodic telemetry in the supplied file has a 40.003 second median gap.
+    120 seconds is two documented periods and about three observed periods.
+    Sensitivity at 60/90/120 seconds retains 98.6341/98.8282/98.9624 percent
+    of explicit foreground-and-playing time, so the timeout is not identifiable
+    from this closed-session extract and must stay configurable.
+  signal_events:
+    - event_type: VideoPlay
+    - event_type: VideoHeartbeat
+      event: resume
+    - event_type: VideoHeartbeat
+      event: "*"
+      except_events:
+        - pause
+  renew_only_when:
+    lifecycle_started: true
+    terminal_end_not_seen: true
+    foreground: true
+    playing: true
+  expiry_reopens_on_next_eligible_signal: true
+  app_foregrounded_refreshes_lease: false
+
+active_predicate: >-
+  lifecycle_started AND NOT terminal_end_seen AND foreground AND playing
+  AND event_time < last_eligible_signal + timeout_ms
+
+dimensions:
+  session_static_anchor: VideoSessionStart
+  session_static:
+    - user_id
+    - content_id
+    - platform
+    - app_version
+    - country
+  content_enrichment:
+    - video_type
+  dictionary_only_metadata:
+    - category
+    - title
+  unknown_string: __unknown__
+  missing_start_action: retain_raw_and_exclude_from_interval_state
+  drift_action: retain_start_value_and_emit_metric
+
+metrics:
+  bucket_interval: "[bucket_start, bucket_end)"
+  peak: maximum instantaneous concurrency inside the bucket
+  average: time_integral_of_concurrency_divided_by_bucket_duration
+  any_overlap_count: not_the_default
+  minute_boundary_sample: not_the_default
+
+serving:
+  rollup_mask_bits:
+    platform: 1
+    country: 2
+    content_id: 4
+    video_type: 8
+  default_masks:
+    - 0
+    - 1
+    - 2
+    - 4
+    - 8
+    - 3
+    - 5
+    - 9
+    - 12
+    - 15
+
+corrections:
+  recompute_scope: touched_session
+  publish_model: signed_boundary_map_difference
+  broad_final_reads_allowed: false
+  reconciliation: full_day_independent_oracle

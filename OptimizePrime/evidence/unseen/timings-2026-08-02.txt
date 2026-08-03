@@ -1,0 +1,111 @@
+UNSEEN-DAY TIMINGS — re-measured 2026-08-02, commit 7789748
+================================================================================
+Why: docs/RUNBOOK_UNSEEN.md quoted 54/47/58 s, measured 2026-08-01 on commit
+5433183 — BEFORE the source-contract step (ADR 0026) existed anywhere on the
+path. Codex 006 re-measured and reported ~1.5x. These are our own numbers, not
+Codex's, taken on the current tree.
+
+Target: ClickHouse Cloud 26.2.1.525, throwaway databases sonyliv_q38{b,c}_*,
+all dropped afterwards. The graded database `sonyliv` was never written to.
+
+DATASETS  (day slices are UTC-day cuts of data/ch-hackathon-raw-data.csv on
+           event_timestamp; row counts match the 2026-08-01 rehearsal exactly)
+--------------------------------------------------------------------------------
+  synthetic   tools/unseen-gen.sh, day 2026-08-15        6,887 events    0.6 MB
+  holdout     2026-07-25                                30,097 events    7.4 MB
+  full day    2026-07-26                               849,888 events  208.3 MB
+
+RESULTS — wall clock
+--------------------------------------------------------------------------------
+                            6.9k        30k        850k
+  §0 source contract        24 s       26 s        38 s     (separate throwaway DB)
+  §1 tools/unseen-run.sh    66 s       67 s        82 s     (includes phase 2b)
+  ------------------------------------------------------------------------------
+  CONTRACT-FIRST TOTAL      90 s       93 s       120 s
+  runbook claimed           54 s       47 s        58 s
+  understatement           1.67x      1.98x       2.07x
+
+All three runs ended GATE PASSED:
+  synthetic  peak    30 @ 2026-08-15 20:00:00 (earliest tied minute)
+  holdout    peak    13 @ 2026-07-25 15:51:00
+  full day   peak 2,917 @ 2026-07-26 10:56:00
+
+PER PHASE — §1, as tools/unseen-run.sh reported it
+--------------------------------------------------------------------------------
+  #   phase                                          6.9k    30k    850k
+  1   schema (00, 10)                                  6 s    6 s     5 s
+  2   load (tools/load.sh)                            22 s   25 s    35 s
+  2b  SOURCE CONTRACT  <- did not exist on 2026-08-01  3 s    2 s     4 s
+  3   intervals (30)                                   2 s    3 s     4 s
+  4   user tier (45)                                   4 s    3 s     3 s
+  5   deltas (40)                                      2 s    2 s     3 s
+  6   views (20) + hour (50) + content (80) + win (85) 18 s   16 s    16 s
+  7   the answer                                       3 s    3 s     2 s
+  8   the gate (90_reconcile.sql)                      2 s    3 s     6 s
+      TOTAL                                           66 s   67 s    82 s
+
+WHERE THE EXTRA TIME WENT — it is NOT mostly the contract step
+--------------------------------------------------------------------------------
+Phase 2b costs only 2-4 s. The bulk of the increase is phase 2, the load:
+18 s -> 35 s on the 850k day. That is 0.168 s/MB against the 0.085 s/MB the
+runbook extrapolates from. The load is network-bound, so this number belongs to
+the link, not the code — it is the one phase that will differ again on the day.
+
+The "123x the events cost 1.07x the wall clock" claim also no longer holds:
+123x the events now costs 1.24x (66 s -> 82 s). Still fixed-cost dominated, but
+less so, and the extrapolation should not be leaned on as hard.
+
+A BUG THIS FOUND — tools/unseen-run.sh dies at the contract gate
+--------------------------------------------------------------------------------
+Line 351 reads $TARGET:
+
+    CONTRACT_ARGS=""
+    [ "$TARGET" = cloud ] && CONTRACT_ARGS="-c"
+
+The script sets TARGET nowhere in its own scope (line 276 sets it only inside a
+subshell for the load). Under `set -euo pipefail` an unset TARGET is fatal:
+
+    tools/unseen-run.sh: line 351: TARGET: unbound variable
+
+So the advertised one-command path DIES at phase 2b unless TARGET happens to be
+exported in the caller's environment. Measured on this tree, first attempt:
+
+    2b SOURCE CONTRACT — is this file what we think it is?
+    tools/unseen-run.sh: line 351: TARGET: unbound variable
+    -> run aborted after 32 s, no model built, no gate run
+
+Every timing above was taken with TARGET=cloud exported as a workaround. This
+file does not own tools/unseen-run.sh (branch fix/contract-gate-runner-agreement
+holds it) so the fix is NOT applied here — it is reported.
+
+Note the shape of the failure: the contract gate was wired onto the path on
+2026-08-02 precisely because Codex 005 found it was documented but not called.
+It is now called, and it is the line that stops the run.
+
+ONE FURTHER DISCREPANCY, FLAGGED NOT FIXED
+--------------------------------------------------------------------------------
+The full-day replay of 2026-07-26 now answers peak 2,917 @ 10:56, which equals
+the graded database's own peak. The 2026-08-01 rehearsal recorded 2,887 for the
+same day at the same row count (849,888). Same input, different answer, so the
+difference is the model, not the slice — several correctness fixes landed after
+commit 5433183. The rehearsal table's `peak` column is outside this task's
+ownership (timings only), so it is flagged here rather than edited.
+
+REPRODUCE
+--------------------------------------------------------------------------------
+  # slice a UTC day out of the delivered file (keep the header!)
+  H=$(head -1 data/ch-hackathon-raw-data.csv)
+  { echo "$H"; awk -F, 'NR>1 && $6+0>=1785024000000 && $6+0<1785110400000' \
+      data/ch-hackathon-raw-data.csv; } > /tmp/day-2026-07-26.csv
+
+  # §0 the source contract, on a throwaway database
+  time ( tools/ch -c "CREATE DATABASE sonyliv_c_x"
+         TARGET=cloud tools/apply-sql.sh --database sonyliv_c_x sql/00_schema.sql
+         TARGET=cloud CH_DATABASE=sonyliv_c_x tools/load.sh /tmp/day-2026-07-26.csv \
+             data/ch-hackathon-content-data.csv
+         tools/validate-source-contract.sh -c --database sonyliv_c_x
+         tools/ch -c "DROP DATABASE sonyliv_c_x" )
+
+  # §1 the run  (TARGET=cloud is the workaround for the bug above)
+  time TARGET=cloud UNSEEN_DB=sonyliv_b_x tools/unseen-run.sh \
+      /tmp/day-2026-07-26.csv data/ch-hackathon-content-data.csv

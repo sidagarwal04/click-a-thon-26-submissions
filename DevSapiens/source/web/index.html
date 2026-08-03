@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClickLiv, real-time foreground-only concurrency for SonyLIV streaming telemetry, on ClickHouse</title>
+<meta name="description" content="Real-time foreground-only concurrency for SonyLIV streaming telemetry, on ClickHouse. An open app is not a viewer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' fill='%23faff69'/%3E%3Cg fill='%23161616'%3E%3Crect x='4' y='5' width='5' height='26'/%3E%3Crect x='11' y='5' width='5' height='26'/%3E%3Crect x='18' y='5' width='5' height='26'/%3E%3Crect x='25' y='5' width='5' height='26'/%3E%3Crect x='4' y='16' width='26' height='4' fill='%23faff69'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --soft: #f7f7f7; --line: #e4e4e4; --ink: #161616;
+    --muted: #595959; --yellow: #faff69;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 Inter, ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 26px 22px 72px; }
+  a { color: inherit; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  h1 { margin: 0; font-weight: 640; letter-spacing: -0.02em; }
+  h2 {
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 0 0 18px;
+  }
+  h3 { font-size: 15px; margin: 0 0 5px; font-weight: 600; letter-spacing: -0.005em; }
+  p { margin: 0 0 10px; }
+
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+  }
+  .mark { font-weight: 660; letter-spacing: -0.015em; text-decoration: none; font-size: 16px; }
+  .mark em { font-style: normal; background: var(--yellow); padding: 0 3px; border-radius: 2px; }
+  .topbar nav { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: 13.5px; color: var(--muted); }
+  .topbar nav a { text-decoration: none; }
+  .topbar nav a:hover { color: var(--ink); }
+
+  section { margin-top: 56px; }
+  .hero { margin-top: 44px; }
+  .hero h1 { font-size: 40px; line-height: 1.1; max-width: 18ch; }
+  .kicker {
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 14px;
+  }
+  .lead { font-size: 18.5px; line-height: 1.55; max-width: 58ch; margin: 18px 0 0; color: #2e2e2e; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .btn {
+    display: inline-block; padding: 11px 20px; border-radius: 6px; font-size: 14.5px;
+    font-weight: 560; text-decoration: none; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  .btn.primary { background: var(--yellow); border-color: var(--yellow); }
+  .btn:hover { border-color: var(--ink); }
+
+  .claim { border: 1px solid var(--line); border-radius: 10px; padding: 26px 28px; }
+  .claim p { font-size: 18px; line-height: 1.55; max-width: 66ch; }
+  .num {
+    font-weight: 640; font-variant-numeric: tabular-nums;
+    background: linear-gradient(transparent 58%, var(--yellow) 58%); padding: 0 2px;
+  }
+  .live {
+    display: inline-flex; align-items: center; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
+  }
+  .live.stale { color: var(--muted); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; margin: 26px 0 0; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .stat { background: var(--bg); padding: 15px 17px; }
+  .stat .k { color: var(--muted); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .stat .v { font-size: 28px; font-weight: 620; font-variant-numeric: tabular-nums; margin-top: 5px; letter-spacing: -0.02em; }
+  .stat .v.small { font-size: 18px; }
+  .stat .n { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .status { color: var(--muted); font-size: 13px; min-height: 20px; }
+
+  .diagram {
+    background: var(--soft); border-radius: 10px; padding: 20px 18px; margin-bottom: 26px;
+  }
+  .diagram-svg { display: block; width: 100%; height: auto; }
+  .dv-box { fill: var(--bg); stroke: var(--line); stroke-width: 1.2; }
+  .dv-box-on { fill: var(--yellow); stroke: var(--yellow); }
+  .dv-badge { fill: var(--bg); stroke: var(--line); stroke-width: 1.2; }
+  .dv-title { font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: var(--ink); text-anchor: middle; }
+  .dv-title-on { font-weight: 680; }
+  .dv-title-sm { font-size: 11.5px; }
+  .dv-sub {
+    font: 400 10.5px Inter, ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+    fill: var(--muted); text-anchor: middle;
+  }
+  .dv-badge-text {
+    font: 600 12.5px Inter, ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+    fill: var(--ink); text-anchor: middle;
+  }
+  .dv-edge { fill: none; stroke: #b9b9b9; stroke-width: 1.4; marker-end: url(#dvArrow); }
+  .dv-edge-dashed { fill: none; stroke: #b9b9b9; stroke-width: 1.3; stroke-dasharray: 5 4; marker-end: url(#dvArrow); }
+  .dv-edge-strong { fill: none; stroke: var(--ink); stroke-width: 1.8; marker-end: url(#dvArrowStrong); }
+  .dv-arrowhead { fill: #9a9a9a; }
+  .dv-arrowhead-strong { fill: var(--ink); }
+  .dv-label {
+    font: 600 10.5px Inter, ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+    fill: var(--muted); text-anchor: middle; letter-spacing: 0.03em; text-transform: uppercase;
+  }
+  .dv-label-left { text-anchor: start; }
+
+  .diagram-stack { display: none; flex-direction: column; align-items: stretch; gap: 0; }
+  .dv-step { display: flex; flex-direction: column; align-items: center; }
+  .dv-down { color: var(--muted); font-size: 15px; padding: 3px 0; }
+  .dv-tile {
+    width: 100%; max-width: 340px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 13px; text-align: center;
+  }
+  .dv-tile.on { background: var(--yellow); border-color: var(--yellow); }
+  .dv-tile b {
+    display: block; font-size: 13px; font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .dv-tile span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .dv-tile.on span { color: #4a4a15; }
+  .dv-group-label {
+    font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted);
+    margin: 10px 0 6px; text-align: center;
+  }
+  .dv-branch, .dv-fan {
+    display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px;
+  }
+  .dv-badge-mobile {
+    background: var(--soft); border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 16px; font-size: 12px; font-weight: 600; text-align: center;
+    max-width: 340px;
+  }
+
+  .steps { counter-reset: step; }
+  .step {
+    display: grid; grid-template-columns: 38px 1fr; gap: 12px;
+    padding: 15px 0; border-top: 1px solid var(--line);
+  }
+  .steps .step:last-child { border-bottom: 1px solid var(--line); }
+  .step::before {
+    counter-increment: step; content: counter(step, decimal-leading-zero);
+    color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; padding-top: 3px;
+  }
+  .step p { color: var(--muted); margin: 0; max-width: 76ch; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+  .card {
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 20px; text-decoration: none; display: block;
+  }
+  .card:hover { border-color: var(--ink); }
+  .card p { color: var(--muted); margin: 0; }
+  .card .host {
+    color: var(--muted); font-size: 12px; margin-top: 10px; word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .limit { padding: 15px 0; border-top: 1px solid var(--line); max-width: 84ch; }
+  .limits .limit:last-child { border-bottom: 1px solid var(--line); }
+  .limit p { color: var(--muted); margin: 0; }
+
+  footer {
+    margin-top: 56px; color: var(--muted); font-size: 13px;
+    border-top: 1px solid var(--line); padding-top: 20px; max-width: 82ch;
+  }
+
+  .topbar nav a.gh { display: inline-flex; align-items: center; }
+  .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(228px, 1fr)); gap: 10px; }
+  .tool { background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
+    padding: 14px 16px; display: flex; gap: 11px; align-items: flex-start; }
+  .tool > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .tool b { font-size: 14.5px; font-weight: 620; letter-spacing: -0.01em; }
+  .tool span { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .mk { width: 26px; height: 26px; flex: 0 0 26px; border-radius: 6px; background: var(--soft);
+    border: 1px solid var(--line); padding: 4px; object-fit: contain; }
+  .mk.mono { display: inline-flex; align-items: center; justify-content: center; padding: 0;
+    font-size: 10.5px; font-weight: 680; letter-spacing: -0.02em; background: var(--yellow);
+    border-color: var(--yellow); color: var(--ink); }
+
+  section, h2, h3 { scroll-margin-top: 72px; }
+  .mark, .topbar nav a, .btn, .card { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  @media (max-width: 620px) {
+    .hero h1 { font-size: 30px; }
+    .lead { font-size: 16.5px; }
+    .claim { padding: 18px; }
+    .claim p { font-size: 16px; }
+    .diagram-svg-wrap { display: none; }
+    .diagram-stack { display: flex; }
+    .diagram { padding: 18px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <a class="mark" href="/">Click<em>Liv</em></a>
+    <nav>
+      <a href="#how">Pipeline</a>
+      <a href="#surfaces">Surfaces</a>
+      <a href="#limits">Limits</a>
+      <a href="/dashboard">Dashboard</a>
+      <a class="gh" href="https://github.com/ashutosh887/ClickLiv" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
+    </nav>
+  </div>
+
+  <section class="hero">
+    <p class="kicker">DevSapiens &middot; ClickHouse Click-a-thon 2026 &middot; SonyLIV concurrency track</p>
+    <h1>An open app is not a viewer.</h1>
+    <p class="lead">A session counts as a concurrent viewer only while it is playing, foregrounded
+    and heartbeat-fresh. ClickLiv computes that rule over SonyLIV streaming telemetry entirely
+    inside ClickHouse, and proves the answer against independent paths that share no code.</p>
+    <div class="actions">
+      <a class="btn primary" href="/dashboard">View dashboard</a>
+      <a class="btn" href="https://github.com/ashutosh887/ClickLiv">Read the source</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>The result</h2>
+    <div class="claim">
+      <p>Counting every open session instead overstates peak concurrency by
+        <span class="num" id="peakOver">&hellip;</span> and average concurrency by
+        <span class="num" id="avgOver">&hellip;</span>.
+        <span id="minuteClause"></span></p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Peak, foreground only</div>
+          <div class="v" id="peak">&hellip;</div>
+          <div class="n" id="peakAt">&nbsp;</div>
+        </div>
+        <div class="stat">
+          <div class="k">Naive, any open session</div>
+          <div class="v" id="naive">&hellip;</div>
+          <div class="n" id="naiveAt">&nbsp;</div>
+        </div>
+        <div class="stat">
+          <div class="k">Average, foreground only</div>
+          <div class="v" id="avg">&hellip;</div>
+          <div class="n" id="avgNaive">&nbsp;</div>
+        </div>
+        <div class="stat">
+          <div class="k">Data window, UTC</div>
+          <div class="v small" id="window">&hellip;</div>
+          <div class="n" id="windowSpan">&nbsp;</div>
+        </div>
+      </div>
+
+      <p class="status" id="claimStatus" style="margin: 18px 0 0">Reading from ClickHouse Cloud&hellip;</p>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>The pipeline</h2>
+
+    <div class="diagram">
+      <div class="diagram-svg-wrap">
+      <svg class="diagram-svg" viewBox="0 0 1080 620" role="img"
+        aria-label="Raw CSVs load into raw_events and content_dict. Active_intervals sessionizes
+        the events. Three independently computed paths take it from there: minute_occupancy, the
+        primary rollup; minute_deltas, a second path built as signed deltas; and maxIntersections,
+        an arithmetic oracle. A Python reference and chDB check the same answer independently.
+        Twelve checks diff all five. The agreed answer serves through marts.v_concurrency to the
+        dashboard, LibreChat, Langfuse and ClickStack.">
+        <defs>
+          <marker id="dvArrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path class="dv-arrowhead" d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+          <marker id="dvArrowStrong" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+            <path class="dv-arrowhead-strong" d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+        </defs>
+
+        <path class="dv-edge" d="M540,66 L410,92"/>
+        <path class="dv-edge" d="M540,66 L690,92"/>
+        <path class="dv-edge" d="M410,138 L540,164"/>
+        <path class="dv-edge" d="M540,210 L183,244"/>
+        <path class="dv-edge" d="M540,210 L539,244"/>
+        <path class="dv-edge" d="M540,210 L895,244"/>
+        <path class="dv-edge-dashed" d="M350,138 L370,332"/>
+        <path class="dv-edge-dashed" d="M750,138 L710,332"/>
+        <path class="dv-edge" d="M183,306 L183,404"/>
+        <path class="dv-edge" d="M539,306 L540,404"/>
+        <path class="dv-edge" d="M895,306 L895,404"/>
+        <path class="dv-edge-dashed" d="M370,378 L370,404"/>
+        <path class="dv-edge-dashed" d="M710,378 L710,404"/>
+        <path class="dv-edge-strong" d="M540,444 L540,470"/>
+        <path class="dv-edge" d="M540,520 L141,550"/>
+        <path class="dv-edge" d="M540,520 L407,550"/>
+        <path class="dv-edge" d="M540,520 L673,550"/>
+        <path class="dv-edge" d="M540,520 L939,550"/>
+
+        <text class="dv-label dv-label-left" x="25" y="230">Three independent paths</text>
+        <text class="dv-label dv-label-left" x="25" y="320">Checked independently</text>
+        <text class="dv-label dv-label-left" x="25" y="538">Four consumer surfaces</text>
+
+        <rect class="dv-box" x="410" y="20" width="260" height="46" rx="8"/>
+        <text class="dv-title" x="540" y="40">Raw CSVs</text>
+        <text class="dv-sub" x="540" y="55">events + content metadata</text>
+
+        <rect class="dv-box" x="280" y="92" width="260" height="46" rx="8"/>
+        <text class="dv-title" x="410" y="112">raw_events</text>
+        <text class="dv-sub" x="410" y="127">MergeTree, partitioned by day</text>
+
+        <rect class="dv-box" x="560" y="92" width="260" height="46" rx="8"/>
+        <text class="dv-title" x="690" y="112">content_meta &rarr; content_dict</text>
+        <text class="dv-sub" x="690" y="127">dictionary enrichment, not a join</text>
+
+        <rect class="dv-box" x="410" y="164" width="260" height="46" rx="8"/>
+        <text class="dv-title" x="540" y="184">active_intervals</text>
+        <text class="dv-sub" x="540" y="199">playing AND foregrounded AND fresh</text>
+
+        <rect class="dv-box" x="20" y="244" width="326" height="62" rx="8"/>
+        <text class="dv-title dv-title-sm" x="183" y="269">session_minutes &rarr; minute_occupancy</text>
+        <text class="dv-sub" x="183" y="286">primary path, one row per session-minute</text>
+
+        <rect class="dv-box" x="376" y="244" width="326" height="62" rx="8"/>
+        <text class="dv-title" x="539" y="269">minute_deltas</text>
+        <text class="dv-sub" x="539" y="286">second path, signed &plusmn;1, windowed cumsum</text>
+
+        <rect class="dv-box" x="732" y="244" width="326" height="62" rx="8"/>
+        <text class="dv-title" x="895" y="269">maxIntersections</text>
+        <text class="dv-sub" x="895" y="286">oracle, arithmetic, no rollup</text>
+
+        <rect class="dv-box" x="220" y="332" width="300" height="46" rx="8"/>
+        <text class="dv-title" x="370" y="352">Python reference</text>
+        <text class="dv-sub" x="370" y="367">reads the CSV, owes ClickHouse nothing</text>
+
+        <rect class="dv-box" x="560" y="332" width="300" height="46" rx="8"/>
+        <text class="dv-title" x="710" y="352">chDB</text>
+        <text class="dv-sub" x="710" y="367">same SQL files, in process, no server</text>
+
+        <rect class="dv-badge" x="140" y="404" width="800" height="40" rx="20"/>
+        <text class="dv-badge-text" x="540" y="429">12 checks diff all five paths</text>
+
+        <rect class="dv-box dv-box-on" x="400" y="470" width="280" height="50" rx="8"/>
+        <text class="dv-title dv-title-on" x="540" y="492">marts.v_concurrency</text>
+        <text class="dv-sub" x="540" y="507">one parameterized view, budgeted role</text>
+
+        <rect class="dv-box" x="20" y="550" width="242" height="50" rx="8"/>
+        <text class="dv-title" x="141" y="572">Dashboard</text>
+        <text class="dv-sub" x="141" y="587">clickliv.vercel.app/dashboard</text>
+
+        <rect class="dv-box" x="286" y="550" width="242" height="50" rx="8"/>
+        <text class="dv-title" x="407" y="572">LibreChat</text>
+        <text class="dv-sub" x="407" y="587">plain language, via MCP tools</text>
+
+        <rect class="dv-box" x="552" y="550" width="242" height="50" rx="8"/>
+        <text class="dv-title" x="673" y="572">Langfuse</text>
+        <text class="dv-sub" x="673" y="587">every model and tool call traced</text>
+
+        <rect class="dv-box" x="818" y="550" width="242" height="50" rx="8"/>
+        <text class="dv-title" x="939" y="572">ClickStack</text>
+        <text class="dv-sub" x="939" y="587">pipeline spans, query_log facts</text>
+      </svg>
+      </div>
+
+      <div class="diagram-stack">
+        <div class="dv-step"><div class="dv-tile"><b>Raw CSVs</b><span>events + content metadata</span></div></div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-step"><div class="dv-tile"><b>raw_events</b><span>MergeTree, partitioned by day</span></div></div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-step"><div class="dv-tile"><b>content_meta &rarr; content_dict</b><span>dictionary enrichment, not a join</span></div></div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-step"><div class="dv-tile"><b>active_intervals</b><span>playing AND foregrounded AND fresh</span></div></div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-group-label">Three independent paths</div>
+        <div class="dv-branch">
+          <div class="dv-tile"><b>session_minutes &rarr; minute_occupancy</b><span>primary path</span></div>
+          <div class="dv-tile"><b>minute_deltas</b><span>second path, signed &plusmn;1, windowed cumsum</span></div>
+          <div class="dv-tile"><b>maxIntersections</b><span>oracle, arithmetic, no rollup</span></div>
+        </div>
+        <div class="dv-group-label">Checked independently</div>
+        <div class="dv-branch">
+          <div class="dv-tile"><b>Python reference</b><span>reads the CSV, owes ClickHouse nothing</span></div>
+          <div class="dv-tile"><b>chDB</b><span>same SQL files, in process, no server</span></div>
+        </div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-step"><div class="dv-badge-mobile">12 checks diff all five paths</div></div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-step"><div class="dv-tile on"><b>marts.v_concurrency</b><span>one parameterized view, budgeted role</span></div></div>
+        <div class="dv-down">&darr;</div>
+        <div class="dv-group-label">Four consumer surfaces</div>
+        <div class="dv-fan">
+          <div class="dv-tile"><b>Dashboard</b><span>clickliv.vercel.app/dashboard</span></div>
+          <div class="dv-tile"><b>LibreChat</b><span>plain language, via MCP tools</span></div>
+          <div class="dv-tile"><b>Langfuse</b><span>every model and tool call traced</span></div>
+          <div class="dv-tile"><b>ClickStack</b><span>pipeline spans, query_log facts</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div>
+          <h3>Land the events, aggregate nothing on the way in</h3>
+          <p>Every telemetry row goes into a partitioned MergeTree exactly as it arrived, so any
+          later decision about what counts as watching can be revisited without a reload.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h3>Sessionize into active intervals</h3>
+          <p>A window function turns ordered events into intervals of genuine playback. Intervals
+          close on pause, background, error, session end and on any heartbeat gap past the
+          threshold, and they reopen on play, resume and foreground while playing. Closing never
+          waits for a matching marker, because the markers do not balance in this data.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h3>Collapse to one row per session and minute</h3>
+          <p>A session that plays in several bursts inside one minute is still one viewer in that
+          minute. Deduplicating to a single active flag per session and minute buys the property
+          the whole serving layer rests on: per-minute concurrency is additive across dimensions,
+          so summing slice counts gives the total.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h3>Sum signed deltas as a second, differently built path</h3>
+          <p>The same intervals become plus one and minus one events on merged runs, summed into a
+          SummingMergeTree and read back as a windowed cumulative sum. It exists to disagree with
+          the rollup, and it never does.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h3>Serve one parameterized view, behind a budgeted role</h3>
+          <p>Curated <code>marts</code> views answer any combination of dimension filter, time
+          range and grain. Filtering happens before aggregation and aggregation is always to
+          minute, so the order of operations holds whatever is asked. Consumers hold a read-only
+          role scoped to <code>marts</code> and nothing underneath, with a query budget the server
+          enforces rather than a prompt.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h3>Cross-check against an oracle that shares no code</h3>
+          <p><code>maxIntersections</code> computes the same overlap arithmetically with no rollup
+          involved, and a Python reference reads the source CSV and owes ClickHouse nothing. The
+          pipeline also rebuilds byte identically, runs on a held out single day, and reproduces
+          the same hashes in chDB with no server at all.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="surfaces">
+    <h2>Live surfaces</h2>
+    <div class="cards">
+      <a class="card" href="/dashboard">
+        <h3>Concurrency dashboard</h3>
+        <p>The curve and every filter, read live from ClickHouse through the same parameterized
+        view every other consumer uses. Proves the serving layer answers arbitrary slices at
+        minute grain.</p>
+        <div class="host">clickliv.vercel.app/dashboard</div>
+      </a>
+      <a class="card" href="https://librechat.15-252-63-157.sslip.io">
+        <h3>LibreChat</h3>
+        <p>Ask the same questions in plain language. Proves a warehouse is safe to point a model at,
+        through pre-vetted MCP tools whose filter values are checked against the data itself.</p>
+        <div class="host">librechat.15-252-63-157.sslip.io</div>
+      </a>
+      <a class="card" href="https://langfuse.15-252-63-157.sslip.io">
+        <h3>Langfuse</h3>
+        <p>Every model and tool call traced. Proves the observability pillar is a second ClickHouse
+        workload, with traces in ClickHouse Cloud and transactional state in ClickHouse managed
+        Postgres.</p>
+        <div class="host">langfuse.15-252-63-157.sslip.io</div>
+      </a>
+      <a class="card" href="https://clickstack.15-252-63-157.sslip.io">
+        <h3>ClickStack</h3>
+        <p>One OpenTelemetry span per pipeline stage, per ingest and per query, carrying what the
+        server itself recorded. Proves the latency figures are read from
+        <code>system.query_log</code> rather than from a client stopwatch.</p>
+        <div class="host">clickstack.15-252-63-157.sslip.io</div>
+      </a>
+      <a class="card" href="https://github.com/ashutosh887/ClickLiv">
+        <h3>Source and evidence</h3>
+        <p>The SQL, the gates, the answer bundle and a manifest with a hash per file, MIT licensed.
+        Proves every number here is reproducible from a clean clone in three commands.</p>
+        <div class="host">github.com/ashutosh887/ClickLiv</div>
+      </a>
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2>What is measured, and what is not</h2>
+    <div class="limits">
+      <div class="limit">
+        <h3>Concurrency has two defensible readings and nobody upstream published which one counts</h3>
+        <p>Occupancy means any active playback inside the minute. Instantaneous means overlap at a
+        point in time. They differ at every slice, so both are computed and both are published.
+        Occupancy leads because the problem statement's own worked example reads that way.</p>
+      </div>
+      <div class="limit">
+        <h3>Paused playback is excluded on purpose</h3>
+        <p>The question is who is watching, not who has the app open. That is a stated choice rather
+        than a discovered fact, and it is one predicate to flip if the definition differs.</p>
+      </div>
+      <div class="limit">
+        <h3>Liveness thresholds come from the measured heartbeat cadence, not the data dictionary</h3>
+        <p>The documented cadence and the observed one disagree, so every threshold derives from the
+        measurement. The two remaining guesses are swept across a grid rather than argued for, and
+        the sweep ships with the answer.</p>
+      </div>
+      <div class="limit">
+        <h3>Average concurrency is reported against two denominators</h3>
+        <p>There is no single defensible denominator and the choice moves the answer, so both are
+        labelled everywhere they appear instead of one being quietly picked. The average above
+        divides by the minutes in which any session was open.</p>
+      </div>
+      <div class="limit">
+        <h3>Dimension values are published exactly as stored</h3>
+        <p>The source spells some language codes more than one way and those spellings stay distinct
+        here. Nothing is silently merged, because merging two real values would inflate a slice
+        without anyone noticing.</p>
+      </div>
+      <div class="limit">
+        <h3>Serving latency moves between runs</h3>
+        <p>The stable claim is the target, p99 under 100 ms, self-imposed because no upstream SLA
+        was ever published. Every figure is <code>query_duration_ms</code> read back by query id,
+        never client wall clock.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <h2>Built on</h2>
+    <div class="tools">
+      <div class="tool"><img class="mk" src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/clickhouse.svg" alt="" width="18" height="18" loading="lazy" decoding="async"><div><b>ClickHouse Cloud</b><span>Every interval, rollup and served answer</span></div></div>
+      <div class="tool"><span class="mk mono">ch</span><div><b>chDB</b><span>The same numbers in process, no server</span></div></div>
+      <div class="tool"><span class="mk mono">CS</span><div><b>ClickStack</b><span>A span per stage, ingest and query</span></div></div>
+      <div class="tool"><span class="mk mono">Lf</span><div><b>Langfuse</b><span>Every model and tool call traced</span></div></div>
+      <div class="tool"><span class="mk mono">LC</span><div><b>LibreChat</b><span>The conversational surface</span></div></div>
+      <div class="tool"><img class="mk" src="https://cdn.jsdelivr.net/npm/simple-icons@16.28.0/icons/modelcontextprotocol.svg" alt="" width="18" height="18" loading="lazy" decoding="async"><div><b>MCP</b><span>Pre-vetted tools over curated marts</span></div></div>
+      <div class="tool"><img class="mk" src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/googlegemini.svg" alt="" width="18" height="18" loading="lazy" decoding="async"><div><b>Google AI Studio</b><span>Gemini, the model behind the desk</span></div></div>
+      <div class="tool"><img class="mk" src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/amazonwebservices.svg" alt="" width="18" height="18" loading="lazy" decoding="async"><div><b>AWS EC2</b><span>The box the self-hosted surfaces run on</span></div></div>
+      <div class="tool"><img class="mk" src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/caddy.svg" alt="" width="18" height="18" loading="lazy" decoding="async"><div><b>Caddy</b><span>Real TLS on sslip.io, no domain bought</span></div></div>
+      <div class="tool"><img class="mk" src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/vercel.svg" alt="" width="18" height="18" loading="lazy" decoding="async"><div><b>Vercel</b><span>This page and its reads, in Mumbai</span></div></div>
+    </div>
+  </section>
+
+  <footer>
+    Built by DevSapiens for the ClickHouse Click-a-thon 2026, SonyLIV foreground-only concurrency
+    track. The figures in the result panel are read live from ClickHouse Cloud through a serverless
+    proxy authenticating as <code>marts_agent</code>, a read-only role with a query budget the
+    server enforces. No database credential reaches the browser and no admin credential exists in
+    that environment. Everything else on this page is prose about the method. MIT licensed.
+  </footer>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n).toLocaleString('en-US');
+const pct = (n) => `${Number(n).toFixed(1)}%`;
+const minuteOf = (stamp) => String(stamp).slice(11, 16);
+const dayOf = (stamp) => String(stamp).slice(0, 10);
+
+function fill(data) {
+  $('peakOver').textContent = pct(data.peak_overcount_pct);
+  $('avgOver').textContent = pct(data.average_overcount_pct);
+
+  const foreground = minuteOf(data.foreground_peak_utc);
+  const naive = minuteOf(data.naive_peak_utc);
+  $('minuteClause').innerHTML = foreground === naive
+    ? `On this dataset both peaks land in the same minute, <span class="num">${naive}</span> UTC.`
+    : `It also puts the peak in the wrong minute, <span class="num">${naive}</span> UTC where the`
+      + ` true peak is <span class="num">${foreground}</span>.`;
+
+  $('peak').textContent = fmt(data.foreground_peak);
+  $('peakAt').textContent = `${dayOf(data.foreground_peak_utc)} at ${foreground} UTC`;
+  $('naive').textContent = fmt(data.naive_peak);
+  $('naiveAt').textContent = `${dayOf(data.naive_peak_utc)} at ${naive} UTC`;
+  $('avg').textContent = Number(data.foreground_average).toFixed(1);
+  $('avgNaive').textContent = `${Number(data.naive_average).toFixed(1)} counting every open session`;
+  const rollup =
+    `${fmt(data.minutes_with_sessions)} minutes carrying sessions, ${fmt(data.occupancy_rows)} rollup rows`;
+  const denseDays = Number(data.dense_days || 0);
+  const strays = Number(data.outlier_minutes || 0);
+  if (data.dense_window_from && data.dense_window_to && denseDays) {
+    $('window').textContent = denseDays === 1
+      ? `${dayOf(data.dense_window_from)}, one day`
+      : `${dayOf(data.dense_window_from)} to ${dayOf(data.dense_window_to)}, ${fmt(denseDays)} days`;
+    $('windowSpan').textContent = strays
+      ? `full extent ${dayOf(data.window_from)} to ${dayOf(data.window_to)},`
+        + ` ${fmt(strays)} stray minutes kept and counted`
+      : rollup;
+  } else {
+    $('window').textContent = `${dayOf(data.window_from)} to ${dayOf(data.window_to)}`;
+    $('windowSpan').textContent = rollup;
+  }
+
+  $('claimStatus').innerHTML =
+    `<span class="live">live</span> &nbsp;dataset <code>${data.dataset}</code>, read from`
+    + ` <code>${data.schema}.v_overcount</code> in ${fmt(data.server_ms)} ms of ClickHouse`
+    + ' server time.';
+}
+
+try {
+  const res = await fetch('/api/headline');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  fill(data);
+} catch (error) {
+  for (const id of ['peakOver', 'avgOver', 'peak', 'naive', 'avg', 'window']) {
+    $(id).textContent = 'unavailable';
+  }
+  $('claimStatus').innerHTML =
+    '<span class="live stale">not read</span> &nbsp;These figures are read live and the read did'
+    + ' not return, so nothing is shown in their place. The measured run is in the repository.';
+}
+
+for (const path of ['/api/datasets', '/api/dimensions', '/api/concurrency?grain=hour']) {
+  fetch(path, { cache: 'force-cache' }).catch(() => {});
+}
+</script>
+</body>
+</html>

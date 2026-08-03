@@ -1,0 +1,16 @@
+<!-- Mounted at /etc/clickhouse-server/users.d/. The default user stays passwordless
+     but is pinned to loopback: that is what the dictionaries' SOURCE(CLICKHOUSE(...))
+     connects as from inside the server (sql/01_dims.sql). Remote access happens only
+     as rca_rw (writer: loader + rca-mcp) or librechat_ro (read-only: mcp-clickhouse),
+     both created by clickhouse-init.sh. -->
+<clickhouse>
+    <users>
+        <default>
+            <networks replace="replace">
+                <ip>127.0.0.1</ip>
+                <ip>::1</ip>
+            </networks>
+            <access_management>1</access_management>
+        </default>
+    </users>
+</clickhouse>

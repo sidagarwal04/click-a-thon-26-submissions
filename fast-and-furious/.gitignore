@@ -1,0 +1,64 @@
+# Env / secrets
+.env
+.env.*
+# ...but not the templates. `.env.*` swallows .env.example, which is the one file in the
+# pattern that MUST be committed -- it is how anyone learns which variables exist.
+# ingest/.env.example only survives because it was tracked before the rule existed; a new
+# one added later would be silently dropped, which is exactly what happened here.
+!.env.example
+!**/.env.example
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Node
+node_modules/
+dist/
+build/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+*.log
+
+# clickhouse-client, installed at the repo root by `curl https://clickhouse.com/ | sh`.
+# 664 MB — never commit it.
+/clickhouse
+
+# Local tooling state
+ruvector.db
+
+agentdb.rvf
+agentdb.rvf.lock
+.gstack/
+
+# Claude Code worktrees (they are git worktrees, not source)
+.claude/worktrees/
+
+# LibreChat: generated from Langfuse, plus container runtime state.
+# librechat.yaml is rendered by deploy/langfuse-prompt-sync.sh -- committing it would make
+# the repo a second, stale source of a prompt that Langfuse already versions.
+deploy/librechat/librechat.yaml
+deploy/librechat/agent-instructions.txt
+deploy/librechat/data-node/
+deploy/librechat/images/
+deploy/librechat/uploads/
+deploy/librechat/logs/
+deploy/librechat/agent-id
+
+# Source extracts. Large, and supplied rather than authored.
+data/*.csv

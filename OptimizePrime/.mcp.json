@@ -1,0 +1,45 @@
+{
+  "$comment": [
+    "ClickHouse MCP server for Claude Code. VERIFIED 30 Jul 2026 against mcp-clickhouse 0.4.1.",
+    "stdio is correct HERE (Claude Code runs on the host, which has a toolchain).",
+    "Do NOT use stdio from inside the LibreChat container - that image has no C compiler and",
+    "lz4 cannot build; use the streamable-http transport there instead. See docs/VERIFIED.md.",
+    "Tools exposed: list_databases, list_tables, run_query. run_chdb_select_query appears only",
+    "if the chdb extra is installed. The server enforces readonly itself: a write returns",
+    "Code: 164 even for a privileged user.",
+    "Env var names are CLICKHOUSE_MCP_*, NOT MCP_* - the latter are silently ignored."
+  ],
+  "mcpServers": {
+    "clickhouse": {
+      "command": "uvx",
+      "args": ["--from", "mcp-clickhouse", "mcp-clickhouse"],
+      "env": {
+        "CLICKHOUSE_HOST": "${CH_HOST}",
+        "CLICKHOUSE_PORT": "${CH_PORT}",
+        "CLICKHOUSE_USER": "${CH_USER}",
+        "CLICKHOUSE_PASSWORD": "${CH_PASSWORD}",
+        "CLICKHOUSE_SECURE": "${CH_SECURE}",
+        "CLICKHOUSE_VERIFY": "true",
+        "CLICKHOUSE_DATABASE": "${CH_DATABASE}",
+        "CLICKHOUSE_ALLOW_WRITE_ACCESS": "false",
+        "CLICKHOUSE_ALLOW_DROP": "false",
+        "CLICKHOUSE_MCP_QUERY_TIMEOUT": "30"
+      }
+    },
+    "clickhouse-local": {
+      "command": "uvx",
+      "args": ["--from", "mcp-clickhouse", "mcp-clickhouse"],
+      "env": {
+        "CLICKHOUSE_HOST": "localhost",
+        "CLICKHOUSE_PORT": "8123",
+        "CLICKHOUSE_USER": "agent_ro",
+        "CLICKHOUSE_PASSWORD": "${AGENT_PASSWORD}",
+        "CLICKHOUSE_SECURE": "false",
+        "CLICKHOUSE_VERIFY": "false",
+        "CLICKHOUSE_DATABASE": "default",
+        "CLICKHOUSE_ALLOW_WRITE_ACCESS": "false",
+        "CLICKHOUSE_ALLOW_DROP": "false"
+      }
+    }
+  }
+}

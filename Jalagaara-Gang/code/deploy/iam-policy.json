@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyThisProjectsParameters",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"],
+      "Resource": "arn:aws:ssm:ap-southeast-2:935424741609:parameter/clickathon/*"
+    },
+    {
+      "Sid": "DecryptSecureStringsWithTheAccountDefaultKey",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {"StringEquals": {"kms:ViaService": "ssm.ap-southeast-2.amazonaws.com"}}
+    },
+    {
+      "Sid": "BedrockForNarrationOnly",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream", "bedrock:Converse", "bedrock:ConverseStream"],
+      "Resource": "*"
+    }
+  ]
+}

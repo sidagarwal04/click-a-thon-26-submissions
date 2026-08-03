@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rca"
+version = "0.1.0"
+description = "Automated root-cause analyst for ad-metrics anomalies (InMobi Click-a-thon 2026)"
+requires-python = ">=3.10"
+dependencies = [
+    "clickhouse-connect>=0.7.19",
+    "google-genai>=1.0.0",
+    "langfuse>=2.53.0",
+    "python-dotenv>=1.0.1",
+    "click>=8.1.7",
+    "rich>=13.7.1",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "fastmcp>=2.0.0",
+]
+
+[project.scripts]
+rca = "rca.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rca"]

@@ -1,0 +1,26 @@
+# evidence: rebuild_swap_phoenix_idem_b
+# what: full rebuild into a shadow database with the end-bound rule, verified on the shadow deltas before any swap
+# run_utc: 2026-08-01 16:19:40
+# git: dc0d374-dirty
+# host: ss-cric
+# row_count: 1138316
+# event_watermark: 2026-08-01 16:19:38.385
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 16:19:40   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+live_db	phoenix
+shadow_db	phoenix_idem_b
+shadow.asserted_session_runs	43178
+shadow.asserted_user_runs	42175
+shadow.delta_rows	31189
+shadow.invariant.closure_session	0	(required 0)
+shadow.invariant.closure_user	0	(required 0)
+shadow.intervals_past_last_session_end	0	(required 0, the defect this rebuild fixes)
+live.peak_frozen_slice	2828
+shadow.peak_frozen_slice	2828
+verdict	PASS

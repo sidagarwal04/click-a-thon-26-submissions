@@ -1,0 +1,45 @@
+# LibreChat + ClickHouse MCP (SSE sidecar) over the concurrency data.
+#   cp .env.example .env   (LLM key + ClickHouse creds + LibreChat secrets)
+#   docker compose up -d   ->   http://localhost:3080
+#
+# The MCP server runs as its own container (official `mcp/clickhouse` image) and
+# LibreChat reaches it over the compose network via SSE — no uvx/build inside LibreChat.
+services:
+  api:
+    image: ghcr.io/danny-avila/librechat:latest
+    ports: ["3080:3080"]
+    env_file: [.env]
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml
+    depends_on: [mongodb, meilisearch, mcp-clickhouse]
+    restart: unless-stopped
+
+  mcp-clickhouse:
+    image: mcp/clickhouse
+    environment:
+      CLICKHOUSE_HOST: "${CH_HOST}"
+      CLICKHOUSE_PORT: "${CH_PORT}"
+      CLICKHOUSE_USER: "${CH_USER}"
+      CLICKHOUSE_PASSWORD: "${CH_PASSWORD}"
+      CLICKHOUSE_SECURE: "${CH_SECURE}"
+      CLICKHOUSE_DATABASE: "sonyliv"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: "sse"
+      CLICKHOUSE_MCP_BIND_HOST: "0.0.0.0"
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    volumes: ["mongo-data:/data/db"]
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY:-masterKey}"
+    volumes: ["meili-data:/meili_data"]
+    restart: unless-stopped
+
+volumes:
+  mongo-data: {}
+  meili-data: {}

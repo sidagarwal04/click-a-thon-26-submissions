@@ -1,0 +1,22 @@
+# evidence: oracle_parity
+# what: oracle (clickhouse local, CSV) vs serving layer, batch and incremental
+# run_utc: 2026-08-01 19:35:52
+# git: 3be2212
+# host: ss-cric
+# row_count: 2188718
+# event_watermark: 2026-08-01 20:03:11.372
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:03:12   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+comparison	path	oracle_minutes	served_minutes	diff_rows	verdict
+sessions	batch	3663	3663	0	PASS
+users	batch	3663	3663	0	PASS
+sessions	incremental	3663	3663	0	PASS
+users	incremental	3663	3663	0	PASS
+#	csv	data/ch-hackathon-raw-data.csv
+#	tolerance_s	90
+#	pause_inactive	1

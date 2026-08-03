@@ -1,0 +1,169 @@
+{
+  "_comment": "GOLDEN FIXTURE for RootCauseOS frontend development. Every number here was COMPUTED from InMobi/data/ad_events.parquet at commit HEAD of sidagarwal04/click-a-thon-2026. Incident = INC-C (Android 15 fill-rate collapse, Jun 23-25 2026). Frontend codes against THIS shape with zero dependency on the backend. CORRECTS teamkit/contracts example which named device_model='iPhone 14' - that is a dilution artifact, not a cause.",
+
+  "investigation_id": "inv_20260623_revenue_001",
+  "schema_version": "1.0.0",
+  "status": "verified",
+  "verdict": "LOCALIZED_1D",
+  "confidence": 0.94,
+  "wall_clock_s": 4.2,
+  "git_commit": "REPLACE_AT_RUNTIME",
+  "frozen_config_hash": "REPLACE_AT_RUNTIME",
+
+  "metric": "revenue",
+  "incident_window": { "start": "2026-06-23T00:00:00Z", "end": "2026-06-25T23:59:59Z" },
+  "baseline_window": { "start": "2026-06-16T00:00:00Z", "end": "2026-06-18T23:59:59Z" },
+
+  "headline": {
+    "observed": 1536.99,
+    "baseline": 1574.48,
+    "delta_abs": -37.49,
+    "delta_pct": -2.381,
+    "robust_z": -4.8,
+    "breached": true,
+    "explained_share_pct": 97.96,
+    "residual_share_pct": 2.04,
+    "ev": "ev_1"
+  },
+
+  "decomposition": {
+    "method": "LMDI (log-mean Divisia)",
+    "cross_check": "Shapley over 4 factors",
+    "reconciliation_note": "Residual is 0 BY CONSTRUCTION - the revenue identity telescopes. This is not a proof of correctness. Validation is LMDI-vs-Shapley agreement and order-sensitivity, reported below.",
+    "lmdi_shapley_max_divergence_pct": 0.4,
+    "factors": [
+      { "factor": "requests",    "log_change":  0.021331, "pct_effect":  2.156, "verdict": "ruled_out",      "ev": "ev_3" },
+      { "factor": "fill_rate",   "log_change": -0.044764, "pct_effect": -4.378, "verdict": "primary_driver", "ev": "ev_4" },
+      { "factor": "render_rate", "log_change":  0.000088, "pct_effect":  0.009, "verdict": "ruled_out",      "ev": "ev_5" },
+      { "factor": "ecpm",        "log_change": -0.000757, "pct_effect": -0.076, "verdict": "ruled_out",      "ev": "ev_6" }
+    ],
+    "sum_log_change": -0.024102,
+    "total_log_change": -0.024102
+  },
+
+  "culprit": {
+    "dimension": "os_version",
+    "value": "Android 15",
+    "co_cut": null,
+    "segment_observed": 0.43331,
+    "segment_baseline": 0.78492,
+    "relative_change": -0.44796,
+    "denominator": 80799,
+    "rate_effect": -0.0817,
+    "mix_effect": -0.0059,
+    "counterfactual_impact_fills": -28410.1,
+    "contribution_share_pct": 97.96,
+    "purity": 0.0994,
+    "explanatory_power": 0.98,
+    "surprise_js": 0.34,
+    "ev": "ev_17"
+  },
+
+  "uniformity_gate": {
+    "parent": "os_version=Android 15",
+    "test": "G-test of homogeneity across children + Cohen's w",
+    "cohens_w": 0.0107,
+    "U_wrms_log": 0.0107,
+    "jsd_within": 0.000021,
+    "verdict": "UNIFORM",
+    "interpretation": "Android 15 moved proportionally in all five regions, so the OS is the cause - not a region, and not an interaction.",
+    "children": [
+      { "child": "EU",    "observed": 0.43045, "expected": 0.78496, "relative": -0.45163, "denominator": 31753 },
+      { "child": "APAC",  "observed": 0.43668, "expected": 0.78438, "relative": -0.44328, "denominator": 20278 },
+      { "child": "NAM",   "observed": 0.43320, "expected": 0.78228, "relative": -0.44623, "denominator": 15974 },
+      { "child": "MEA",   "observed": 0.44208, "expected": 0.78882, "relative": -0.43957, "denominator":  7234 },
+      { "child": "LATAM", "observed": 0.42626, "expected": 0.78935, "relative": -0.45999, "denominator":  5560 }
+    ],
+    "ev": "ev_20"
+  },
+
+  "segments": [
+    { "rank": 1, "dimension": "os_version",     "value": "Android 15",    "observed": 0.43331, "expected": 0.78492, "relative": -0.44796, "denominator":  80799, "rate_effect": -0.0817, "mix_effect": -0.0059, "impact_fills": -28410.1, "share_pct": 97.96, "purity": 0.0994, "flag": "CULPRIT",           "ev": "ev_17" },
+    { "rank": 2, "dimension": "publisher_tier", "value": "tier_2",        "observed": 0.77764, "expected": 0.81213, "relative": -0.04247, "denominator": 389073, "rate_effect": -0.0079, "mix_effect": -0.0002, "impact_fills": -13421.1, "share_pct": 46.28, "purity": 0.0183, "flag": "DILUTION_ARTIFACT", "ev": "ev_21" },
+    { "rank": 3, "dimension": "region",         "value": "EU",            "observed": 0.73000, "expected": 0.78505, "relative": -0.07012, "denominator": 206339, "rate_effect": -0.0126, "mix_effect": -0.0003, "impact_fills": -11357.7, "share_pct": 39.16, "purity": 0.0316, "flag": "DILUTION_ARTIFACT", "ev": "ev_22" },
+    { "rank": 4, "dimension": "ad_format",      "value": "banner",        "observed": 0.78666, "expected": 0.82331, "relative": -0.04451, "denominator": 293562, "rate_effect": -0.0083, "mix_effect": -0.0001, "impact_fills": -10757.9, "share_pct": 37.09, "purity": 0.0224, "flag": "DILUTION_ARTIFACT", "ev": "ev_23" },
+    { "rank": 5, "dimension": "device_model",   "value": "Galaxy A54",    "observed": 0.72784, "expected": 0.78546, "relative": -0.07336, "denominator": 174418, "rate_effect": -0.0119, "mix_effect": -0.0002, "impact_fills": -10050.7, "share_pct": 34.66, "purity": 0.0288, "flag": "DILUTION_ARTIFACT", "ev": "ev_24" },
+    { "rank": 6, "dimension": "device_model",   "value": "Redmi Note 12", "observed": 0.69982, "expected": 0.78417, "relative": -0.10757, "denominator":  78684, "rate_effect": -0.0173, "mix_effect": -0.0003, "impact_fills":  -6637.0, "share_pct": 22.88, "purity": 0.0632, "flag": "DILUTION_ARTIFACT", "ev": "ev_25" }
+  ],
+  "_segments_note": "Shares sum well past 100% because these segments OVERLAP - they describe many of the same rows. Only rank 1 survives the purity + uniformity gates. The UI MUST render ranks 2..n as dilution artifacts, never as independent causes.",
+
+  "hypotheses": {
+    "supported": [
+      { "hypothesis": "fill_rate collapse on os_version=Android 15", "computed": "-44.80%", "threshold": "3% relative + 5% of delta", "verdict": "SUPPORTED", "ev": "ev_17" }
+    ],
+    "ruled_out": [
+      { "hypothesis": "weekend/hour seasonality", "computed": "baseline is same-weekday like-for-like", "threshold": "band", "verdict": "RULED_OUT", "ev": "ev_8" },
+      { "hypothesis": "request volume",  "computed": "281,247/day", "expected": "270,068", "band": [250657.8, 289478.2], "threshold": "in band", "verdict": "RULED_OUT", "ev": "ev_3" },
+      { "hypothesis": "render_rate",     "computed": "0.980069",    "expected": "0.979911", "band": [0.979155, 0.980667], "threshold": "in band", "verdict": "RULED_OUT", "ev": "ev_5" },
+      { "hypothesis": "eCPM",            "computed": "2.475585",    "expected": "2.476740", "band": [2.468097, 2.485382], "threshold": "in band", "verdict": "RULED_OUT", "ev": "ev_6" },
+      { "hypothesis": "region=EU as independent cause", "computed": "derivative", "threshold": "exclusion + purity", "verdict": "EXPLAINED_BY", "explained_by": "os_version=Android 15", "ev": "ev_22" }
+    ],
+    "inconclusive": [
+      { "hypothesis": "CTR", "computed": "0.010225", "expected": "0.011037", "band": [0.010583, 0.011492], "threshold": "outside band", "verdict": "INCONCLUSIVE", "reason": "CTR moved outside its band, but CTR is not a multiplicative revenue driver in this CPM model. Consistent with impression-mix shift caused by the Android 15 fill collapse. Reported, not claimed as a cause.", "ev": "ev_9" }
+    ]
+  },
+
+  "gate_funnel": [
+    { "gate": "candidates",   "remaining": 1709 },
+    { "gate": "support",      "remaining":  340 },
+    { "gate": "effect_size",  "remaining":   26 },
+    { "gate": "significance", "remaining":    4 },
+    { "gate": "uniqueness",   "remaining":    1 }
+  ],
+
+  "diagnosis": "Revenue fell {{ev_1}} against a same-weekday baseline. The drop is driven almost entirely by fill rate, which moved {{ev_4}}; requests, render rate and eCPM were checked and are inside their expected bands. Fill rate collapsed on Android 15, from {{ev_17b}} to {{ev_17a}} across {{ev_17c}} requests, accounting for {{ev_18}} of the total movement. The effect is uniform across all five regions, so this is an OS-level fill failure rather than a regional one.",
+
+  "evidence_store": {
+    "ev_1":   { "value": -2.381,   "unit": "pct",   "label": "revenue_delta_pct",              "query_id": "rcos-a1f0", "sql_template_id": "metric.window.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 61 },
+    "ev_3":   { "value": 2.156,    "unit": "pct",   "label": "requests_delta_pct",             "query_id": "rcos-b2e1", "sql_template_id": "metric.window.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 58 },
+    "ev_4":   { "value": -4.378,   "unit": "pct",   "label": "fill_rate_delta_pct",            "query_id": "rcos-c3d2", "sql_template_id": "metric.window.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 59 },
+    "ev_5":   { "value": 0.980069, "unit": "ratio", "label": "render_rate_observed",           "query_id": "rcos-d4c3", "sql_template_id": "metric.window.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 57 },
+    "ev_6":   { "value": 2.475585, "unit": "usd",   "label": "ecpm_observed",                  "query_id": "rcos-e5b4", "sql_template_id": "metric.window.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 60 },
+    "ev_8":   { "value": 0.785178, "unit": "ratio", "label": "fill_rate_baseline_like4like",   "query_id": "rcos-f6a5", "sql_template_id": "baseline.stl_mad.v1", "rows_read": 214880, "bytes_read": 13631488, "duration_ms": 143 },
+    "ev_9":   { "value": 0.010225, "unit": "ratio", "label": "ctr_observed",                   "query_id": "rcos-0796", "sql_template_id": "metric.window.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 56 },
+    "ev_17":  { "value": -44.796, "unit": "pct",    "label": "android15_fill_rate_rel_change", "query_id": "rcos-1887", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 64 },
+    "ev_17a": { "value": 0.43331, "unit": "ratio",  "label": "android15_fill_rate_observed",   "query_id": "rcos-1887", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 64 },
+    "ev_17b": { "value": 0.78492, "unit": "ratio",  "label": "android15_fill_rate_expected",   "query_id": "rcos-1887", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 64 },
+    "ev_17c": { "value": 80799,   "unit": "count",  "label": "android15_requests",             "query_id": "rcos-1887", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 64 },
+    "ev_18":  { "value": 97.96,   "unit": "pct",    "label": "android15_contribution_share",   "query_id": "rcos-2998", "sql_template_id": "seg.reconcile.v1",  "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 71 },
+    "ev_20":  { "value": 0.0107,  "unit": "score",  "label": "uniformity_cohens_w",            "query_id": "rcos-3aa9", "sql_template_id": "seg.uniformity.v1", "rows_read": 65214,  "bytes_read": 4194304, "duration_ms": 68 },
+    "ev_21":  { "value": -4.247,  "unit": "pct",    "label": "tier2_fill_rate_rel_change",     "query_id": "rcos-4bb0", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 62 },
+    "ev_22":  { "value": -7.012,  "unit": "pct",    "label": "eu_fill_rate_rel_change",        "query_id": "rcos-5cc1", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 63 },
+    "ev_23":  { "value": -4.451,  "unit": "pct",    "label": "banner_fill_rate_rel_change",    "query_id": "rcos-6dd2", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 61 },
+    "ev_24":  { "value": -7.336,  "unit": "pct",    "label": "galaxya54_fill_rate_rel_change", "query_id": "rcos-7ee3", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 62 },
+    "ev_25":  { "value": -10.757, "unit": "pct",    "label": "redmi12_fill_rate_rel_change",   "query_id": "rcos-8ff4", "sql_template_id": "seg.attribution.v2", "rows_read": 65214, "bytes_read": 4194304, "duration_ms": 60 }
+  },
+
+  "trace": {
+    "langfuse_trace_id": "REPLACE_AT_RUNTIME",
+    "langfuse_trace_url": "REPLACE_AT_RUNTIME",
+    "local_mirror": "evidence/traces/inv_20260623_revenue_001.jsonl",
+    "spans": [
+      { "name": "rootcause.investigate", "as_type": "agent",     "depth": 0, "duration_ms": 4200, "status": "ok" },
+      { "name": "detect_anomaly",        "as_type": "tool",      "depth": 1, "duration_ms":  310, "status": "ok", "rows_read":  65214, "bytes_read":  4194304 },
+      { "name": "select_baseline",       "as_type": "tool",      "depth": 1, "duration_ms":  620, "status": "ok", "rows_read": 214880, "bytes_read": 13631488 },
+      { "name": "decompose_metric",      "as_type": "chain",     "depth": 1, "duration_ms":  180, "status": "ok" },
+      { "name": "rank_dimensions",       "as_type": "chain",     "depth": 1, "duration_ms":  940, "status": "ok", "rows_read":  65214, "bytes_read":  4194304 },
+      { "name": "drilldown_l1",          "as_type": "retriever", "depth": 1, "duration_ms":  510, "status": "ok", "rows_read":  65214, "bytes_read":  4194304 },
+      { "name": "uniformity_gate",       "as_type": "evaluator", "depth": 2, "duration_ms":  240, "status": "ok" },
+      { "name": "evaluate_hypotheses",   "as_type": "evaluator", "depth": 1, "duration_ms":  430, "status": "ok" },
+      { "name": "construct_evidence",    "as_type": "chain",     "depth": 1, "duration_ms":   90, "status": "ok" },
+      { "name": "narrate",               "as_type": "generation","depth": 1, "duration_ms":  760, "status": "ok", "model": "claude-sonnet-4-6", "input_tokens": 1240, "output_tokens": 118 },
+      { "name": "validate_narration",    "as_type": "guardrail", "depth": 1, "duration_ms":  120, "status": "ok", "claims_checked": 6, "claims_grounded": 6, "unsupported": 0 }
+    ]
+  },
+
+  "scores": {
+    "localization_confidence": 0.94,
+    "explained_variance": 0.9796,
+    "narration_groundedness": 1.0,
+    "hypotheses_eliminated": 5,
+    "verdict": "confident"
+  },
+
+  "limitations": [
+    "Contribution is a measured association, not a proven cause. We report the largest measured contributor and its residual.",
+    "The 0% decomposition residual is guaranteed by the telescoping revenue identity and is not evidence of correctness.",
+    "Baseline uses 3 like-for-like weekdays in this fixture; production uses STL residual + MAD over 8 weeks."
+  ]
+}

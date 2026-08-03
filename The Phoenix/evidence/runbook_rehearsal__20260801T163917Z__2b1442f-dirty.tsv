@@ -1,0 +1,41 @@
+# evidence: runbook_rehearsal
+# what: docs/RUNBOOK_UNSEEN_DAY.md executed end to end on a throwaway database, per-step wall clock
+# run_utc: 2026-08-01 16:39:17
+# git: 2b1442f-dirty
+# host: ss-cric
+# row_count: 2105448
+# event_watermark: 2026-08-01 16:39:16.954
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 16:39:17   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+step	seconds
+1_dry_run_inspect	1
+2_init_db	3
+3a_load_content	1
+3b_load_events	5
+4_vocabulary_check	1
+5a_derive_intervals	1
+5b_merge_runs	0
+5c_merge_user_runs	1
+6_ground_state_verify	0
+8_peak_not_a_rollup	1
+9_benchmark_set	76
+TOTAL_WALL_CLOCK	90
+#
+# rebuilt database vs the validated corpus:
+rebuilt.peak_concurrency	2828
+rebuilt.peak_minute	2026-07-26 10:56:00
+rebuilt.minutes_with_audience	3663
+rebuilt.avg_all_minutes	7.87
+rebuilt.asserted_runs	17585
+rebuilt.closure	0
+rebuilt.max_runs_per_session_minute	1
+#	expected_peak	2828	(override with EXPECTED_PEAK, moved by decision D8)
+verdict	PASS
+#
+# database	phoenix_scratch_rehearsal
+# csv	data/ch-hackathon-raw-data.csv

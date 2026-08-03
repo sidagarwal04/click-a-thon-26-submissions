@@ -1,0 +1,32 @@
+# Keep the build context to what the image actually needs: sql/, scripts/, frontend/ source.
+#
+# WITHOUT THIS THE BUILD FAILS OUTRIGHT, not just slowly: librechat/data-node is MongoDB's data
+# directory, created root-owned by the container, and the docker daemon cannot read it while
+# tarring the context ("error from sender: permission denied").
+
+# Vendored LibreChat: the compose stack pulls prebuilt images, so none of this tree is needed to
+# build our image. Its runtime data directories are also unreadable.
+librechat/
+
+# Runtime state and caches.
+**/node_modules
+**/.next
+.git
+.derive_watermark.*
+.live_producer.*
+
+# The CSVs never enter version control and must never enter an image either: 1.8 GB of session
+# data would be baked into a layer for no reason.
+data/
+
+# Evidence is committed and useful to read, but it is not needed at runtime and grows steadily.
+evidence/
+
+# Local secrets. The compose file injects .env through env_file at RUN time instead, so the
+# credentials stay out of every image layer.
+.env
+.env.local
+frontend/.env.local
+
+*.log
+*.tsv.tmp

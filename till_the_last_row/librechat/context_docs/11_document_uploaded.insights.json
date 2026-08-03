@@ -1,0 +1,65 @@
+{
+  "spec_name": "11_document_uploaded",
+  "context_version": 6,
+  "generated_at": "2026-08-06T00:00:00Z",
+  "trace_url": null,
+  "trace_url_note": "Langfuse trace URL not programmatically obtainable from this agent runtime; set to null per protocol.",
+  "data_window": {
+    "from": "2026-01-01",
+    "to": "2026-07-01",
+    "total_rows": 20446,
+    "unique_users": 20446,
+    "backfilled_rows_excluded": false,
+    "backfilled_rows_count": 426
+  },
+  "data_caveats": "All doc_type values are 'passport_front' only — no passport_back/photo/supporting_doc observed. 18.2% of Android rows have empty os (D3 contradiction). 426 backfilled rows (2.1%) included. Agg table document_uploaded_daily_agg has 0 rows; all queries ran against base table. purchase_completed table does not exist — M5 not computable. device_type values normalized via lower().",
+  "insights": [
+    {
+      "id": "I1",
+      "headline": "Android passport upload failures are surging 5× since Jan, consistent with K2 passport scan model update",
+      "evidence": "Android threshold-crossing rate (M2: is_crossed_failed_attempt_threshold=1 / total uploads): Jan 6.6% → Mar 7.9% → Apr 12.1% → May 23.1% → Jun 33.8%. iOS stayed flat: Jan 8.2% → Jun 10.2%. Android n=6,541 uploads (32% of total); iOS n=8,479 (41%). The inflection begins in April, coinciding with K2 (on-device passport model update, early April). Both auto and manual scan modes on Android show the same acceleration (Jun: auto 34.1%, manual 31.7%), indicating the issue is scan-mode-agnostic.",
+      "why": "The timing and Android-only scope are consistent with K2 (passport scan model update deployed to Android in early April 2026). The model change appears to have introduced progressive degradation — not a one-time step change — suggesting a model-confidence decay or data-pipeline feedback loop. The fact that both auto and manual scan modes are equally affected rules out an auto-scan-specific regression.",
+      "confidence": 0.85,
+      "confidence_label": "High",
+      "confidence_reason": "Strong temporal correlation with K2, clear Android-only signal across 6,541 uploads, iOS control group stable. Hedged because we cannot prove causation without A/B or rollback data.",
+      "related_known_issues": ["K2"],
+      "related_metrics": ["failed-attempt-threshold-rate", "platform-upload-failure-rate", "scan-mode-retry-comparison"],
+      "suggested_next_step": "Escalate to the ML/CV team: request a rollback or hotfix of the April passport scan model on Android. Instrument model-confidence scores per capture attempt to confirm the root cause."
+    },
+    {
+      "id": "I2",
+      "headline": "11.2% of all document uploads hit the failure threshold — and camera capture (70% of volume) drives the bulk of friction",
+      "evidence": "Overall threshold-crossing rate (M2): 11.2% (2,299/20,446). Retry histogram (M1): 70.1% succeed on first try (retry_count=0), 18.2% retry once, 7.9% retry twice, 3.9% retry 3+ times (threshold). By capture_mode: camera 70.0% share / 11.3% threshold rate; gallery 21.7% / 11.3%; QR 8.3% / 10.6%. Avg retries nearly identical across capture modes (~0.45). The monthly trend shows overall threshold-crossing rising from 7.8% (Jan) to 17.7% (Jun), driven almost entirely by the Android surge (Insight I1).",
+      "why": "Camera dominates volume because most mobile users capture live passport photos. The similar threshold-crossing rates across capture modes suggest the scan/OCR model — not the capture method — is the primary friction driver. The overall upward trend is an artifact of the Android deterioration (I1); iOS and web capture modes remain stable.",
+      "confidence": 0.75,
+      "confidence_label": "Medium",
+      "confidence_reason": "Solid sample sizes across all capture modes (camera n=14,305; gallery n=4,443; QR n=1,698). Medium rather than High because all doc_type = passport_front — we cannot assess whether other document types would show different patterns.",
+      "related_known_issues": ["K2"],
+      "related_metrics": ["retry-count-distribution", "failed-attempt-threshold-rate"],
+      "suggested_next_step": "Once the Android scan model is fixed (I1), re-baseline the threshold-crossing rate. Investigate why only passport_front appears in data — are passport_back/photo/supporting_doc events not being emitted, or is the spec scoped to front-only?"
+    },
+    {
+      "id": "I3",
+      "headline": "Auto vs manual scan mode shows no meaningful difference in retry friction — the K2 regression affects both equally",
+      "evidence": "M3 (scan-mode-retry-comparison) for passport docs: auto avg_retries=0.455, threshold-cross=11.2% (n=17,355); manual avg_retries=0.455, threshold-cross=11.7% (n=3,091). On Android specifically: auto threshold-cross Jun 34.1%, manual 31.7% — both elevated and tracking together. The difference is not statistically meaningful given the sample sizes.",
+      "why": "Auto and manual scan modes differ in OCR/parse approach, but both feed into the same passport scan model for validation. The K2 model update degraded the shared validation layer, not the scan-mode-specific preprocessing. This finding suggests fixing the model (not the scan mode routing) is the correct intervention.",
+      "confidence": 0.7,
+      "confidence_label": "Medium",
+      "confidence_reason": "Good sample sizes (auto 17K, manual 3K). Medium because manual is only 15% of volume, and we lack direct model-layer telemetry to confirm the shared-validation hypothesis.",
+      "related_known_issues": ["K2"],
+      "related_metrics": ["scan-mode-retry-comparison", "platform-upload-failure-rate"],
+      "suggested_next_step": "No action needed on scan-mode routing. Focus engineering effort on the passport model fix (I1). Consider adding model-layer metrics (confidence score, rejection reason) to future instrumentation."
+    },
+    {
+      "id": "I4",
+      "headline": "Data quality gap: os field is empty for 18% of Android uploads (D3 contradiction confirmed), and M5 conversion metric is blocked by missing purchase_completed table",
+      "evidence": "D3 (android-os-null): 1,188 of 6,541 Android uploads (18.2%) have os=''. Non-Latin passport MRZ (K3): citizenship-based retry analysis shows no significant pattern — 'bd' (Bangladesh, non-Latin) avg_retries=0.48 vs 'in' (India, Latin) 0.45 vs 'de' (Germany, Latin) 0.53 — differences are within noise. M5 (doc-volume-vs-payment-conversion): purchase_completed table does not exist in the database; pay_now_clicked (spec 12) is not live. Cross-table funnel analysis is currently impossible.",
+      "confidence": 0.9,
+      "confidence_label": "High",
+      "confidence_reason": "D3 is directly observable in the data. M5 gap is a schema-level fact. K3 non-finding is limited by the citizenship granularity available (bucketed, not per-country for smaller populations).",
+      "related_known_issues": ["K3"],
+      "related_metrics": ["doc-volume-vs-payment-conversion"],
+      "suggested_next_step": "Fix the Android SDK to populate the os field reliably. Prioritize specs 12 (pay_now_clicked) and 13 (purchase_completed) to unblock M5 and full funnel analysis from document upload to purchase."
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+/* A scored seam, not a filled panel: the sidebar shares the same chassis surface as the header
+   and main column, separated only by a hairline rule instead of sitting in its own tinted box. */
+.rail {
+  border-right: 1px solid var(--line);
+  padding: 1.3rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 240px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sectionTitle {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin-bottom: 0.35rem;
+}
+
+.section label {
+  margin-top: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.select {
+  width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.42rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.select:hover {
+  border-color: var(--line-bright);
+}
+
+/* Why the date pickers stop where they stop: the corpus is frozen at ingest, so anything after
+   that point simply isn't queryable yet, this is the console explaining its own edge instead of
+   leaving a silently-greyed-out calendar to raise the question. */
+.boundsHint {
+  font-size: 0.66rem;
+  color: var(--ink-faint);
+  line-height: 1.4;
+  margin-top: -0.15rem;
+}
+
+/* Countdown line to the next auto-refresh tick: full width at the moment of a tick, shrinking
+   to nothing right as the next one fires. Remounted (via a changing `key`) every tick so it
+   restarts in lockstep with the actual fetch interval instead of drifting. */
+.timerTrack {
+  margin-top: 0.5rem;
+  height: 2px;
+  background: var(--line);
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.timerFill {
+  height: 100%;
+  width: 100%;
+  background: var(--phosphor);
+  transform-origin: left center;
+  animation-name: timer-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes timer-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

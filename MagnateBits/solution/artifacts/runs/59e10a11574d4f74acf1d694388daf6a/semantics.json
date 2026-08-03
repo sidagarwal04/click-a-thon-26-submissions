@@ -1,0 +1,51 @@
+{
+  "feature_slug": "abandoned_checkout_recovery",
+  "table_fqn": "atlys.f_abandoned_checkout_recovery_events",
+  "event_column": "event",
+  "event_types": [
+    "abandonment_detected",
+    "reminder_sent",
+    "reminder_opened",
+    "reminder_cta_clicked",
+    "resumed_at_step",
+    "reconverted"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.7,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "abandonment_detected",
+    "reminder_sent",
+    "reminder_opened",
+    "reminder_cta_clicked",
+    "resumed_at_step",
+    "reconverted"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "client_lib",
+    "app_version",
+    "device_type",
+    "drop_step",
+    "city",
+    "geoip_country_code",
+    "destination",
+    "os"
+  ],
+  "measures": [
+    {
+      "column": "hours_since_drop",
+      "kind": "other",
+      "scoped_to_events": [
+        "reminder_sent"
+      ],
+      "unit": "elapsed time (integer units, see column name)"
+    }
+  ],
+  "flags": [],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": []
+}

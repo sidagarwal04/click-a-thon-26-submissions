@@ -1,0 +1,169 @@
+# LibreChat configuration for the Verdict chat surface.
+#
+# Mounted read-only at /app/librechat.yaml. LibreChat reads this once at boot, so a change here
+# needs `docker compose --profile chat restart librechat`. It exits with code 1 on a validation
+# error rather than falling back to defaults, which is the behaviour you want: a silently
+# ignored MCP block would look like a working chat that simply cannot see any data.
+#
+# What this file is for, in one line: it gives the model a tool that runs SQL against the same
+# rollup tables the detectors read, and nothing else.
+
+# 1.3.13, not 1.3.0: `interface.defaultPinnedTools` and `modelSpecs.list[].mcpServers` were
+# both added after 1.3.0, and declaring the older schema makes the loader log
+# "Outdated Config version" and read those keys under rules that predate them.
+version: 1.3.13
+cache: true
+
+# Gemini over its OpenAI-compatible endpoint, declared as a custom provider rather than through
+# LibreChat's built-in Google or OpenAI entries. The built-in OpenAI provider ignores a base URL
+# and would post Gemini traffic to api.openai.com, which fails with an authentication error that
+# reads as a bad key rather than as a misrouted request -- an expensive hour to debug.
+#
+# Going through the OpenAI wire format also means this file and src/verdict/llm.py agree on one
+# protocol, so LLM_BASE_URL is the only thing that has to change to move to Groq or OpenAI.
+endpoints:
+  custom:
+    - name: 'Gemini'
+      apiKey: '${LLM_API_KEY}'
+      baseURL: '${LLM_BASE_URL}'
+      models:
+        # Names are written out here rather than as ${LLM_MODEL}. LibreChat resolves environment
+        # references in `apiKey` and `baseURL` -- those two demonstrably reach Google -- but not
+        # in model fields, which are passed through verbatim. The literal string "${LLM_MODEL}"
+        # was being sent as a model name, and the chat answered every message with
+        # "404 status code (no body) ... MODEL_NOT_FOUND".
+        #
+        # The `models/` prefix is required: that is the form the fetched list uses, and a bare
+        # name does not match an entry in it.
+        #
+        # Lite rather than full flash because the free tier allows 20 requests per day per
+        # model, and the engine's narration step spends the same allowance against the same
+        # key. Note also that models/gemini-2.5-flash appears in the fetched list but answers
+        # 404 NOT_FOUND on this key -- being listed is not the same as being callable.
+        default: ['models/gemini-flash-lite-latest']
+        # Pull the account's real model list at boot rather than pinning names here. Free-tier
+        # model availability changes, and a hardcoded name that Google has retired shows up as an
+        # empty dropdown with no explanation.
+        fetch: true
+      titleConvo: true
+      titleModel: 'models/gemini-flash-lite-latest'
+      modelDisplayLabel: 'Gemini'
+      # Tools are the entire point: without function calling the model cannot reach the MCP
+      # server, and the chat degrades to a plausible-sounding narrator with no access to the data.
+      capabilities: ['tools']
+
+# One spec, made the default, because the bubble opened on "My Agents" -- LibreChat's own
+# default endpoint -- and every message came back as
+# {"error":"Bad Request","message":"agent_id is required in request body"}. The Gemini endpoint
+# above was configured correctly the whole time; nothing was ever selecting it.
+#
+# `addedEndpoints` is deliberately omitted. Leaving it out hides the endpoint menu altogether,
+# so Agents and Assistants cannot be picked by accident. Choosing a provider is not a question
+# a chat bubble should be asking: there is one model here, and it is wired to one database.
+modelSpecs:
+  prioritize: true
+  list:
+    - name: 'verdict'
+      label: 'Verdict.AI'
+      default: true
+      description: 'Reads the same ClickHouse rollups the detectors read.'
+      # Attached to the spec, so the tool is live on the first message. Configuring an MCP
+      # server only makes it *available*: the dropdown read "MCP Servers" with nothing
+      # selected, and until someone picked it the model had no way to reach the warehouse
+      # and answered from memory. A chat that silently stops consulting the database is the
+      # exact failure this surface exists to rule out, so it cannot be one click away.
+      mcpServers:
+        - 'verdict-clickhouse'
+      preset:
+        # `google`, LibreChat's built-in provider, rather than the custom Gemini endpoint
+        # defined above. The custom one reaches Gemini through its OpenAI-compatible shim,
+        # which is the right choice everywhere else in this project -- one wire format for
+        # the pipeline and the chat -- but it cannot carry a tool conversation. Gemini
+        # attaches a thought_signature to every function call and rejects the next turn
+        # without it, and that field has no home in the OpenAI schema. The native protocol
+        # has somewhere to put it. The custom endpoint stays defined and reachable from the
+        # dropdown, for chat that needs no tools.
+        endpoint: 'google'
+        model: 'gemini-flash-lite-latest'
+        greeting: |
+          Ask about any run, case, or segment. I query the same rollup tables the detectors
+          read, so anything I tell you can be checked against the case file.
+
+interface:
+  # The dropdown has to be visible, because the point of the surface is that a reader can see
+  # which tool answered them. A chat that silently consults a database is a worse artefact than
+  # no chat at all -- the whole argument of this project is that the reasoning is inspectable.
+  mcpServers:
+    use: true
+    share: false
+    create: false
+    public: false
+
+  # Pins the server in the composer so its state is visible without opening the dropdown.
+  # The spec above is what actually attaches the tool; this is what lets a reader confirm at
+  # a glance which one answered them.
+  defaultPinnedTools:
+    - 'verdict-clickhouse'
+
+# LibreChat refuses private and local addresses unless they are named here, and the refusal is
+# quiet in the way that matters: the server starts, the chat works, and it simply has no tools.
+# Both forms are listed so this file works whether LibreChat runs inside this compose project or
+# separately on the same host.
+mcpSettings:
+  allowedAddresses:
+    - 'mcp-clickhouse:8000'
+    - 'host.docker.internal:8001'
+    - 'localhost:8001'
+
+mcpServers:
+  verdict-clickhouse:
+    type: sse
+    # The compose service name, so the traffic stays on the compose network instead of leaving
+    # for the host and coming back. host.docker.internal is the documented alternative and is
+    # allowed above, but it does not exist by default on Linux hosts.
+    url: http://mcp-clickhouse:8000/sse
+    timeout: 60000
+    serverInstructions: |
+      You are attached to the Verdict analytics warehouse: ClickHouse holding InMobi ad-serving
+      data and the output of an automated root-cause pipeline.
+
+      Read this before your first query.
+
+      Facts live in `ad_events`. Do not query it for aggregates; it holds nine million rows and
+      the pre-aggregated rollups answer the same questions far faster.
+
+      Prefer the rollups: `rollup_5m`, `rollup_1h`, `rollup_1d`. Each row is one time bucket for
+      one combination of dimensions, identified by `combo` plus `key_a` and `key_b`.
+        - `combo = '__total__'` is all traffic, with both keys empty.
+        - A one-dimensional slice sets `combo` to the dimension name, the value in `key_a`, and
+          leaves `key_b` empty -- for example `combo = 'country' AND key_a = 'IN' AND key_b = ''`.
+        - A two-dimensional slice joins the names with a pipe in alphabetical order, such as
+          `combo = 'country|os_version'`, with the values in the matching order.
+      Not every pair exists at every grain: `rollup_5m` stores one-dimensional slices only.
+
+      Only counts are stored: requests, fills, impressions, clicks, revenue. Rates are never
+      stored, because rates do not add up across slices and counts do. Compute them yourself and
+      always guard the denominator:
+        fill_rate   = sum(fills)       / nullIf(sum(requests), 0)
+        render_rate = sum(impressions) / nullIf(sum(fills), 0)
+        ctr         = sum(clicks)      / nullIf(sum(impressions), 0)
+        ecpm        = 1000 * sum(revenue) / nullIf(sum(impressions), 0)
+        rpr         = sum(revenue)     / nullIf(sum(requests), 0)
+
+      Never alias an aggregate to the name of a column it sums. `sum(fills) AS fills` resolves
+      the alias inside its own aggregate and ClickHouse rejects the query.
+
+      Every `bucket` is DateTime('UTC'). State timezones explicitly and never assume local time.
+
+      Pipeline output lives in `cases` (one verdict each, with the accused segment, confidence
+      and impact), `case_candidates` (every segment considered, including the ones cleared and
+      why), `case_steps` (what each investigation step did and concluded), `coverage_ledger`
+      (cells that could not be tested, with the reason), and `runs`.
+
+      `coverage_ledger` is the one most people forget, and it is the one that keeps you honest.
+      A segment absent from `cases` was not necessarily innocent -- it may simply have carried
+      too little traffic to test. Check it before telling anyone a slice looks clean.
+
+      Two standing rules for your answers. Show the SQL you ran, so the reader can check it.
+      And when the data cannot answer what was asked, say so plainly instead of reaching for the
+      nearest number that looks close; the pipeline's whole claim is that it never does that.

@@ -1,0 +1,112 @@
+services:
+  mcp-clickhouse:
+    image: ghcr.io/clickhouse/mcp-clickhouse:0.4.1
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USER: agent_ro
+      CLICKHOUSE_PASSWORD: ${AGENT_PASSWORD:?set AGENT_PASSWORD in deploy/librechat/.env}
+      CLICKHOUSE_DATABASE: ${CH_DATABASE_LOCAL:-default}
+      CLICKHOUSE_SECURE: "false"
+      CLICKHOUSE_VERIFY: "true"
+      CLICKHOUSE_CONNECT_TIMEOUT: "10"
+      CLICKHOUSE_SEND_RECEIVE_TIMEOUT: "30"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: http
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: "8000"
+      CLICKHOUSE_MCP_QUERY_TIMEOUT: "10"
+      CLICKHOUSE_MCP_AUTH_TOKEN: ${CLICKHOUSE_MCP_AUTH_TOKEN:?set CLICKHOUSE_MCP_AUTH_TOKEN in deploy/librechat/.env}
+      CLICKHOUSE_ALLOW_WRITE_ACCESS: "false"
+      CLICKHOUSE_ALLOW_DROP: "false"
+      CLICKHOUSE_MCP_SERVER_ENABLE_QUERY: "true"
+      CLICKHOUSE_MCP_SERVER_ENABLE_INSERT: "false"
+      CLICKHOUSE_MCP_SERVER_ENABLE_DROP: "false"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  librechat-mongodb:
+    image: mongo:4.4.18
+    restart: unless-stopped
+    command: mongod --noauth
+    volumes:
+      - librechat-mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  librechat-meilisearch:
+    image: getmeili/meilisearch:v1.35.1
+    restart: unless-stopped
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${LIBRECHAT_MEILI_MASTER_KEY:?set LIBRECHAT_MEILI_MASTER_KEY in deploy/librechat/.env}
+    volumes:
+      - librechat-meili-data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:7700/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:v0.8.7
+    restart: unless-stopped
+    depends_on:
+      librechat-mongodb:
+        condition: service_healthy
+      librechat-meilisearch:
+        condition: service_healthy
+      mcp-clickhouse:
+        condition: service_healthy
+    ports:
+      - "${LIBRECHAT_PORT:-3080}:3080"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3080"
+      MONGO_URI: mongodb://librechat-mongodb:27017/LibreChat
+      MEILI_HOST: http://librechat-meilisearch:7700
+      MEILI_MASTER_KEY: ${LIBRECHAT_MEILI_MASTER_KEY:?set LIBRECHAT_MEILI_MASTER_KEY in deploy/librechat/.env}
+      SEARCH: "true"
+      CONFIG_PATH: /app/librechat.yaml
+      ALLOW_REGISTRATION: "true"
+      OPENAI_KEY: ${LIBRECHAT_OPENAI_KEY:?set LIBRECHAT_OPENAI_KEY in deploy/librechat/.env}
+      JWT_SECRET: ${LIBRECHAT_JWT_SECRET:?set LIBRECHAT_JWT_SECRET in deploy/librechat/.env}
+      JWT_REFRESH_SECRET: ${LIBRECHAT_JWT_REFRESH_SECRET:?set LIBRECHAT_JWT_REFRESH_SECRET in deploy/librechat/.env}
+      CREDS_KEY: ${LIBRECHAT_CREDS_KEY:?set LIBRECHAT_CREDS_KEY in deploy/librechat/.env}
+      CREDS_IV: ${LIBRECHAT_CREDS_IV:?set LIBRECHAT_CREDS_IV in deploy/librechat/.env}
+      CLICKHOUSE_MCP_AUTH_TOKEN: ${CLICKHOUSE_MCP_AUTH_TOKEN:?set CLICKHOUSE_MCP_AUTH_TOKEN in deploy/librechat/.env}
+      NO_PROXY: localhost,127.0.0.1,::1,clickhouse,mcp-clickhouse,librechat-mongodb,librechat-meilisearch
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      - librechat-images:/app/client/public/images
+      - librechat-uploads:/app/uploads
+      - librechat-logs:/app/logs
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3080/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  librechat-mongodb-data: {}
+  librechat-meili-data: {}
+  librechat-images: {}
+  librechat-uploads: {}
+  librechat-logs: {}

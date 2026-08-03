@@ -1,0 +1,475 @@
+/* Layout follows the design system's own shape: persistent left sidebar, content column, generous
+   gutters at the wide breakpoint. Every value below comes from a token in tokens.css. */
+
+.page {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+}
+
+@media (max-width: 1024px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- sidebar ---- */
+
+.sidebar {
+  background: var(--surface-1);
+  border-right: 1px solid var(--line-structure);
+  padding: var(--spacing-24) var(--spacing-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-32);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  padding-bottom: var(--spacing-12);
+  border-bottom: 2px solid var(--line-bright);
+}
+
+.brandMark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-h3);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+/* Mono against the condensed wordmark, the same pairing the concurrency console's masthead uses.
+   The two consoles are different shapes; the type has to say they are the same product. */
+.brandSub {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.navItem:hover {
+  background: var(--surface-white);
+  border-color: var(--border-default);
+}
+
+.navItem:focus-visible {
+  outline: 3px solid var(--text-base);
+  outline-offset: 0;
+}
+
+.navItemActive {
+  background: var(--surface-white);
+  border-color: var(--line-structure);
+  box-shadow: var(--shadow-card);
+}
+
+.navLabel {
+  font-family: var(--font-display);
+  font-size: var(--text-label-display);
+  color: var(--text-primary);
+}
+
+.navBlurb {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+}
+
+.sidebarFoot {
+  margin-top: auto;
+  border-top: 1px solid var(--line-structure);
+  padding-top: var(--spacing-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.footLabel {
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.footValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--text-primary);
+}
+
+.footNote {
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ---- main ---- */
+
+.main {
+  padding: var(--spacing-40) var(--spacing-40) var(--spacing-80);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+  max-width: 1180px;
+}
+
+@media (min-width: 1520px) {
+  .main {
+    padding-left: var(--spacing-80);
+    padding-right: var(--spacing-80);
+  }
+}
+
+/* COMPACTED 2026-08-02. This block is constant across all eleven views, so at the old
+   clamp(32px, 4vw, 50px) over two lines plus a lede it was spending roughly 30 percent of the
+   viewport restating something the reader has already read, on every single view. The editorial
+   voice is kept; the real estate goes back to the data, which is what anyone is here to look at.
+   The <br/> in the markup is neutralised below so the headline sets on one line. */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4, 4px);
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 1.7vw, 23px);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+/* One line: the two clauses read as a single sentence at this size, and the line break that made
+   sense at 50px only wastes height at 23px. */
+.heroTitle br {
+  display: none;
+}
+
+.heroTitle br + * ,
+.heroTitle mark + br {
+  margin-left: 0.25em;
+}
+
+/* The signature accent, and the ONLY place it appears in this console: never a series, never a
+   badge, never a state. A pale tint of the signal behind full-strength ink, so it reads as a
+   highlighter drawn over the headline rather than a label stuck to it. Ink on the tint measures
+   13.25:1. */
+.mark {
+  background: var(--neon-yellow);
+  color: var(--ink);
+  padding: 0 var(--spacing-4);
+}
+
+.heroLede {
+  font-size: var(--text-small, 0.78rem);
+  line-height: 1.45;
+  color: var(--text-secondary);
+  max-width: 78ch;
+}
+
+/* Below the fold on a laptop the lede is pure repetition; the views name their own table anyway. */
+@media (max-height: 820px) {
+  .heroLede {
+    display: none;
+  }
+}
+
+/* ---- watermarks ---- */
+
+.watermarks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--border-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.watermark {
+  background: var(--surface-white);
+  padding: var(--spacing-12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wmLabel {
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.wmValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--text-primary);
+}
+
+.wmLag {
+  font-size: var(--text-caption);
+  color: var(--state-good);
+}
+
+.wmLagStale {
+  color: var(--state-bad);
+}
+
+.wmExtra {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+}
+
+/* ---- notice ---- */
+
+.notice {
+  background: var(--surface-white);
+  border: 1px solid var(--line-structure);
+  border-left: 3px solid var(--state-warn);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-12) var(--spacing-16);
+  font-size: var(--text-body-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 82ch;
+}
+
+.notice strong {
+  color: var(--text-primary);
+}
+
+/* ---- panel ---- */
+
+.panel {
+  background: var(--surface-white);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.panelHead {
+  padding: var(--spacing-20) var(--spacing-20) var(--spacing-16);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Gate B evidence and the query text now live in the shared QueryPanel component, which both
+   consoles use, so the rules that styled them here are deleted rather than left to rot. */
+
+/* ---- table ---- */
+
+.tableWrap {
+  overflow-x: auto;
+  max-height: 32rem;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-label);
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-16);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.table td {
+  padding: var(--spacing-8) var(--spacing-16);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+  position: relative;
+  color: var(--text-primary);
+}
+
+.table tbody tr:hover td {
+  background: var(--surface-base);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+.cellValue {
+  position: relative;
+}
+
+/* Magnitude bar, behind the leading measure. Low-opacity so the number stays the thing you read. */
+.barTrack {
+  position: absolute;
+  inset: 2px 4px;
+  display: block;
+  pointer-events: none;
+}
+
+.barFill {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: block;
+  background: var(--series-1);
+  opacity: 0.14;
+  border-radius: var(--radius-sm);
+}
+
+/* ---- states ---- */
+
+.empty,
+.loading {
+  padding: var(--spacing-20);
+  font-size: var(--text-body-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 78ch;
+}
+
+.error {
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--state-bad);
+  border-radius: var(--radius-sm);
+  background: var(--surface-white);
+  color: var(--state-bad);
+  font-size: var(--text-body-sm);
+}
+
+/* ---- window selector ---- */
+
+.rangeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  color: var(--text-primary);
+  background: var(--surface-white);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-8);
+}
+
+.select:focus-visible {
+  outline: 3px solid var(--text-base);
+  outline-offset: 0;
+}
+
+/* ---- filter fields ---- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.fieldLabel {
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+/* A control the current view's query cannot use. Dimmed and struck through so the state is legible
+   without colour alone, since disabled + grey is the one combination a colour-blind reader loses. */
+.select:disabled {
+  opacity: 0.4;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.inertMark {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--line-structure);
+  margin: var(--spacing-8) 0 0;
+}
+
+/* Stated limitation, not an error: warn-weighted so it reads as a caveat rather than a failure. */
+.ignores {
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--state-warn);
+  padding-left: var(--spacing-8);
+  max-width: 76ch;
+}
+
+/* Exits to the other two surfaces, kept quiet under the wordmark. */
+.brandLinks {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-8);
+  font-size: var(--text-caption);
+}
+
+.brandLinks a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-default);
+  align-self: flex-start;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.brandLinks a:hover,
+.brandLinks a:focus-visible {
+  color: var(--action-blue);
+  border-bottom-color: var(--action-blue);
+}

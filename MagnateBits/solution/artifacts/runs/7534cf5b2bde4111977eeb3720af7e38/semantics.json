@@ -1,0 +1,68 @@
+{
+  "feature_slug": "instant_forex",
+  "table_fqn": "atlys.f_instant_forex_events",
+  "event_column": "event",
+  "event_types": [
+    "forex_offer_shown",
+    "currency_selected",
+    "amount_entered",
+    "forex_added_to_cart",
+    "forex_purchased"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.7,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "forex_offer_shown",
+    "currency_selected",
+    "amount_entered",
+    "forex_added_to_cart",
+    "forex_purchased"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "client_lib",
+    "app_version",
+    "device_type",
+    "city",
+    "geoip_country_code",
+    "to_currency",
+    "destination",
+    "os"
+  ],
+  "measures": [
+    {
+      "column": "addon_value_inr",
+      "kind": "money",
+      "scoped_to_events": [
+        "forex_added_to_cart",
+        "forex_purchased"
+      ],
+      "unit": "currency-denominated"
+    },
+    {
+      "column": "amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "amount_entered",
+        "forex_added_to_cart",
+        "forex_purchased"
+      ],
+      "unit": "currency-denominated"
+    },
+    {
+      "column": "fx_rate",
+      "kind": "rate",
+      "scoped_to_events": [
+        "forex_offer_shown"
+      ],
+      "unit": ""
+    }
+  ],
+  "flags": [],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": []
+}

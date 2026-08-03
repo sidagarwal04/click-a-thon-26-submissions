@@ -1,0 +1,116 @@
+{
+  "call_id": "CALL-08-MEDIUM",
+  "category": "Medium",
+  "title": "Passport-Capture Quality & Threshold Breach by Destination & Device",
+  "question": "What is the passport-capture pass rate (is_crossed_failed_attempt_threshold = 0) and average retry count by target destination and device type for destinations with >= 200 uploads?",
+  "database": "default",
+  "target_tables": "document_uploaded, application_started",
+  "timestamp": "2026-08-02T00:14:32.282182+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 250.77,
+    "row_count": 12,
+    "columns_count": 6,
+    "columns": [
+      "a.destination",
+      "device_type",
+      "total_doc_uploads",
+      "avg_retry_count",
+      "failed_attempt_breaches",
+      "passport_capture_pass_rate_pct"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_medium_08",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/e354b5f50fde4b80b409dc8296b678df",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    a.destination,\n    d.device_type,\n    count() AS total_doc_uploads,\n    round(avg(d.retry_count), 2) AS avg_retry_count,\n    countIf(d.is_crossed_failed_attempt_threshold = 1) AS failed_attempt_breaches,\n    round(countIf(d.is_crossed_failed_attempt_threshold = 0) * 100.0 / count(), 2) AS passport_capture_pass_rate_pct\nFROM default.document_uploaded d\nJOIN default.application_started a ON d.application_id = a.application_id\nGROUP BY a.destination, d.device_type\nHAVING total_doc_uploads >= 200\nORDER BY passport_capture_pass_rate_pct ASC, total_doc_uploads DESC\nLIMIT 12",
+  "result_sample": [
+    {
+      "a.destination": "MA",
+      "device_type": "android",
+      "total_doc_uploads": 222,
+      "avg_retry_count": 0.5,
+      "failed_attempt_breaches": 47,
+      "passport_capture_pass_rate_pct": 78.83
+    },
+    {
+      "a.destination": "US",
+      "device_type": "android",
+      "total_doc_uploads": 631,
+      "avg_retry_count": 0.46,
+      "failed_attempt_breaches": 130,
+      "passport_capture_pass_rate_pct": 79.4
+    },
+    {
+      "a.destination": "AU",
+      "device_type": "android",
+      "total_doc_uploads": 333,
+      "avg_retry_count": 0.44,
+      "failed_attempt_breaches": 54,
+      "passport_capture_pass_rate_pct": 83.78
+    },
+    {
+      "a.destination": "TH",
+      "device_type": "android",
+      "total_doc_uploads": 395,
+      "avg_retry_count": 0.47,
+      "failed_attempt_breaches": 64,
+      "passport_capture_pass_rate_pct": 83.8
+    },
+    {
+      "a.destination": "VN",
+      "device_type": "android",
+      "total_doc_uploads": 340,
+      "avg_retry_count": 0.48,
+      "failed_attempt_breaches": 54,
+      "passport_capture_pass_rate_pct": 84.12
+    },
+    {
+      "a.destination": "AE",
+      "device_type": "android",
+      "total_doc_uploads": 1096,
+      "avg_retry_count": 0.47,
+      "failed_attempt_breaches": 173,
+      "passport_capture_pass_rate_pct": 84.22
+    },
+    {
+      "a.destination": "GB",
+      "device_type": "android",
+      "total_doc_uploads": 320,
+      "avg_retry_count": 0.54,
+      "failed_attempt_breaches": 49,
+      "passport_capture_pass_rate_pct": 84.69
+    },
+    {
+      "a.destination": "EG",
+      "device_type": "android",
+      "total_doc_uploads": 311,
+      "avg_retry_count": 0.48,
+      "failed_attempt_breaches": 47,
+      "passport_capture_pass_rate_pct": 84.89
+    },
+    {
+      "a.destination": "ID",
+      "device_type": "android",
+      "total_doc_uploads": 538,
+      "avg_retry_count": 0.42,
+      "failed_attempt_breaches": 70,
+      "passport_capture_pass_rate_pct": 86.99
+    },
+    {
+      "a.destination": "HK",
+      "device_type": "android",
+      "total_doc_uploads": 203,
+      "avg_retry_count": 0.43,
+      "failed_attempt_breaches": 25,
+      "passport_capture_pass_rate_pct": 87.68
+    }
+  ],
+  "full_results_count": 12,
+  "summary": "Query executed successfully against ClickHouse default database in 250.77ms, returning 12 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Multi-table JOIN on application_id, evaluating KYC passport capture quality, retry counts, and failed attempt thresholds with HAVING filtering."
+}

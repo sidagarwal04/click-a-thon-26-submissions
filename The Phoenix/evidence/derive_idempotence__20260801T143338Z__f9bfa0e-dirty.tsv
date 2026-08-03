@@ -1,0 +1,48 @@
+# evidence: derive_idempotence
+# what: running the batch derive twice: it doubles concurrency, and which invariants do and do not catch it
+# run_utc: 2026-08-01 14:33:38
+# git: f9bfa0e-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 14:33:39   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+derive_runs	2
+asserted_runs_after_1	17604
+asserted_runs_after_2	35208
+peak_after_1	2829
+peak_after_2	5658
+corruption_factor	2.0
+closure_after_1	0
+closure_after_2	0
+closure_detected_it	NO
+max_runs_per_session_minute_after_2	1
+max_runs_per_session_minute_detected_it	NO
+run_asserted_more_than_once_clean	0
+run_asserted_more_than_once_corrupted	17604
+max_assertions_of_one_run_clean	1
+max_assertions_of_one_run_corrupted	2
+detector	max(sum(sign)) per (video_session_id, run_start, run_end) must be 1
+verdict	FAIL
+#
+# 02_merge_runs.sql asserts sign=+1 unconditionally and appends, so a second run
+#   doubles every run and doubles concurrency. Peak went 2,829 -> 5,658.
+#
+# TWO INVARIANTS THAT LOOK LIKE THEY SHOULD CATCH IT, AND DO NOT:
+#   closure sum(delta) stayed 0, because each duplicated +1 arrives with its own -1.
+#   max_runs_per_session_minute stayed 1, because the duplicate run has an IDENTICAL
+#     key, so GROUP BY collapses it into one group with sum(sign)=2 rather than two
+#     overlapping runs. It detects overlap, not repetition.
+#
+# THE ONE THAT DOES: sum(sign) per (session, run_start, run_end) must be exactly 1.
+#   Clean database: 0 groups above 1, max 1. Corrupted: all 17,604 groups at 2.
+#
+# An earlier version of this artifact claimed max_runs_per_session_minute caught it.
+#   That was wrong and was corrected by running the query instead of reasoning about it.
+# database	phoenix_scratch_rehearsal (throwaway, deliberately corrupted by this test)

@@ -1,0 +1,116 @@
+{
+  "feature_slug": "status_sharing",
+  "table_fqn": "atlys.f_status_sharing_events",
+  "event_column": "event",
+  "event_types": [
+    "share_clicked",
+    "channel_selected",
+    "link_generated",
+    "link_opened",
+    "recipient_cta_clicked"
+  ],
+  "entity_key": "share_id",
+  "entity_key_confidence": 0.95,
+  "secondary_keys": [
+    "user_id",
+    "application_id"
+  ],
+  "ordered_steps": [
+    "share_clicked",
+    "channel_selected",
+    "link_generated",
+    "link_opened",
+    "recipient_cta_clicked"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "destination",
+    "channel",
+    "app_version",
+    "city",
+    "client_lib",
+    "device_type",
+    "geoip_country_code",
+    "status_shared",
+    "os"
+  ],
+  "measures": [],
+  "flags": [
+    "partial_envelope_events:link_opened,recipient_cta_clicked",
+    "anonymous_events:link_opened,recipient_cta_clicked",
+    "guarded_uniq_required:application_id,user_id",
+    "explicit_json_nulls:os",
+    "row_id_32char_hex_not_uuid:id"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [
+    "application_id",
+    "user_id"
+  ],
+  "cross_reference_hints": [
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "destination",
+      "evidence": "`destination` shares 14/14 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `destination` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "geoip_country_code",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "geoip_country_code",
+      "evidence": "`geoip_country_code` shares 7/7 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `geoip_country_code` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "city",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "city",
+      "evidence": "`city` shares 7/7 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `city` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "device_type",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "device_type",
+      "evidence": "`device_type` shares 4/4 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `device_type` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+services:
+
+  # --------------------------------------------------------------------------
+  # Go anomaly-detection API
+  # --------------------------------------------------------------------------
+  backend:
+    build: .
+    container_name: anomaly-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+    # Port only bound to loopback for local debugging; all public traffic goes
+    # through nginx → ngrok. Remove this binding in a hardened deployment.
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - otel-collector
+    networks:
+      - app-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # OpenTelemetry Collector
+  # --------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    environment:
+      HYPERDX_OTLP_ENDPOINT: "${HYPERDX_OTLP_ENDPOINT}"
+      HYPERDX_API_KEY: "${HYPERDX_API_KEY}"
+    # Port 4318 is no longer exposed to the host — nginx routes /otel/* to the
+    # collector internally. Uncomment for direct local debugging only.
+    # ports:
+    #   - "127.0.0.1:4318:4318"
+    networks:
+      - app-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # nginx — reverse proxy and frontend static file server
+  #   /dashboard/*  → frontend SPA (alias to mounted frontend dir)
+  #   /api/*        → backend:8080 (path preserved)
+  #   /health + /insert + /batch + /upload → backend:8080
+  #   /otel/*       → otel-collector:4318 (prefix stripped)
+  # --------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - otel-collector
+    networks:
+      - app-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # ngrok — TLS tunnel to the nginx reverse proxy
+  # --------------------------------------------------------------------------
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    restart: unless-stopped
+    command: http --url=math-mahogany-dish.ngrok-free.dev nginx:80
+    environment:
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN}"
+    depends_on:
+      - nginx
+    networks:
+      - app-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+
+networks:
+  app-net:
+    driver: bridge

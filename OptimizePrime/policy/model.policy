@@ -1,0 +1,107 @@
+# ============================================================================
+# policy/model.policy — THE declaration. Every tuned constant lives here once.
+#
+# Summary: this file is the single source of truth for the constants that
+# define what our answer MEANS (gap, tail, unclosed-pause, point-activity) and
+# for the operational bounds the publisher runs under. `sql/01_policy.sql` is
+# GENERATED from this file (`tools/policy.sh gen`) and exposes the same values
+# to SQL as the view `v_model_policy`; shell and Python read this file directly
+# through `tools/policy.sh` / `tools/policy_reader.py`. Nothing else may carry
+# a literal. ADR 0032; inventory docs/DYNAMIC_PARAMS.md; sensitivity
+# evidence/params/.
+#
+# FORMAT — deliberately plain `KEY=VALUE`, so this file is `.`-sourceable by
+# POSIX shell with no parser at all. A `#:` line immediately above a key
+# carries `<SQL type> | <note>` for the generator; ordinary `#` lines and
+# `#[section]` markers are comments.
+#
+# RULES
+#   1. Changing a value here changes the answer or the safety envelope. Bump
+#      POLICY_VERSION in the same edit, re-run `tools/policy.sh gen`, and
+#      re-run the gate. `tools/policy.sh check` enforces that sql/01_policy.sql
+#      was regenerated.
+#   2. Do NOT derive these per run. Measured and rejected in ADR 0028: the
+#      derivation rule is less stable than the constant it replaces (p99 swings
+#      3.4x on a definitional choice), it makes two runs incomparable against a
+#      fixed private ground truth, and it costs a second full pass.
+#   3. Values are NOT free parameters. The sensitivity is published:
+#      GAP_S sits on a flat region (+/-20% -> 0.34% of peak); TAIL_S is a
+#      straight ramp at +2.41 viewers per tail-second, 7.2x more elastic.
+# ============================================================================
+
+# Identity of this declaration. Bump on ANY value change below. The CONTENT
+# hash (tools/policy.sh hash) is computed from the values and cannot be
+# forgotten, so the two together tell you whether a label was kept honest.
+POLICY_VERSION=1
+
+# ----------------------------------------------------------------------------
+#[model] — these constants MOVE THE ANSWER. Consumers: sql/30_build_intervals,
+# sql/90_reconcile (the gate), tools/reference_interpreter.py (the oracle),
+# tools/golden-gen.sh and tools/cruel-gen.sh (the fixtures).
+# ----------------------------------------------------------------------------
+
+#: UInt32 | a heartbeat gap STRICTLY GREATER than this ends an active run (s)
+# Fitted to this file's inter-arrival distribution (ADR 0007, re-measured
+# 2026-08-02: p99 = 45 s counting same-second pairs, 155 s excluding them).
+# Elasticity 0.0069 — +/-20% moves the peak by 10 viewers. See ADR 0028 for why
+# this is declared rather than derived.
+GAP_S=150
+
+#: UInt32 | grace credited after the last event of a run (s)
+# 29.6% of intervals (8,978 of 30,323) end at a run end and receive it.
+# Elasticity 0.0494 — 7.2x GAP_S. This is the real exposure; ADR 0028 item 3.
+TAIL_S=60
+
+#: UInt8 | 1 = a pause with no resume lasts to run end (conservative)
+# 23% of pauses never resume. Conservative 1,978.1 h / peak 2,917 vs permissive
+# 2,070.0 h / peak 3,036. Default conservative: against an exact private ground
+# truth, under-counting is explainable and over-counting invents viewers.
+UNCLOSED_PAUSE_TO_RUN_END=1
+
+#: UInt8 | 1 = a zero-duration segment still earns one cadence
+# ADR 0031 RECOMMENDS 1 (+330 intervals, +10 peak). Ships at 0 because flipping
+# it moves a number already submitted, and that is an operator's call.
+POINT_ACTIVITY_COUNTS=0
+
+# ----------------------------------------------------------------------------
+#[publish] — operational bounds. These change SAFETY and FRESHNESS, never the
+# answer. Consumers: tools/publish.sh, sql/12_publish.sql.
+# ----------------------------------------------------------------------------
+
+#: UInt32 | assumed max seconds from now64(3) to full row visibility
+PUBLISH_SETTLE_S=5
+
+#: UInt32 | how far behind the committed cursor a claim re-scans
+PUBLISH_LOOKBACK_S=900
+
+#: UInt32 | how long a silent lease holder stays authoritative
+# Must exceed the longest single phase; a holder only renews BETWEEN phases.
+# ADR 0028 item 6: this is the constant that SHOULD adapt to measured phase
+# duration at scale. It does not yet. Recorded, not fixed here.
+PUBLISH_LEASE_TTL_S=60
+
+#: UInt32 | settle wait inside the lease acquisition lottery
+PUBLISH_LEASE_SETTLE_S=2
+
+# The three covers below are TAIL_S DEPENDENCIES WRITTEN AS DIFFERENT NUMBERS.
+# Before ADR 0032 they were `+241`, `+7201` and `INTERVAL 300 SECOND` in
+# tools/publish.sh, and raising TAIL_S above 240 silently under-covered the
+# publisher's minute window. They are declared here so `tools/policy.sh check`
+# can assert cover >= TAIL_S + 60 (the +60 is the close delta landing in the
+# following minute) and FAIL instead of going quietly stale.
+
+#: UInt32 | minutes(lo .. hi + this) is a superset of the batch's touched minutes
+PUBLISH_MINUTE_COVER_S=240
+
+#: UInt32 | hours(lo .. hi + this) is a superset of the batch's touched hours
+PUBLISH_HOUR_COVER_S=7200
+
+#: UInt32 | interval prefilter half-width around the batch window
+PUBLISH_INTERVAL_PREFILTER_S=300
+
+#: UInt16 | retention of session_dirty / cc_publish_batch / cc_publish_consumed
+# Doubles as a CORRECTNESS bound: work that outlives it expires silently.
+# ClickHouse TTL is table DDL and cannot read a view, so sql/12_publish.sql
+# carries the literal and `tools/policy.sh check --database DB` asserts the
+# DEPLOYED TTL equals this. Declared-and-verified, not injected. ADR 0032 §4.
+QUEUE_TTL_DAYS=7

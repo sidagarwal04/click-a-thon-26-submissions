@@ -1,0 +1,36 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+          allowed_headers:
+            - "*"
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  otlp_http/hyperdx:
+    endpoint: "${HYPERDX_OTLP_ENDPOINT}"
+    headers:
+      authorization: "${HYPERDX_API_KEY}"
+    tls:
+      insecure: false
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/hyperdx]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/hyperdx]

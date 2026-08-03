@@ -1,0 +1,78 @@
+[tool.coverage.run]
+branch = true
+source = [ "src" ]
+
+[tool.coverage.report]
+exclude_lines = ['if TYPE_CHECKING:']
+show_missing = true
+
+[tool.pytest.ini_options]
+# The root pyproject declares this, but a lib directory is its own config
+# root, so it must be restated here for the async adapter tests to run.
+asyncio_mode = "auto"
+addopts = """
+ --cov
+ --cov-report html:'../../../coverage/libs/adapters/sequence-execution/html'
+ --cov-report xml:'../../../coverage/libs/adapters/sequence-execution/coverage.xml'
+ --html='../../../reports/libs/adapters/sequence-execution/unittests/html/index.html'
+ --junitxml='../../../reports/libs/adapters/sequence-execution/unittests/junit.xml'
+"""
+
+[project]
+name = "zentra-adapter-sequence-execution"
+version = "1.0.0"
+description = "ZentraOS chDB-backed Sequence Step execution adapter"
+requires-python = ">=3.13,<3.14"
+readme = 'README.md'
+dependencies = [
+    "boto3>=1.35,<2",
+    "chdb>=3.0,<4",
+    "clickhouse-connect>=0.8,<1",
+    "pyarrow>=18,<22",
+    "pydantic>=2.12,<3",
+    "zentra-adapter-postgres",
+    "zentra-domain-agent-execution",
+    "zentra-domain-sequence",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.8.9,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+exclude = [
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "dist",
+]
+
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.uv.sources]
+zentra-adapter-postgres = { workspace = true }
+zentra-domain-agent-execution = { workspace = true }
+zentra-domain-sequence = { workspace = true }

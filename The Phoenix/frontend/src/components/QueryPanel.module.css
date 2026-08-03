@@ -1,0 +1,82 @@
+/* Collapsed by default on the concurrency console, where the chart is the answer and the query is
+   the evidence behind it; open on the insight console, where the query is the thing being read.
+   Either way the cost line stays visible in the summary, so a reader never has to expand anything
+   to see what the answer cost. */
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  border-radius: var(--radius);
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The disclosure affordance, drawn rather than relying on the native marker, which differs per
+   browser and disappears entirely when list-style is cleared. */
+.summary::before {
+  content: '+';
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.panel[open] .summary::before {
+  content: '\2212';
+}
+
+.summary:hover .summaryLabel,
+.summary:focus-visible .summaryLabel {
+  color: var(--signal);
+}
+
+.summaryLabel {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.cost {
+  font-size: 0.68rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.cost code {
+  color: var(--ink);
+}
+
+.figure {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.caption {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.64rem;
+  color: var(--ink-faint);
+}
+
+.sql {
+  margin: 0;
+  padding: 0 0.8rem 0.8rem;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 26rem;
+  overflow: auto;
+}

@@ -1,0 +1,17 @@
+# Run the schema-changes-over-time web app.
+#   docker compose -f Atlys/schema-timeline/docker-compose.yml up
+# The whole repo is mounted read-only so the app can read git history, the generated
+# schemas under Atlys/schemas/, and the context changelog under librechat/context_docs/.
+services:
+  schema-timeline:
+    build: .
+    container_name: atlys-schema-timeline
+    ports:
+      - "8777:8777"
+    volumes:
+      # ../../ is the repo root relative to this compose file's directory
+      - ../../:/repo:ro
+    environment:
+      TIMELINE_HOST: "0.0.0.0"
+      TIMELINE_PORT: "8777"
+    restart: unless-stopped

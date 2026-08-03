@@ -1,0 +1,65 @@
+[tool.coverage.run]
+branch = true
+source = [ "src" ]
+
+[tool.coverage.report]
+exclude_lines = ['if TYPE_CHECKING:']
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = """
+ --cov
+"""
+
+[project]
+name = "zentra-adapter-model-providers"
+version = "1.0.0"
+description = "ZentraOS model provider adapter"
+requires-python = ">=3.13,<3.14"
+readme = 'README.md'
+dependencies = [
+    "anthropic>=0.120,<1",
+    "openai>=2,<3",
+    "jsonschema>=4.23,<5",
+    "zentra-domain-agent-execution",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.8.9,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+exclude = [
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "dist",
+]
+
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.uv.sources]
+zentra-domain-agent-execution = { workspace = true }

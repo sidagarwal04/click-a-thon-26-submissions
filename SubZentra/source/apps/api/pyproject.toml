@@ -1,0 +1,67 @@
+[tool.coverage.run]
+branch = true
+source = [ "src" ]
+
+[tool.coverage.report]
+exclude_lines = [ "if TYPE_CHECKING:" ]
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = """
+ --cov
+"""
+
+[tool.ruff]
+exclude = [ ".ruff_cache", ".svn", ".tox", ".venv", "dist" ]
+line-length = 88
+indent-width = 4
+
+  [tool.ruff.lint]
+  select = [ "E", "F", "UP", "B", "SIM", "I" ]
+  ignore = [ ]
+  fixable = [ "ALL" ]
+  unfixable = [ ]
+
+[tool.uv.sources]
+zentra-application-connector = { workspace = true }
+zentra-domain-connector = { workspace = true }
+zentra-adapter-clickhouse = { workspace = true }
+zentra-adapter-cube = { workspace = true }
+zentra-adapter-langgraph = { workspace = true }
+zentra-adapter-model-providers = { workspace = true }
+zentra-adapter-postgres = { workspace = true }
+zentra-adapter-telemetry = { workspace = true }
+zentra-domain-agent-execution = { workspace = true }
+zentra-application-investigation = { workspace = true }
+zentra-domain-investigation = { workspace = true }
+zentra-adapter-thesys = { workspace = true }
+
+[project]
+name = "zentra-api"
+version = "1.0.0"
+description = "ZentraOS FastAPI composition root"
+requires-python = ">=3.13,<3.14"
+readme = "README.md"
+dependencies = [
+ "fastapi>=0.119,<1",
+ "httpx>=0.28,<1",
+ "pydantic-settings>=2.11,<3",
+ "pyjwt[crypto]>=2.10,<3",
+ "python-multipart>=0.0.20,<0.1",
+ "uvicorn[standard]>=0.37,<1",
+ "zentra-adapter-clickhouse",
+ "zentra-adapter-cube",
+ "zentra-adapter-langgraph",
+ "zentra-adapter-model-providers",
+ "zentra-adapter-postgres",
+ "zentra-adapter-telemetry",
+ "zentra-adapter-thesys",
+ "zentra-application-connector",
+ "zentra-application-investigation",
+ "zentra-domain-agent-execution",
+ "zentra-domain-investigation",
+]
+
+[build-system]
+requires = [ "uv_build>=0.8.9,<0.9.0" ]
+build-backend = "uv_build"

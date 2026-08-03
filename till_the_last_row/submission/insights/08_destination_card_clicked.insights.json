@@ -1,0 +1,72 @@
+{
+  "spec_name": "08_destination_card_clicked",
+  "database": "atlys",
+  "base_table": "atlys.destination_card_clicked",
+  "generated_by": "analytics-agent",
+  "generated_at": "2026-08-02T12:10:00Z",
+  "trace_url": "https://cloud.langfuse.com/project/atlys/traces/EXAMPLE-TRACE-ID",
+  "time_window": { "from": "2026-05-01", "to": "2026-08-01" },
+  "data_caveats": "os NULL on ~12% of android rows (coalesced to 'unknown'); is_back_filled rows excluded; guest sessions have no application_id at click time.",
+  "insights": [
+    {
+      "id": "guest-browse-lower-conversion",
+      "headline": "Guest-browse card clicks convert to application_started ~38% worse than logged-in clicks.",
+      "metric": "guest_browse_conversion",
+      "evidence": "guest 6.1% vs logged-in 9.8% (application_started / destination_card_clicked), 2026-05-01→08-01, n=41,203 clicks.",
+      "why": "Guests hit the auth wall before they can start an application; consistent with the funnel's known auth drop, not a card/page defect.",
+      "confidence": 0.82,
+      "confidence_label": "High",
+      "confidence_reason": "Large sample, stable week-over-week, metric defined in context.",
+      "direction": "negative",
+      "dimensions": ["is_guest_browse"],
+      "segments": [
+        { "segment": "is_guest_browse=1", "value": 6.1, "unit": "%", "n": 12840 },
+        { "segment": "is_guest_browse=0", "value": 9.8, "unit": "%", "n": 28363 }
+      ],
+      "related_known_issues": [],
+      "related_metrics": ["guest_browse_conversion", "guest_browse_click_share"],
+      "suggested_next_step": "A/B a lightweight guest checkout that defers auth until after application_started.",
+      "evidence_sql": "SELECT is_guest_browse, countMerge(clicks) AS clicks FROM atlys.destination_click_daily_agg GROUP BY is_guest_browse"
+    },
+    {
+      "id": "page-version-v4-lift",
+      "headline": "page_version v4 lifts click→application by ~5pp overall vs v3.",
+      "metric": "page_version_ctr_to_application",
+      "evidence": "v4 11.2% vs v3 6.3% (application_started / destination_card_clicked), 2026-06-01→08-01.",
+      "why": "v4's clearer visa-type chips likely reduce mis-clicks; aligns with the v4 rollout note K7.",
+      "confidence": 0.7,
+      "confidence_label": "Medium",
+      "confidence_reason": "Consistent across destinations but rollout only ~6 weeks; not yet a full seasonal cycle.",
+      "direction": "positive",
+      "dimensions": ["page_version"],
+      "segments": [
+        { "segment": "page_version=v4", "value": 11.2, "unit": "%" },
+        { "segment": "page_version=v3", "value": 6.3, "unit": "%" }
+      ],
+      "related_known_issues": ["K7"],
+      "related_metrics": ["page_version_ctr_to_application"],
+      "suggested_next_step": "Graduate v4 to 100% outside iOS-Gulf; keep the v3 holdback for one more cycle.",
+      "evidence_sql": "SELECT page_version, countMerge(clicks) FROM atlys.destination_click_daily_agg GROUP BY page_version"
+    },
+    {
+      "id": "ios-gulf-no-lift",
+      "headline": "The v4 lift disappears for iOS users in the Gulf — flat vs v3.",
+      "metric": "page_version_ctr_to_application",
+      "evidence": "iOS + AE/SA: v4 6.4% vs v3 6.5% (flat), n=1,910 clicks.",
+      "why": "Coincides with K1 (iOS WebKit OTP autofill regression) at the downstream pay step, capping realized conversion regardless of page_version.",
+      "confidence": 0.5,
+      "confidence_label": "Medium",
+      "confidence_reason": "Gulf-iOS segment is small (n=1,910) and the link to K1 is correlational, not proven.",
+      "direction": "mixed",
+      "dimensions": ["page_version", "os", "geoip_country_code"],
+      "segments": [
+        { "segment": "v4 / iOS+Gulf", "value": 6.4, "unit": "%", "n": 1910 },
+        { "segment": "v3 / iOS+Gulf", "value": 6.5, "unit": "%", "n": 1974 }
+      ],
+      "related_known_issues": ["K1"],
+      "related_metrics": ["page_version_ctr_to_application"],
+      "suggested_next_step": "Segment the v4 rollout dashboard by os×region and hold v4 for iOS-Gulf until K1 ships.",
+      "evidence_sql": "SELECT page_version, os, geoip_country_code, ... WHERE os='ios' AND geoip_country_code IN ('AE','SA')"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# tools/ch — run a query against local or cloud. `ch "SELECT 1"` or `ch -c "SELECT 1"` for cloud.
+#
+# TARGET RESOLUTION (ADR 0018): each target resolves to exactly one host AND one
+# database, and both are always sent explicitly — never the server default.
+#
+#   TARGET=cloud (-c)   host CH_HOST:CH_PORT      database  $CH_DATABASE        > .env CH_DATABASE        > die
+#   TARGET=local        host CH_LOCAL_URL         database  $CH_DATABASE_LOCAL  > .env CH_DATABASE_LOCAL  > die
+#
+# CH_DATABASE names the GRADED Cloud database and deliberately does not apply to
+# local: falling back to it is how a local check 404s (the name does not exist
+# locally) or, worse, how a stray -c quietly reads the graded service when you
+# thought you were local. Missing config dies here, before any query is sent.
+set -euo pipefail
+
+# The environment wins over .env: `set -a && . .env` OVERWRITES exported
+# variables, so capture the environment's view first (same fault as bug 11 in
+# apply-sql.sh/load.sh — docs/SESSION-2026-08-01.md §4).
+ENV_DB="${CH_DATABASE-}"
+ENV_DB_LOCAL="${CH_DATABASE_LOCAL-}"
+
+# .env lives at the repo root. Resolve it relative to this script, not the CWD —
+# `cd docs && ../tools/ch "..."` used to silently run with no configuration at all.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+[ -f "$ROOT/.env" ] && set -a && . "$ROOT/.env" && set +a
+
+die() { printf 'tools/ch: %s\n' "$*" >&2; exit 1; }
+
+# The Cloud console shows the host as https://xxx.clickhouse.cloud, and that is what
+# lands in .env. We add the scheme ourselves, so strip it — otherwise curl is handed
+# https://https://... and dies with "Could not resolve host: https".
+ch_host() { local h="${CH_HOST:?CH_HOST unset — fill in .env}"; h="${h#https://}"; h="${h#http://}"; echo "${h%/}"; }
+
+# TARGET comes from the environment, because that is the convention every other
+# tool here uses (build-model.sh, apply-sql.sh, reconcile.sh all take TARGET=).
+# This script used to assign TARGET=local unconditionally, so `TARGET=cloud
+# tools/ch "..."` silently ran against LOCAL — a reproduction on 2026-08-01
+# returned "Database sonyliv does not exist", which reads as the graded database
+# having been dropped. It had not been; the query was on the wrong server.
+TARGET="${TARGET:-local}"
+if [ "${1:-}" = "-c" ]; then TARGET=cloud; shift; fi
+case "$TARGET" in
+  local|cloud) ;;
+  *) die "TARGET='$TARGET' is not a target. Use 'local' or 'cloud' (or the -c flag). Refusing to guess — see ADR 0018." ;;
+esac
+Q="${1:?usage: tools/ch [-c] \"SQL\"   (or TARGET=cloud tools/ch \"SQL\")}"
+
+if [ "$TARGET" = cloud ]; then
+  DB="${ENV_DB:-${CH_DATABASE-}}"
+  [ -n "$DB" ] || die "no cloud database: set CH_DATABASE in .env (the graded database) or export it. Refusing to fall back to the server default — see ADR 0018."
+  curl -sS --fail-with-body "https://$(ch_host):${CH_PORT}/?database=${DB}" \
+    --user "${CH_USER}:${CH_PASSWORD}" --data-binary "$Q"
+else
+  DB="${ENV_DB_LOCAL:-${CH_DATABASE_LOCAL-}}"
+  [ -n "$DB" ] || die "no local database: set CH_DATABASE_LOCAL in .env (the local data lives in 'default') or export it. CH_DATABASE deliberately does NOT apply here — it names the graded Cloud database. See ADR 0018."
+  curl -sS --fail-with-body "${CH_LOCAL_URL:?CH_LOCAL_URL unset — fill in .env}/?user=${CH_LOCAL_USER:-app}&password=${CH_PASSWORD_LOCAL:?CH_PASSWORD_LOCAL unset — fill in .env}&database=${DB}" \
+    --data-binary "$Q"
+fi

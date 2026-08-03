@@ -1,0 +1,231 @@
+name: atlys-prism-ch
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-atlys-prism-ch:latest}
+    container_name: prism-app
+    restart: unless-stopped
+    # Pulls CLICKHOUSE_* / LLM keys straight from .env so `docker compose run
+    # app instrument ...` targets the same database the agents do.
+    env_file:
+      - .env
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+      LLM_MODEL: ${LLM_MODEL:-claude-opus-5}
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-4}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-16000}
+      LLM_PRICE_INPUT_PER_M: ${LLM_PRICE_INPUT_PER_M:-0}
+      LLM_PRICE_OUTPUT_PER_M: ${LLM_PRICE_OUTPUT_PER_M:-0}
+      LLM_PRICE_TIER: ${LLM_PRICE_TIER:-standard}
+      DDL_REPAIR_ATTEMPTS: ${DDL_REPAIR_ATTEMPTS:-2}
+      TABLE_PREFIX: ${TABLE_PREFIX-prism_}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      APP_PORT: "8000"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Tracing. Reachable only when the `langfuse` profile is up; the SDK is a
+      # no-op when LANGFUSE_TRACING_ENABLED is false.
+      LANGFUSE_HOST: ${LANGFUSE_DOCKER_HOST:-http://langfuse-web:3000}
+      # Real project keys win; the INIT seeds are only the first-boot fallback.
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-pk-lf-prism-dev}}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-${LANGFUSE_INIT_PROJECT_SECRET_KEY:-sk-lf-prism-dev}}
+      LANGFUSE_TRACING_ENABLED: ${LANGFUSE_TRACING_ENABLED:-true}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    networks:
+      - prism
+
+  # ---------------------------------------------------------------------------
+  # Langfuse - agent/LLM tracing. All of it sits behind the `langfuse` profile,
+  # so `make up` stays at two containers while iterating on schemas.
+  #
+  #   make up-obs     start the stack including Langfuse
+  #   make langfuse   open the UI
+  #
+  # Langfuse v3 stores traces in its OWN ClickHouse, deliberately separate from
+  # the analytics server above: its migrations own that database, and keeping
+  # them apart means `make tables` and judge inspection only ever show our
+  # schema. It also matches the upstream-supported topology, which is what the
+  # docs and issue tracker assume when something breaks.
+  # ---------------------------------------------------------------------------
+
+  langfuse-postgres:
+    image: postgres:16-alpine
+    container_name: prism-langfuse-postgres
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${LANGFUSE_POSTGRES_USER:-langfuse}
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD:-langfuse}
+      POSTGRES_DB: ${LANGFUSE_POSTGRES_DB:-langfuse}
+    volumes:
+      - langfuse-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LANGFUSE_POSTGRES_USER:-langfuse}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - prism
+
+  langfuse-redis:
+    image: redis:7-alpine
+    container_name: prism-langfuse-redis
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    command: >
+      --requirepass ${LANGFUSE_REDIS_PASSWORD:-langfuse}
+      --maxmemory-policy noeviction
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${LANGFUSE_REDIS_PASSWORD:-langfuse}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - prism
+
+  langfuse-minio:
+    image: minio/minio
+    container_name: prism-langfuse-minio
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    # The bucket must exist before the worker starts; creating the directory
+    # under /data is the documented way to pre-seed it.
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server /data --console-address ":9001"'
+    environment:
+      MINIO_ROOT_USER: ${LANGFUSE_S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_S3_SECRET_KEY:-minioadmin}
+    ports:
+      # 9000 on the host already belongs to the analytics ClickHouse.
+      - "${LANGFUSE_MINIO_PORT:-9090}:9000"
+      - "${LANGFUSE_MINIO_CONSOLE_PORT:-9091}:9001"
+    volumes:
+      - langfuse-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - prism
+
+  langfuse-clickhouse:
+    image: ${LANGFUSE_CLICKHOUSE_IMAGE:-clickhouse/clickhouse-server:latest}
+    container_name: prism-langfuse-clickhouse
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-langfuse}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-langfuse}
+      CLICKHOUSE_DB: default
+    volumes:
+      - langfuse-clickhouse-data:/var/lib/clickhouse
+      - langfuse-clickhouse-logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - prism
+
+  langfuse-worker:
+    image: ${LANGFUSE_WORKER_IMAGE:-langfuse/langfuse-worker:3}
+    container_name: prism-langfuse-worker
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+    environment: &langfuse-env
+      DATABASE_URL: postgresql://${LANGFUSE_POSTGRES_USER:-langfuse}:${LANGFUSE_POSTGRES_PASSWORD:-langfuse}@langfuse-postgres:5432/${LANGFUSE_POSTGRES_DB:-langfuse}
+      SALT: ${LANGFUSE_SALT:-prism-dev-salt-change-me}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+      TELEMETRY_ENABLED: "false"
+
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-langfuse}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-langfuse}
+      # Single node: migrations must not emit ON CLUSTER DDL.
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-langfuse}
+
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_ACCESS_KEY:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_KEY:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+    networks:
+      - prism
+
+  langfuse-web:
+    image: ${LANGFUSE_WEB_IMAGE:-langfuse/langfuse:3}
+    container_name: prism-langfuse-web
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+    ports:
+      - "${LANGFUSE_PORT:-3000}:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_URL: http://localhost:${LANGFUSE_PORT:-3000}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-prism-dev-nextauth-change-me}
+      # Headless bootstrap: creates the org, project, user and - critically -
+      # fixed API keys, so agents get working credentials with no UI clicks and
+      # a fresh volume reproduces the same setup.
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-prism}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-Atlys Prism}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-prism-ch}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-prism-ch}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-pk-lf-prism-dev}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-sk-lf-prism-dev}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-dev@prism.local}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Prism Dev}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-prismdev123}
+    networks:
+      - prism
+
+volumes:
+  clickhouse-data:
+  clickhouse-logs:
+  langfuse-postgres-data:
+  langfuse-minio-data:
+  langfuse-clickhouse-data:
+  langfuse-clickhouse-logs:
+
+networks:
+  prism:
+    driver: bridge

@@ -1,0 +1,103 @@
+{
+  "feature_slug": "group_family",
+  "table_fqn": "atlys.f_group_family_events",
+  "event_column": "event",
+  "event_types": [
+    "group_started",
+    "traveller_added",
+    "traveller_removed",
+    "group_submitted"
+  ],
+  "entity_key": "group_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "user_id",
+    "application_id"
+  ],
+  "ordered_steps": [
+    "group_started",
+    "traveller_added",
+    "traveller_removed",
+    "group_submitted"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "group_size",
+    "destination",
+    "device_type",
+    "os",
+    "geoip_country_code",
+    "city",
+    "app_version",
+    "client_lib",
+    "relation"
+  ],
+  "measures": [
+    {
+      "column": "group_size",
+      "kind": "count",
+      "scoped_to_events": [],
+      "unit": "travellers"
+    },
+    {
+      "column": "docs_complete",
+      "kind": "rate",
+      "scoped_to_events": [
+        "traveller_added"
+      ],
+      "unit": "boolean"
+    },
+    {
+      "column": "travellers_submitted",
+      "kind": "count",
+      "scoped_to_events": [
+        "group_submitted"
+      ],
+      "unit": "travellers"
+    },
+    {
+      "column": "traveller_index",
+      "kind": "other",
+      "scoped_to_events": [
+        "traveller_added",
+        "traveller_removed"
+      ],
+      "unit": "index"
+    }
+  ],
+  "flags": [
+    "docs_complete"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "app_version",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked",
+        "search_typed",
+        "landing_page_scrolled",
+        "auth_completed",
+        "application_started",
+        "document_uploaded",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "app_version + toDate(timestamp)",
+      "evidence": "f_group_family_events shares no user_id/application_id identities with the 8 pre-existing tables at meaningful overlap; join must be on segment vocabulary (app_version, city, client_lib) plus date, per the documented pattern for other feature tables (relationship.f_*.segment_join entries)"
+    },
+    {
+      "from_column": "application_id",
+      "matches": "shared_key",
+      "targets": [
+        "application_started",
+        "document_uploaded",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "application_id",
+      "evidence": "application_id is present at 100% coverage on all 4 group_family event types and is the same id space created at application_started (entity.application), so it is a legitimate identity join into the post-application-start tables, unlike the segment-only joins used by other feature tables"
+    }
+  ]
+}

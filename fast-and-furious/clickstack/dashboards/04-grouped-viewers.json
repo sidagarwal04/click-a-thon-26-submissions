@@ -1,0 +1,250 @@
+{
+  "name": "SonyLIV — Grouped viewers",
+  "tags": [
+    "sonyliv",
+    "concurrency",
+    "breakdown"
+  ],
+  "filters": [
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Platform",
+      "expression": "platform",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "App version",
+      "expression": "app_version",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Content type",
+      "expression": "video_type",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Category",
+      "expression": "category",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    }
+  ],
+  "containers": [
+    {
+      "id": "groupby",
+      "title": "Group by",
+      "collapsed": false,
+      "collapsible": false,
+      "bordered": true,
+      "tabs": [
+        {
+          "id": "platform",
+          "title": "Platform"
+        },
+        {
+          "id": "video_type",
+          "title": "Content type"
+        },
+        {
+          "id": "app_version",
+          "title": "App version"
+        },
+        {
+          "id": "category",
+          "title": "Category"
+        },
+        {
+          "id": "title",
+          "title": "Title (top 10)"
+        }
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "name": "By platform",
+      "containerId": "groupby",
+      "tabId": "platform",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "stacked_bar",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, platform AS group_key, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, group_key ORDER BY ts"
+      }
+    },
+    {
+      "name": "Platform totals",
+      "containerId": "groupby",
+      "tabId": "platform",
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT platform AS group_key, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, round(100.0 * sum(active_ms) / nullIf((SELECT sum(active_ms) FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters), 0), 2) AS share_pct, sum(sessions_started) AS intervals_started FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY group_key ORDER BY viewer_hours DESC"
+      }
+    },
+    {
+      "name": "By content type",
+      "containerId": "groupby",
+      "tabId": "video_type",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "stacked_bar",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, video_type AS group_key, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, group_key ORDER BY ts"
+      }
+    },
+    {
+      "name": "Content type totals",
+      "containerId": "groupby",
+      "tabId": "video_type",
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT video_type AS group_key, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, round(100.0 * sum(active_ms) / nullIf((SELECT sum(active_ms) FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters), 0), 2) AS share_pct, sum(sessions_started) AS intervals_started FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY group_key ORDER BY viewer_hours DESC"
+      }
+    },
+    {
+      "name": "By app version",
+      "containerId": "groupby",
+      "tabId": "app_version",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "stacked_bar",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, app_version AS group_key, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, group_key ORDER BY ts"
+      }
+    },
+    {
+      "name": "App version totals",
+      "containerId": "groupby",
+      "tabId": "app_version",
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT app_version AS group_key, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, round(100.0 * sum(active_ms) / nullIf((SELECT sum(active_ms) FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters), 0), 2) AS share_pct, sum(sessions_started) AS intervals_started FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY group_key ORDER BY viewer_hours DESC LIMIT 30"
+      }
+    },
+    {
+      "name": "By category",
+      "containerId": "groupby",
+      "tabId": "category",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "stacked_bar",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, if(category IN (SELECT category FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY category ORDER BY sum(active_ms) DESC LIMIT 10), category, 'other') AS group_key, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, group_key ORDER BY ts"
+      }
+    },
+    {
+      "name": "Category totals",
+      "containerId": "groupby",
+      "tabId": "category",
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT category AS group_key, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, round(100.0 * sum(active_ms) / nullIf((SELECT sum(active_ms) FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters), 0), 2) AS share_pct, sum(sessions_started) AS intervals_started FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY group_key ORDER BY viewer_hours DESC LIMIT 30"
+      }
+    },
+    {
+      "name": "By title (top 10)",
+      "containerId": "groupby",
+      "tabId": "title",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "stacked_bar",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT $__timeInterval(minute_start) AS ts, if(content_id IN (SELECT content_id FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY content_id ORDER BY sum(active_ms) DESC LIMIT 10), title, 'other') AS group_key, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, group_key ORDER BY ts"
+      }
+    },
+    {
+      "name": "Title totals",
+      "containerId": "groupby",
+      "tabId": "title",
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "sqlTemplate": "SELECT title AS group_key, video_type, category, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours, round(100.0 * sum(active_ms) / nullIf((SELECT sum(active_ms) FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters), 0), 2) AS share_pct, sum(sessions_started) AS intervals_started FROM __DATABASE__.serving_minute_current WHERE grouping = 'all dimensions' AND ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters AND title != '' GROUP BY group_key, video_type, category ORDER BY viewer_hours DESC LIMIT 30"
+      }
+    },
+    {
+      "name": "Notes",
+      "x": 0,
+      "y": 40,
+      "w": 24,
+      "h": 6,
+      "config": {
+        "displayType": "markdown",
+        "markdown": "Every tab reads the `all dimensions` slice and changes only the `GROUP BY`, so the filters compose with any grouping.\n\nBars plot `sum(active_ms) / bucket` — time-weighted average concurrent viewers. `active_ms` is additive, so a stack sums to the true total: verified at 855.603469 grouped by platform, identical to the ungrouped figure, with shares summing to 100.00. The `other` bucket keeps the Title and Category stacks exact rather than dropping the long tail.\n\nNo peak here. Two platforms reach their maxima at different instants, so stacked peaks would exceed the true 2,305. Exact peaks are on *Concurrency analytics*.\n\n`share_pct` is a share of viewing time, not of viewers."
+      }
+    }
+  ]
+}

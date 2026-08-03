@@ -1,0 +1,14 @@
+{
+  "question": "Why did EU refunds increase from June to July 2026?",
+  "tier": "free",
+  "without": [],
+  "status": "awaiting_approval",
+  "approval_reason": "low_confidence",
+  "score": 0.6,
+  "calibration_method": "evaluator_independent_recheck",
+  "analyst_model": "gemini/gemini-3.6-flash",
+  "evaluator_model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "analyst_sample_size": 8,
+  "evaluator_sample_size": 8,
+  "note": "First live recording since the merge onto ADR-0025's CubeAnalystAgent tool loop (Investigation Engine Phases 2-4 + main's tool-registry runtime). Gemini's first rung fell through on 'no tool support' for the Analyst's tool-calling round; the routed fallback chain absorbed it and the run still converged. Nemotron's independent recheck landed at 0.60, below both the sample-size ceiling (8 records) and the independence ceiling for a cross-lab pair, so its own score is the binding number and calibration_method is evaluator_independent_recheck rather than either cap. 0.60 sits under the free tier's approval threshold, so this gates to awaiting_approval on low_confidence -- the trust loop and the fallback chain both did their job."
+}

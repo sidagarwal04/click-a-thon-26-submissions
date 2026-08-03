@@ -1,0 +1,3201 @@
+{
+  "id": "497c9d11672d1eba5a101617b5a6159a",
+  "projectId": "cmsavvkb0000bl707b2vaykku",
+  "name": "pipeline:analyze",
+  "timestamp": "2026-08-02T02:34:30.646Z",
+  "environment": "default",
+  "tags": [
+    "agent:analytics",
+    "analytics",
+    "feature:analyze",
+    "pipeline",
+    "surface:cli"
+  ],
+  "bookmarked": false,
+  "release": null,
+  "version": null,
+  "userId": null,
+  "sessionId": "454bd85522ef",
+  "public": false,
+  "input": {
+    "spec": "analytics",
+    "run_id": "454bd85522ef"
+  },
+  "output": {
+    "context_version": 1,
+    "queries_run": 8,
+    "summary": "Core funnel volumes show healthy acquisition with 1,000,000 destination clicks leading to 154,413 application starts, but document uploads drop severely to 20,446, pointing to a major verification bottleneck. iOS leads device starts (63,520) while India to UAE/US organic traffic dominates segment distribution.",
+    "insights": [
+      {
+        "headline": "Destination clicks heavily outpace application starts in top-of-funnel conversion",
+        "detail": "The funnel records 1,000,000 destination card clicks yielding 183,790 auth completions and 154,413 application starts, before dropping sharply to 20,446 document uploads.",
+        "why": "High browse-to-intent drop-off is typical for travel research platforms where users explore visa requirements without immediate intent to apply, compounded by friction entering the formal application flow.",
+        "confidence": 0.9,
+        "cut": "funnel",
+        "evidence": {
+          "destination_clicks": 1000000,
+          "auth_completed": 183790,
+          "application_started": 154413,
+          "document_uploaded": 20446
+        },
+        "context_refs": [
+          "Step-through rate",
+          "Drop-off rate (per funnel stage)"
+        ],
+        "recommendation": "Examine the step between authentication and application start to identify abandonment reasons, and test lighter entry forms for browsing users."
+      },
+      {
+        "headline": "Daily destination card clicks exhibit periodic volume dips every 6 to 7 days",
+        "detail": "Daily traffic counts hover around 4,500 to 4,700 clicks but drop consistently to approximately 3,700 to 3,900 clicks on specific intervals (e.g., Jan 6, Jan 13, Jan 20).",
+        "why": "Weekly seasonality driven by weekend drops in travel planning behavior where business or leisure research dips on specific days.",
+        "confidence": 0.85,
+        "cut": "trend",
+        "evidence": {
+          "min_dip_clicks": 3689,
+          "peak_clicks": 4783
+        },
+        "context_refs": [],
+        "recommendation": "Confirm day-of-week trends across a full quarter to ensure no recurring marketing or technical batch job aligns with these troughs."
+      },
+      {
+        "headline": "iOS devices capture the largest share of application starts across platforms",
+        "detail": "iOS accounts for 63,520 application starts, outperforming Android at 40,720 and Windows web-user-b2c at 19,044.",
+        "why": "Reflects the high mobile app adoption rate among Atlys users, particularly in primary travel corridors where iOS market share is strong.",
+        "confidence": 0.92,
+        "cut": "device",
+        "evidence": {
+          "ios_starts": 63520,
+          "android_starts": 40720,
+          "windows_starts": 19044
+        },
+        "context_refs": [],
+        "recommendation": "Ensure mobile feature parity and monitor OS-specific regressions such as WebKit input handling."
+      },
+      {
+        "headline": "Indian citizenship traveling to the UAE represents the largest user segment",
+        "detail": "Indian citizens traveling to the UAE generate 14,025 organic starts and 3,835 paid search starts, significantly outdistancing other country and destination pairings.",
+        "why": "High expatriate and tourism travel demand between India and Gulf Cooperation Council countries creates sustained baseline volume.",
+        "confidence": 0.95,
+        "cut": "segment",
+        "evidence": {
+          "in_ae_organic": 14025,
+          "in_ae_paid": 3835,
+          "in_us_organic": 8332
+        },
+        "context_refs": [],
+        "recommendation": "Prioritize localization, payment method optimization, and document processing speed for the India-UAE corridor."
+      },
+      {
+        "headline": "Document upload retry rates peak among web users in Great Britain and Qatar desktops",
+        "detail": "British web users show an average retry count of 0.60 across 153 events, and Qatari desktop users show 0.58 retries across 38 events during document uploads.",
+        "why": "Potential friction in file size limits, format validation rules, or camera capture workflows on specific desktop and web browser implementations outside mobile native apps.",
+        "confidence": 0.75,
+        "cut": "anomaly",
+        "evidence": {
+          "gb_web_avg_retries": 0.601,
+          "qa_desktop_avg_retries": 0.579,
+          "ae_web_avg_retries": 0.545
+        },
+        "context_refs": [],
+        "recommendation": "Inspect client-side error logs and file upload constraints for web and desktop users in GB and QA."
+      }
+    ],
+    "queries": [
+      {
+        "question": "What is the overall baseline count of events and unique users across the core funnel tables?",
+        "sql": "SELECT 'destination_card_clicked' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.auth_completed",
+        "cut": "overall",
+        "columns": [
+          "stage",
+          "total_events",
+          "unique_users"
+        ],
+        "rows": [
+          [
+            "application_started",
+            154413,
+            154413
+          ],
+          [
+            "destination_card_clicked",
+            1000000,
+            1000000
+          ],
+          [
+            "auth_completed",
+            183790,
+            183790
+          ]
+        ],
+        "row_count": 3,
+        "error": ""
+      },
+      {
+        "question": "What is the daily trend of destination card clicks and application starts over time?",
+        "sql": "SELECT toDate(timestamp) AS dt, count() AS clicks, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20",
+        "cut": "trend",
+        "columns": [
+          "dt",
+          "clicks",
+          "unique_users"
+        ],
+        "rows": [
+          [
+            "2026-01-01",
+            4531,
+            4531
+          ],
+          [
+            "2026-01-02",
+            4486,
+            4486
+          ],
+          [
+            "2026-01-03",
+            4633,
+            4633
+          ],
+          [
+            "2026-01-04",
+            4471,
+            4471
+          ],
+          [
+            "2026-01-05",
+            4496,
+            4496
+          ],
+          [
+            "2026-01-06",
+            3800,
+            3800
+          ],
+          [
+            "2026-01-07",
+            3689,
+            3689
+          ],
+          [
+            "2026-01-08",
+            4675,
+            4675
+          ],
+          [
+            "2026-01-09",
+            4599,
+            4599
+          ],
+          [
+            "2026-01-10",
+            4643,
+            4643
+          ],
+          [
+            "2026-01-11",
+            4599,
+            4599
+          ],
+          [
+            "2026-01-12",
+            4679,
+            4679
+          ],
+          [
+            "2026-01-13",
+            3796,
+            3796
+          ],
+          [
+            "2026-01-14",
+            3940,
+            3940
+          ],
+          [
+            "2026-01-15",
+            4783,
+            4783
+          ],
+          [
+            "2026-01-16",
+            4633,
+            4633
+          ],
+          [
+            "2026-01-17",
+            4640,
+            4640
+          ],
+          [
+            "2026-01-18",
+            4758,
+            4758
+          ],
+          [
+            "2026-01-19",
+            4616,
+            4616
+          ],
+          [
+            "2026-01-20",
+            3968,
+            3968
+          ]
+        ],
+        "row_count": 20,
+        "error": ""
+      },
+      {
+        "question": "How do application starts and authentication events break down by device type and operating system?",
+        "sql": "SELECT device_type, os, count() AS total_starts, uniqExact(user_id) AS unique_users FROM atlys.application_started GROUP BY device_type, os ORDER BY total_starts DESC LIMIT 20",
+        "cut": "device",
+        "columns": [
+          "device_type",
+          "os",
+          "total_starts",
+          "unique_users"
+        ],
+        "rows": [
+          [
+            "ios",
+            "iOS",
+            63520,
+            63520
+          ],
+          [
+            "android",
+            "Android",
+            40720,
+            40720
+          ],
+          [
+            "web-user-b2c",
+            "Windows",
+            19044,
+            19044
+          ],
+          [
+            "web-user-b2c",
+            "Mac OS X",
+            10396,
+            10396
+          ],
+          [
+            "android",
+            null,
+            8907,
+            8907
+          ],
+          [
+            "Desktop",
+            "Windows",
+            7428,
+            7428
+          ],
+          [
+            "Desktop",
+            "Mac OS X",
+            3227,
+            3227
+          ],
+          [
+            "web-user-b2c",
+            "Linux",
+            1171,
+            1171
+          ]
+        ],
+        "row_count": 8,
+        "error": ""
+      },
+      {
+        "question": "What is the geographical distribution of application starts by country code and city?",
+        "sql": "SELECT geoip_country_code, city, count() AS starts FROM atlys.application_started GROUP BY geoip_country_code, city ORDER BY starts DESC LIMIT 20",
+        "cut": "geo",
+        "columns": [
+          "geoip_country_code",
+          "city",
+          "starts"
+        ],
+        "rows": [
+          [
+            "IN",
+            "Mumbai",
+            86506
+          ],
+          [
+            "AE",
+            "Dubai",
+            21630
+          ],
+          [
+            "OTHER",
+            "Unknown",
+            13600
+          ],
+          [
+            "US",
+            "New York",
+            7756
+          ],
+          [
+            "GB",
+            "London",
+            6183
+          ],
+          [
+            "AU",
+            "Sydney",
+            5949
+          ],
+          [
+            "SA",
+            "Riyadh",
+            4716
+          ],
+          [
+            "QA",
+            "Doha",
+            3163
+          ],
+          [
+            "OM",
+            "Muscat",
+            2581
+          ],
+          [
+            "SG",
+            "Singapore",
+            2329
+          ]
+        ],
+        "row_count": 10,
+        "error": ""
+      },
+      {
+        "question": "What are the stage-to-stage conversion and volume counts across the available funnel steps?",
+        "sql": "SELECT 'destination_clicks' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.auth_completed UNION ALL SELECT 'document_uploaded' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.document_uploaded ORDER BY cnt DESC",
+        "cut": "funnel",
+        "columns": [
+          "stage",
+          "cnt",
+          "unique_users"
+        ],
+        "rows": [
+          [
+            "application_started",
+            154413,
+            154413
+          ],
+          [
+            "document_uploaded",
+            20446,
+            20446
+          ],
+          [
+            "destination_clicks",
+            1000000,
+            1000000
+          ],
+          [
+            "auth_completed",
+            183790,
+            183790
+          ]
+        ],
+        "row_count": 4,
+        "error": ""
+      },
+      {
+        "question": "How do user segments based on citizenship, destination, and paid search acquisition (gclid presence) distribute across application starts?",
+        "sql": "SELECT citizenship, destination, if(gclid != '' AND gclid IS NOT NULL, 'paid_search', 'organic') AS acquisition_channel, count() AS starts FROM atlys.application_started GROUP BY citizenship, destination, acquisition_channel ORDER BY starts DESC LIMIT 20",
+        "cut": "segment",
+        "columns": [
+          "citizenship",
+          "destination",
+          "acquisition_channel",
+          "starts"
+        ],
+        "rows": [
+          [
+            "in",
+            "AE",
+            "organic",
+            14025
+          ],
+          [
+            "in",
+            "US",
+            "organic",
+            8332
+          ],
+          [
+            "in",
+            "ID",
+            "organic",
+            7501
+          ],
+          [
+            "in",
+            "TH",
+            "organic",
+            5339
+          ],
+          [
+            "in",
+            "VN",
+            "organic",
+            4458
+          ],
+          [
+            "in",
+            "EG",
+            "organic",
+            4281
+          ],
+          [
+            "in",
+            "GB",
+            "organic",
+            3854
+          ],
+          [
+            "in",
+            "AE",
+            "paid_search",
+            3835
+          ],
+          [
+            "in",
+            "AU",
+            "organic",
+            3796
+          ],
+          [
+            "other",
+            "AE",
+            "organic",
+            3220
+          ],
+          [
+            "in",
+            "MA",
+            "organic",
+            3119
+          ],
+          [
+            "in",
+            "HK",
+            "organic",
+            2687
+          ],
+          [
+            "in",
+            "GR",
+            "organic",
+            2591
+          ],
+          [
+            "in",
+            "MY",
+            "organic",
+            2426
+          ],
+          [
+            "in",
+            "TR",
+            "organic",
+            2350
+          ],
+          [
+            "in",
+            "US",
+            "paid_search",
+            2222
+          ],
+          [
+            "in",
+            "JP",
+            "organic",
+            2141
+          ],
+          [
+            "in",
+            "ID",
+            "paid_search",
+            2124
+          ],
+          [
+            "in",
+            "CH",
+            "organic",
+            1994
+          ],
+          [
+            "other",
+            "US",
+            "organic",
+            1932
+          ]
+        ],
+        "row_count": 20,
+        "error": ""
+      },
+      {
+        "question": "What are the outlier combinations of device type and geographic country code showing unusually high document upload retry rates or failure thresholds?",
+        "sql": "SELECT device_type, geoip_country_code, avg(retry_count) AS avg_retries, count() AS events_count FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING count() > 5 ORDER BY avg_retries DESC LIMIT 10",
+        "cut": "anomaly",
+        "columns": [
+          "device_type",
+          "geoip_country_code",
+          "avg_retries",
+          "events_count"
+        ],
+        "rows": [
+          [
+            "web-user-b2c",
+            "GB",
+            0.6013071895424836,
+            153
+          ],
+          [
+            "Desktop",
+            "QA",
+            0.5789473684210527,
+            38
+          ],
+          [
+            "web-user-b2c",
+            "AE",
+            0.5446428571428571,
+            560
+          ],
+          [
+            "ios",
+            "SG",
+            0.5371900826446281,
+            121
+          ],
+          [
+            "Desktop",
+            "SG",
+            0.5294117647058824,
+            17
+          ],
+          [
+            "ios",
+            "SA",
+            0.5060240963855421,
+            249
+          ],
+          [
+            "android",
+            "SA",
+            0.5048076923076923,
+            208
+          ],
+          [
+            "android",
+            "QA",
+            0.5035460992907801,
+            141
+          ],
+          [
+            "web-user-b2c",
+            "SA",
+            0.49166666666666664,
+            120
+          ],
+          [
+            "ios",
+            "GB",
+            0.4753623188405797,
+            345
+          ]
+        ],
+        "row_count": 10,
+        "error": ""
+      },
+      {
+        "question": "What is the distribution of authentication attempts across new versus returning users by device type?",
+        "sql": "SELECT device_type, is_new_user, avg(attempts) AS avg_attempts, count() AS auth_events FROM atlys.auth_completed GROUP BY device_type, is_new_user ORDER BY auth_events DESC LIMIT 20",
+        "cut": "segment",
+        "columns": [
+          "device_type",
+          "is_new_user",
+          "avg_attempts",
+          "auth_events"
+        ],
+        "rows": [
+          [
+            "ios",
+            1,
+            1.1785697178713417,
+            41754
+          ],
+          [
+            "ios",
+            0,
+            1.1752402156081556,
+            34136
+          ],
+          [
+            "android",
+            1,
+            1.182566393342308,
+            32684
+          ],
+          [
+            "android",
+            0,
+            1.180095851430283,
+            26708
+          ],
+          [
+            "web-user-b2c",
+            1,
+            1.1869989722507708,
+            19460
+          ],
+          [
+            "web-user-b2c",
+            0,
+            1.1844898460028224,
+            16299
+          ],
+          [
+            "Desktop",
+            1,
+            1.1765799256505576,
+            6994
+          ],
+          [
+            "Desktop",
+            0,
+            1.1821025195482189,
+            5755
+          ]
+        ],
+        "row_count": 8,
+        "error": ""
+      }
+    ]
+  },
+  "metadata": {
+    "run_id": "454bd85522ef",
+    "spec": "analytics",
+    "feature": "analyze",
+    "surface": "cli",
+    "resourceAttributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.44.0",
+      "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+      "service.name": "unknown_service"
+    },
+    "scope": {
+      "name": "langfuse-sdk",
+      "version": "3.15.0",
+      "attributes": {
+        "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+      }
+    }
+  },
+  "createdAt": "2026-08-02T02:34:34.986Z",
+  "updatedAt": "2026-08-02T02:34:44.694Z",
+  "externalId": null,
+  "scores": [
+    {
+      "id": "4c4e469ef6f8e30b",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.85,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Daily destination card clicks exhibit periodic volume dips every 6 to 7 days",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.038Z",
+      "updatedAt": "2026-08-02T02:34:50.428Z",
+      "timestamp": "2026-08-02T02:34:44.598Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": "e3fbce190e3bce05",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "1e0faaee1c43d145",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.92,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "iOS devices capture the largest share of application starts across platforms",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.036Z",
+      "updatedAt": "2026-08-02T02:34:50.351Z",
+      "timestamp": "2026-08-02T02:34:44.598Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": "e3fbce190e3bce05",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "072e94921d09ad5a",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.9,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Destination clicks heavily outpace application starts in top-of-funnel conversion",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.033Z",
+      "updatedAt": "2026-08-02T02:34:50.443Z",
+      "timestamp": "2026-08-02T02:34:44.597Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": "e3fbce190e3bce05",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "eb840835b0b6cd1d",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.confidence_avg",
+      "value": 0.874,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.036Z",
+      "updatedAt": "2026-08-02T02:34:50.346Z",
+      "timestamp": "2026-08-02T02:34:44.602Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "c9fc9ab7c3374ec7",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.95,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Indian citizenship traveling to the UAE represents the largest user segment",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.038Z",
+      "updatedAt": "2026-08-02T02:34:50.447Z",
+      "timestamp": "2026-08-02T02:34:44.598Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": "e3fbce190e3bce05",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "676ed7beedb70f7f",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.insights",
+      "value": 5,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.036Z",
+      "updatedAt": "2026-08-02T02:34:50.454Z",
+      "timestamp": "2026-08-02T02:34:44.602Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "2cccd6495220203b",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "insight_confidence",
+      "value": 0.75,
+      "source": "API",
+      "authorUserId": null,
+      "comment": "Document upload retry rates peak among web users in Great Britain and Qatar desktops",
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.036Z",
+      "updatedAt": "2026-08-02T02:34:50.459Z",
+      "timestamp": "2026-08-02T02:34:44.599Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": "e3fbce190e3bce05",
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "455f5c7507e0068b",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.context_version",
+      "value": 1,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.036Z",
+      "updatedAt": "2026-08-02T02:34:50.342Z",
+      "timestamp": "2026-08-02T02:34:44.602Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "2997d3fb262d5996",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "analysis.queries",
+      "value": 8,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.034Z",
+      "updatedAt": "2026-08-02T02:34:50.341Z",
+      "timestamp": "2026-08-02T02:34:44.602Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    },
+    {
+      "id": "b2d4d1420c3cb71a",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "environment": "default",
+      "name": "run.duration_ms",
+      "value": 14098.9,
+      "source": "API",
+      "authorUserId": null,
+      "comment": null,
+      "metadata": {},
+      "configId": null,
+      "queueId": null,
+      "executionTraceId": null,
+      "createdAt": "2026-08-02T02:34:45.034Z",
+      "updatedAt": "2026-08-02T02:34:50.337Z",
+      "timestamp": "2026-08-02T02:34:44.603Z",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "observationId": null,
+      "stringValue": null,
+      "dataType": "NUMERIC"
+    }
+  ],
+  "latency": 14.1,
+  "observations": [
+    {
+      "id": "f5a49992f23747b5",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:30.504Z",
+      "endTime": "2026-08-02T02:34:44.604Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": null,
+      "type": "SPAN",
+      "environment": "default",
+      "name": "pipeline:analyze",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:44.662Z",
+      "updatedAt": "2026-08-02T02:34:44.682Z",
+      "input": {
+        "spec": "analytics",
+        "run_id": "454bd85522ef"
+      },
+      "output": {
+        "context_version": 1,
+        "queries_run": 8,
+        "summary": "Core funnel volumes show healthy acquisition with 1,000,000 destination clicks leading to 154,413 application starts, but document uploads drop severely to 20,446, pointing to a major verification bottleneck. iOS leads device starts (63,520) while India to UAE/US organic traffic dominates segment distribution.",
+        "insights": [
+          {
+            "headline": "Destination clicks heavily outpace application starts in top-of-funnel conversion",
+            "detail": "The funnel records 1,000,000 destination card clicks yielding 183,790 auth completions and 154,413 application starts, before dropping sharply to 20,446 document uploads.",
+            "why": "High browse-to-intent drop-off is typical for travel research platforms where users explore visa requirements without immediate intent to apply, compounded by friction entering the formal application flow.",
+            "confidence": 0.9,
+            "cut": "funnel",
+            "evidence": {
+              "destination_clicks": 1000000,
+              "auth_completed": 183790,
+              "application_started": 154413,
+              "document_uploaded": 20446
+            },
+            "context_refs": [
+              "Step-through rate",
+              "Drop-off rate (per funnel stage)"
+            ],
+            "recommendation": "Examine the step between authentication and application start to identify abandonment reasons, and test lighter entry forms for browsing users."
+          },
+          {
+            "headline": "Daily destination card clicks exhibit periodic volume dips every 6 to 7 days",
+            "detail": "Daily traffic counts hover around 4,500 to 4,700 clicks but drop consistently to approximately 3,700 to 3,900 clicks on specific intervals (e.g., Jan 6, Jan 13, Jan 20).",
+            "why": "Weekly seasonality driven by weekend drops in travel planning behavior where business or leisure research dips on specific days.",
+            "confidence": 0.85,
+            "cut": "trend",
+            "evidence": {
+              "min_dip_clicks": 3689,
+              "peak_clicks": 4783
+            },
+            "context_refs": [],
+            "recommendation": "Confirm day-of-week trends across a full quarter to ensure no recurring marketing or technical batch job aligns with these troughs."
+          },
+          {
+            "headline": "iOS devices capture the largest share of application starts across platforms",
+            "detail": "iOS accounts for 63,520 application starts, outperforming Android at 40,720 and Windows web-user-b2c at 19,044.",
+            "why": "Reflects the high mobile app adoption rate among Atlys users, particularly in primary travel corridors where iOS market share is strong.",
+            "confidence": 0.92,
+            "cut": "device",
+            "evidence": {
+              "ios_starts": 63520,
+              "android_starts": 40720,
+              "windows_starts": 19044
+            },
+            "context_refs": [],
+            "recommendation": "Ensure mobile feature parity and monitor OS-specific regressions such as WebKit input handling."
+          },
+          {
+            "headline": "Indian citizenship traveling to the UAE represents the largest user segment",
+            "detail": "Indian citizens traveling to the UAE generate 14,025 organic starts and 3,835 paid search starts, significantly outdistancing other country and destination pairings.",
+            "why": "High expatriate and tourism travel demand between India and Gulf Cooperation Council countries creates sustained baseline volume.",
+            "confidence": 0.95,
+            "cut": "segment",
+            "evidence": {
+              "in_ae_organic": 14025,
+              "in_ae_paid": 3835,
+              "in_us_organic": 8332
+            },
+            "context_refs": [],
+            "recommendation": "Prioritize localization, payment method optimization, and document processing speed for the India-UAE corridor."
+          },
+          {
+            "headline": "Document upload retry rates peak among web users in Great Britain and Qatar desktops",
+            "detail": "British web users show an average retry count of 0.60 across 153 events, and Qatari desktop users show 0.58 retries across 38 events during document uploads.",
+            "why": "Potential friction in file size limits, format validation rules, or camera capture workflows on specific desktop and web browser implementations outside mobile native apps.",
+            "confidence": 0.75,
+            "cut": "anomaly",
+            "evidence": {
+              "gb_web_avg_retries": 0.601,
+              "qa_desktop_avg_retries": 0.579,
+              "ae_web_avg_retries": 0.545
+            },
+            "context_refs": [],
+            "recommendation": "Inspect client-side error logs and file upload constraints for web and desktop users in GB and QA."
+          }
+        ],
+        "queries": [
+          {
+            "question": "What is the overall baseline count of events and unique users across the core funnel tables?",
+            "sql": "SELECT 'destination_card_clicked' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.auth_completed",
+            "cut": "overall",
+            "columns": [
+              "stage",
+              "total_events",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "application_started",
+                154413,
+                154413
+              ],
+              [
+                "destination_card_clicked",
+                1000000,
+                1000000
+              ],
+              [
+                "auth_completed",
+                183790,
+                183790
+              ]
+            ],
+            "row_count": 3,
+            "error": ""
+          },
+          {
+            "question": "What is the daily trend of destination card clicks and application starts over time?",
+            "sql": "SELECT toDate(timestamp) AS dt, count() AS clicks, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20",
+            "cut": "trend",
+            "columns": [
+              "dt",
+              "clicks",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "2026-01-01",
+                4531,
+                4531
+              ],
+              [
+                "2026-01-02",
+                4486,
+                4486
+              ],
+              [
+                "2026-01-03",
+                4633,
+                4633
+              ],
+              [
+                "2026-01-04",
+                4471,
+                4471
+              ],
+              [
+                "2026-01-05",
+                4496,
+                4496
+              ],
+              [
+                "2026-01-06",
+                3800,
+                3800
+              ],
+              [
+                "2026-01-07",
+                3689,
+                3689
+              ],
+              [
+                "2026-01-08",
+                4675,
+                4675
+              ],
+              [
+                "2026-01-09",
+                4599,
+                4599
+              ],
+              [
+                "2026-01-10",
+                4643,
+                4643
+              ],
+              [
+                "2026-01-11",
+                4599,
+                4599
+              ],
+              [
+                "2026-01-12",
+                4679,
+                4679
+              ],
+              [
+                "2026-01-13",
+                3796,
+                3796
+              ],
+              [
+                "2026-01-14",
+                3940,
+                3940
+              ],
+              [
+                "2026-01-15",
+                4783,
+                4783
+              ],
+              [
+                "2026-01-16",
+                4633,
+                4633
+              ],
+              [
+                "2026-01-17",
+                4640,
+                4640
+              ],
+              [
+                "2026-01-18",
+                4758,
+                4758
+              ],
+              [
+                "2026-01-19",
+                4616,
+                4616
+              ],
+              [
+                "2026-01-20",
+                3968,
+                3968
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "How do application starts and authentication events break down by device type and operating system?",
+            "sql": "SELECT device_type, os, count() AS total_starts, uniqExact(user_id) AS unique_users FROM atlys.application_started GROUP BY device_type, os ORDER BY total_starts DESC LIMIT 20",
+            "cut": "device",
+            "columns": [
+              "device_type",
+              "os",
+              "total_starts",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "ios",
+                "iOS",
+                63520,
+                63520
+              ],
+              [
+                "android",
+                "Android",
+                40720,
+                40720
+              ],
+              [
+                "web-user-b2c",
+                "Windows",
+                19044,
+                19044
+              ],
+              [
+                "web-user-b2c",
+                "Mac OS X",
+                10396,
+                10396
+              ],
+              [
+                "android",
+                null,
+                8907,
+                8907
+              ],
+              [
+                "Desktop",
+                "Windows",
+                7428,
+                7428
+              ],
+              [
+                "Desktop",
+                "Mac OS X",
+                3227,
+                3227
+              ],
+              [
+                "web-user-b2c",
+                "Linux",
+                1171,
+                1171
+              ]
+            ],
+            "row_count": 8,
+            "error": ""
+          },
+          {
+            "question": "What is the geographical distribution of application starts by country code and city?",
+            "sql": "SELECT geoip_country_code, city, count() AS starts FROM atlys.application_started GROUP BY geoip_country_code, city ORDER BY starts DESC LIMIT 20",
+            "cut": "geo",
+            "columns": [
+              "geoip_country_code",
+              "city",
+              "starts"
+            ],
+            "rows": [
+              [
+                "IN",
+                "Mumbai",
+                86506
+              ],
+              [
+                "AE",
+                "Dubai",
+                21630
+              ],
+              [
+                "OTHER",
+                "Unknown",
+                13600
+              ],
+              [
+                "US",
+                "New York",
+                7756
+              ],
+              [
+                "GB",
+                "London",
+                6183
+              ],
+              [
+                "AU",
+                "Sydney",
+                5949
+              ],
+              [
+                "SA",
+                "Riyadh",
+                4716
+              ],
+              [
+                "QA",
+                "Doha",
+                3163
+              ],
+              [
+                "OM",
+                "Muscat",
+                2581
+              ],
+              [
+                "SG",
+                "Singapore",
+                2329
+              ]
+            ],
+            "row_count": 10,
+            "error": ""
+          },
+          {
+            "question": "What are the stage-to-stage conversion and volume counts across the available funnel steps?",
+            "sql": "SELECT 'destination_clicks' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.auth_completed UNION ALL SELECT 'document_uploaded' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.document_uploaded ORDER BY cnt DESC",
+            "cut": "funnel",
+            "columns": [
+              "stage",
+              "cnt",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "application_started",
+                154413,
+                154413
+              ],
+              [
+                "document_uploaded",
+                20446,
+                20446
+              ],
+              [
+                "destination_clicks",
+                1000000,
+                1000000
+              ],
+              [
+                "auth_completed",
+                183790,
+                183790
+              ]
+            ],
+            "row_count": 4,
+            "error": ""
+          },
+          {
+            "question": "How do user segments based on citizenship, destination, and paid search acquisition (gclid presence) distribute across application starts?",
+            "sql": "SELECT citizenship, destination, if(gclid != '' AND gclid IS NOT NULL, 'paid_search', 'organic') AS acquisition_channel, count() AS starts FROM atlys.application_started GROUP BY citizenship, destination, acquisition_channel ORDER BY starts DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "citizenship",
+              "destination",
+              "acquisition_channel",
+              "starts"
+            ],
+            "rows": [
+              [
+                "in",
+                "AE",
+                "organic",
+                14025
+              ],
+              [
+                "in",
+                "US",
+                "organic",
+                8332
+              ],
+              [
+                "in",
+                "ID",
+                "organic",
+                7501
+              ],
+              [
+                "in",
+                "TH",
+                "organic",
+                5339
+              ],
+              [
+                "in",
+                "VN",
+                "organic",
+                4458
+              ],
+              [
+                "in",
+                "EG",
+                "organic",
+                4281
+              ],
+              [
+                "in",
+                "GB",
+                "organic",
+                3854
+              ],
+              [
+                "in",
+                "AE",
+                "paid_search",
+                3835
+              ],
+              [
+                "in",
+                "AU",
+                "organic",
+                3796
+              ],
+              [
+                "other",
+                "AE",
+                "organic",
+                3220
+              ],
+              [
+                "in",
+                "MA",
+                "organic",
+                3119
+              ],
+              [
+                "in",
+                "HK",
+                "organic",
+                2687
+              ],
+              [
+                "in",
+                "GR",
+                "organic",
+                2591
+              ],
+              [
+                "in",
+                "MY",
+                "organic",
+                2426
+              ],
+              [
+                "in",
+                "TR",
+                "organic",
+                2350
+              ],
+              [
+                "in",
+                "US",
+                "paid_search",
+                2222
+              ],
+              [
+                "in",
+                "JP",
+                "organic",
+                2141
+              ],
+              [
+                "in",
+                "ID",
+                "paid_search",
+                2124
+              ],
+              [
+                "in",
+                "CH",
+                "organic",
+                1994
+              ],
+              [
+                "other",
+                "US",
+                "organic",
+                1932
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "What are the outlier combinations of device type and geographic country code showing unusually high document upload retry rates or failure thresholds?",
+            "sql": "SELECT device_type, geoip_country_code, avg(retry_count) AS avg_retries, count() AS events_count FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING count() > 5 ORDER BY avg_retries DESC LIMIT 10",
+            "cut": "anomaly",
+            "columns": [
+              "device_type",
+              "geoip_country_code",
+              "avg_retries",
+              "events_count"
+            ],
+            "rows": [
+              [
+                "web-user-b2c",
+                "GB",
+                0.6013071895424836,
+                153
+              ],
+              [
+                "Desktop",
+                "QA",
+                0.5789473684210527,
+                38
+              ],
+              [
+                "web-user-b2c",
+                "AE",
+                0.5446428571428571,
+                560
+              ],
+              [
+                "ios",
+                "SG",
+                0.5371900826446281,
+                121
+              ],
+              [
+                "Desktop",
+                "SG",
+                0.5294117647058824,
+                17
+              ],
+              [
+                "ios",
+                "SA",
+                0.5060240963855421,
+                249
+              ],
+              [
+                "android",
+                "SA",
+                0.5048076923076923,
+                208
+              ],
+              [
+                "android",
+                "QA",
+                0.5035460992907801,
+                141
+              ],
+              [
+                "web-user-b2c",
+                "SA",
+                0.49166666666666664,
+                120
+              ],
+              [
+                "ios",
+                "GB",
+                0.4753623188405797,
+                345
+              ]
+            ],
+            "row_count": 10,
+            "error": ""
+          },
+          {
+            "question": "What is the distribution of authentication attempts across new versus returning users by device type?",
+            "sql": "SELECT device_type, is_new_user, avg(attempts) AS avg_attempts, count() AS auth_events FROM atlys.auth_completed GROUP BY device_type, is_new_user ORDER BY auth_events DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "device_type",
+              "is_new_user",
+              "avg_attempts",
+              "auth_events"
+            ],
+            "rows": [
+              [
+                "ios",
+                1,
+                1.1785697178713417,
+                41754
+              ],
+              [
+                "ios",
+                0,
+                1.1752402156081556,
+                34136
+              ],
+              [
+                "android",
+                1,
+                1.182566393342308,
+                32684
+              ],
+              [
+                "android",
+                0,
+                1.180095851430283,
+                26708
+              ],
+              [
+                "web-user-b2c",
+                1,
+                1.1869989722507708,
+                19460
+              ],
+              [
+                "web-user-b2c",
+                0,
+                1.1844898460028224,
+                16299
+              ],
+              [
+                "Desktop",
+                1,
+                1.1765799256505576,
+                6994
+              ],
+              [
+                "Desktop",
+                0,
+                1.1821025195482189,
+                5755
+              ]
+            ],
+            "row_count": 8,
+            "error": ""
+          }
+        ]
+      },
+      "metadata": {
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": null,
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 14.1,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "e3fbce190e3bce05",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:38.331Z",
+      "endTime": "2026-08-02T02:34:44.600Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "f5a49992f23747b5",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:interpret",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:44.662Z",
+      "updatedAt": "2026-08-02T02:34:44.681Z",
+      "input": null,
+      "output": {
+        "context_version": 1,
+        "queries_run": 8,
+        "summary": "Core funnel volumes show healthy acquisition with 1,000,000 destination clicks leading to 154,413 application starts, but document uploads drop severely to 20,446, pointing to a major verification bottleneck. iOS leads device starts (63,520) while India to UAE/US organic traffic dominates segment distribution.",
+        "insights": [
+          {
+            "headline": "Destination clicks heavily outpace application starts in top-of-funnel conversion",
+            "detail": "The funnel records 1,000,000 destination card clicks yielding 183,790 auth completions and 154,413 application starts, before dropping sharply to 20,446 document uploads.",
+            "why": "High browse-to-intent drop-off is typical for travel research platforms where users explore visa requirements without immediate intent to apply, compounded by friction entering the formal application flow.",
+            "confidence": 0.9,
+            "cut": "funnel",
+            "evidence": {
+              "destination_clicks": 1000000,
+              "auth_completed": 183790,
+              "application_started": 154413,
+              "document_uploaded": 20446
+            },
+            "context_refs": [
+              "Step-through rate",
+              "Drop-off rate (per funnel stage)"
+            ],
+            "recommendation": "Examine the step between authentication and application start to identify abandonment reasons, and test lighter entry forms for browsing users."
+          },
+          {
+            "headline": "Daily destination card clicks exhibit periodic volume dips every 6 to 7 days",
+            "detail": "Daily traffic counts hover around 4,500 to 4,700 clicks but drop consistently to approximately 3,700 to 3,900 clicks on specific intervals (e.g., Jan 6, Jan 13, Jan 20).",
+            "why": "Weekly seasonality driven by weekend drops in travel planning behavior where business or leisure research dips on specific days.",
+            "confidence": 0.85,
+            "cut": "trend",
+            "evidence": {
+              "min_dip_clicks": 3689,
+              "peak_clicks": 4783
+            },
+            "context_refs": [],
+            "recommendation": "Confirm day-of-week trends across a full quarter to ensure no recurring marketing or technical batch job aligns with these troughs."
+          },
+          {
+            "headline": "iOS devices capture the largest share of application starts across platforms",
+            "detail": "iOS accounts for 63,520 application starts, outperforming Android at 40,720 and Windows web-user-b2c at 19,044.",
+            "why": "Reflects the high mobile app adoption rate among Atlys users, particularly in primary travel corridors where iOS market share is strong.",
+            "confidence": 0.92,
+            "cut": "device",
+            "evidence": {
+              "ios_starts": 63520,
+              "android_starts": 40720,
+              "windows_starts": 19044
+            },
+            "context_refs": [],
+            "recommendation": "Ensure mobile feature parity and monitor OS-specific regressions such as WebKit input handling."
+          },
+          {
+            "headline": "Indian citizenship traveling to the UAE represents the largest user segment",
+            "detail": "Indian citizens traveling to the UAE generate 14,025 organic starts and 3,835 paid search starts, significantly outdistancing other country and destination pairings.",
+            "why": "High expatriate and tourism travel demand between India and Gulf Cooperation Council countries creates sustained baseline volume.",
+            "confidence": 0.95,
+            "cut": "segment",
+            "evidence": {
+              "in_ae_organic": 14025,
+              "in_ae_paid": 3835,
+              "in_us_organic": 8332
+            },
+            "context_refs": [],
+            "recommendation": "Prioritize localization, payment method optimization, and document processing speed for the India-UAE corridor."
+          },
+          {
+            "headline": "Document upload retry rates peak among web users in Great Britain and Qatar desktops",
+            "detail": "British web users show an average retry count of 0.60 across 153 events, and Qatari desktop users show 0.58 retries across 38 events during document uploads.",
+            "why": "Potential friction in file size limits, format validation rules, or camera capture workflows on specific desktop and web browser implementations outside mobile native apps.",
+            "confidence": 0.75,
+            "cut": "anomaly",
+            "evidence": {
+              "gb_web_avg_retries": 0.601,
+              "qa_desktop_avg_retries": 0.579,
+              "ae_web_avg_retries": 0.545
+            },
+            "context_refs": [],
+            "recommendation": "Inspect client-side error logs and file upload constraints for web and desktop users in GB and QA."
+          }
+        ],
+        "queries": [
+          {
+            "question": "What is the overall baseline count of events and unique users across the core funnel tables?",
+            "sql": "SELECT 'destination_card_clicked' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.auth_completed",
+            "cut": "overall",
+            "columns": [
+              "stage",
+              "total_events",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "application_started",
+                154413,
+                154413
+              ],
+              [
+                "destination_card_clicked",
+                1000000,
+                1000000
+              ],
+              [
+                "auth_completed",
+                183790,
+                183790
+              ]
+            ],
+            "row_count": 3,
+            "error": ""
+          },
+          {
+            "question": "What is the daily trend of destination card clicks and application starts over time?",
+            "sql": "SELECT toDate(timestamp) AS dt, count() AS clicks, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20",
+            "cut": "trend",
+            "columns": [
+              "dt",
+              "clicks",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "2026-01-01",
+                4531,
+                4531
+              ],
+              [
+                "2026-01-02",
+                4486,
+                4486
+              ],
+              [
+                "2026-01-03",
+                4633,
+                4633
+              ],
+              [
+                "2026-01-04",
+                4471,
+                4471
+              ],
+              [
+                "2026-01-05",
+                4496,
+                4496
+              ],
+              [
+                "2026-01-06",
+                3800,
+                3800
+              ],
+              [
+                "2026-01-07",
+                3689,
+                3689
+              ],
+              [
+                "2026-01-08",
+                4675,
+                4675
+              ],
+              [
+                "2026-01-09",
+                4599,
+                4599
+              ],
+              [
+                "2026-01-10",
+                4643,
+                4643
+              ],
+              [
+                "2026-01-11",
+                4599,
+                4599
+              ],
+              [
+                "2026-01-12",
+                4679,
+                4679
+              ],
+              [
+                "2026-01-13",
+                3796,
+                3796
+              ],
+              [
+                "2026-01-14",
+                3940,
+                3940
+              ],
+              [
+                "2026-01-15",
+                4783,
+                4783
+              ],
+              [
+                "2026-01-16",
+                4633,
+                4633
+              ],
+              [
+                "2026-01-17",
+                4640,
+                4640
+              ],
+              [
+                "2026-01-18",
+                4758,
+                4758
+              ],
+              [
+                "2026-01-19",
+                4616,
+                4616
+              ],
+              [
+                "2026-01-20",
+                3968,
+                3968
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "How do application starts and authentication events break down by device type and operating system?",
+            "sql": "SELECT device_type, os, count() AS total_starts, uniqExact(user_id) AS unique_users FROM atlys.application_started GROUP BY device_type, os ORDER BY total_starts DESC LIMIT 20",
+            "cut": "device",
+            "columns": [
+              "device_type",
+              "os",
+              "total_starts",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "ios",
+                "iOS",
+                63520,
+                63520
+              ],
+              [
+                "android",
+                "Android",
+                40720,
+                40720
+              ],
+              [
+                "web-user-b2c",
+                "Windows",
+                19044,
+                19044
+              ],
+              [
+                "web-user-b2c",
+                "Mac OS X",
+                10396,
+                10396
+              ],
+              [
+                "android",
+                null,
+                8907,
+                8907
+              ],
+              [
+                "Desktop",
+                "Windows",
+                7428,
+                7428
+              ],
+              [
+                "Desktop",
+                "Mac OS X",
+                3227,
+                3227
+              ],
+              [
+                "web-user-b2c",
+                "Linux",
+                1171,
+                1171
+              ]
+            ],
+            "row_count": 8,
+            "error": ""
+          },
+          {
+            "question": "What is the geographical distribution of application starts by country code and city?",
+            "sql": "SELECT geoip_country_code, city, count() AS starts FROM atlys.application_started GROUP BY geoip_country_code, city ORDER BY starts DESC LIMIT 20",
+            "cut": "geo",
+            "columns": [
+              "geoip_country_code",
+              "city",
+              "starts"
+            ],
+            "rows": [
+              [
+                "IN",
+                "Mumbai",
+                86506
+              ],
+              [
+                "AE",
+                "Dubai",
+                21630
+              ],
+              [
+                "OTHER",
+                "Unknown",
+                13600
+              ],
+              [
+                "US",
+                "New York",
+                7756
+              ],
+              [
+                "GB",
+                "London",
+                6183
+              ],
+              [
+                "AU",
+                "Sydney",
+                5949
+              ],
+              [
+                "SA",
+                "Riyadh",
+                4716
+              ],
+              [
+                "QA",
+                "Doha",
+                3163
+              ],
+              [
+                "OM",
+                "Muscat",
+                2581
+              ],
+              [
+                "SG",
+                "Singapore",
+                2329
+              ]
+            ],
+            "row_count": 10,
+            "error": ""
+          },
+          {
+            "question": "What are the stage-to-stage conversion and volume counts across the available funnel steps?",
+            "sql": "SELECT 'destination_clicks' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.auth_completed UNION ALL SELECT 'document_uploaded' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.document_uploaded ORDER BY cnt DESC",
+            "cut": "funnel",
+            "columns": [
+              "stage",
+              "cnt",
+              "unique_users"
+            ],
+            "rows": [
+              [
+                "application_started",
+                154413,
+                154413
+              ],
+              [
+                "document_uploaded",
+                20446,
+                20446
+              ],
+              [
+                "destination_clicks",
+                1000000,
+                1000000
+              ],
+              [
+                "auth_completed",
+                183790,
+                183790
+              ]
+            ],
+            "row_count": 4,
+            "error": ""
+          },
+          {
+            "question": "How do user segments based on citizenship, destination, and paid search acquisition (gclid presence) distribute across application starts?",
+            "sql": "SELECT citizenship, destination, if(gclid != '' AND gclid IS NOT NULL, 'paid_search', 'organic') AS acquisition_channel, count() AS starts FROM atlys.application_started GROUP BY citizenship, destination, acquisition_channel ORDER BY starts DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "citizenship",
+              "destination",
+              "acquisition_channel",
+              "starts"
+            ],
+            "rows": [
+              [
+                "in",
+                "AE",
+                "organic",
+                14025
+              ],
+              [
+                "in",
+                "US",
+                "organic",
+                8332
+              ],
+              [
+                "in",
+                "ID",
+                "organic",
+                7501
+              ],
+              [
+                "in",
+                "TH",
+                "organic",
+                5339
+              ],
+              [
+                "in",
+                "VN",
+                "organic",
+                4458
+              ],
+              [
+                "in",
+                "EG",
+                "organic",
+                4281
+              ],
+              [
+                "in",
+                "GB",
+                "organic",
+                3854
+              ],
+              [
+                "in",
+                "AE",
+                "paid_search",
+                3835
+              ],
+              [
+                "in",
+                "AU",
+                "organic",
+                3796
+              ],
+              [
+                "other",
+                "AE",
+                "organic",
+                3220
+              ],
+              [
+                "in",
+                "MA",
+                "organic",
+                3119
+              ],
+              [
+                "in",
+                "HK",
+                "organic",
+                2687
+              ],
+              [
+                "in",
+                "GR",
+                "organic",
+                2591
+              ],
+              [
+                "in",
+                "MY",
+                "organic",
+                2426
+              ],
+              [
+                "in",
+                "TR",
+                "organic",
+                2350
+              ],
+              [
+                "in",
+                "US",
+                "paid_search",
+                2222
+              ],
+              [
+                "in",
+                "JP",
+                "organic",
+                2141
+              ],
+              [
+                "in",
+                "ID",
+                "paid_search",
+                2124
+              ],
+              [
+                "in",
+                "CH",
+                "organic",
+                1994
+              ],
+              [
+                "other",
+                "US",
+                "organic",
+                1932
+              ]
+            ],
+            "row_count": 20,
+            "error": ""
+          },
+          {
+            "question": "What are the outlier combinations of device type and geographic country code showing unusually high document upload retry rates or failure thresholds?",
+            "sql": "SELECT device_type, geoip_country_code, avg(retry_count) AS avg_retries, count() AS events_count FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING count() > 5 ORDER BY avg_retries DESC LIMIT 10",
+            "cut": "anomaly",
+            "columns": [
+              "device_type",
+              "geoip_country_code",
+              "avg_retries",
+              "events_count"
+            ],
+            "rows": [
+              [
+                "web-user-b2c",
+                "GB",
+                0.6013071895424836,
+                153
+              ],
+              [
+                "Desktop",
+                "QA",
+                0.5789473684210527,
+                38
+              ],
+              [
+                "web-user-b2c",
+                "AE",
+                0.5446428571428571,
+                560
+              ],
+              [
+                "ios",
+                "SG",
+                0.5371900826446281,
+                121
+              ],
+              [
+                "Desktop",
+                "SG",
+                0.5294117647058824,
+                17
+              ],
+              [
+                "ios",
+                "SA",
+                0.5060240963855421,
+                249
+              ],
+              [
+                "android",
+                "SA",
+                0.5048076923076923,
+                208
+              ],
+              [
+                "android",
+                "QA",
+                0.5035460992907801,
+                141
+              ],
+              [
+                "web-user-b2c",
+                "SA",
+                0.49166666666666664,
+                120
+              ],
+              [
+                "ios",
+                "GB",
+                0.4753623188405797,
+                345
+              ]
+            ],
+            "row_count": 10,
+            "error": ""
+          },
+          {
+            "question": "What is the distribution of authentication attempts across new versus returning users by device type?",
+            "sql": "SELECT device_type, is_new_user, avg(attempts) AS avg_attempts, count() AS auth_events FROM atlys.auth_completed GROUP BY device_type, is_new_user ORDER BY auth_events DESC LIMIT 20",
+            "cut": "segment",
+            "columns": [
+              "device_type",
+              "is_new_user",
+              "avg_attempts",
+              "auth_events"
+            ],
+            "rows": [
+              [
+                "ios",
+                1,
+                1.1785697178713417,
+                41754
+              ],
+              [
+                "ios",
+                0,
+                1.1752402156081556,
+                34136
+              ],
+              [
+                "android",
+                1,
+                1.182566393342308,
+                32684
+              ],
+              [
+                "android",
+                0,
+                1.180095851430283,
+                26708
+              ],
+              [
+                "web-user-b2c",
+                1,
+                1.1869989722507708,
+                19460
+              ],
+              [
+                "web-user-b2c",
+                0,
+                1.1844898460028224,
+                16299
+              ],
+              [
+                "Desktop",
+                1,
+                1.1765799256505576,
+                6994
+              ],
+              [
+                "Desktop",
+                0,
+                1.1821025195482189,
+                5755
+              ]
+            ],
+            "row_count": 8,
+            "error": ""
+          }
+        ]
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "interpret",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "decisions": [
+          {
+            "what": "Destination clicks heavily outpace application starts in top-of-funnel conversion",
+            "why": "High browse-to-intent drop-off is typical for travel research platforms where users explore visa requirements without immediate intent to apply, compounded by friction entering the formal application flow.",
+            "alternatives": [],
+            "confidence": 0.9,
+            "evidence": {
+              "destination_clicks": 1000000,
+              "auth_completed": 183790,
+              "application_started": 154413,
+              "document_uploaded": 20446
+            },
+            "rules": []
+          },
+          {
+            "what": "Daily destination card clicks exhibit periodic volume dips every 6 to 7 days",
+            "why": "Weekly seasonality driven by weekend drops in travel planning behavior where business or leisure research dips on specific days.",
+            "alternatives": [],
+            "confidence": 0.85,
+            "evidence": {
+              "min_dip_clicks": 3689,
+              "peak_clicks": 4783
+            },
+            "rules": []
+          },
+          {
+            "what": "iOS devices capture the largest share of application starts across platforms",
+            "why": "Reflects the high mobile app adoption rate among Atlys users, particularly in primary travel corridors where iOS market share is strong.",
+            "alternatives": [],
+            "confidence": 0.92,
+            "evidence": {
+              "ios_starts": 63520,
+              "android_starts": 40720,
+              "windows_starts": 19044
+            },
+            "rules": []
+          },
+          {
+            "what": "Indian citizenship traveling to the UAE represents the largest user segment",
+            "why": "High expatriate and tourism travel demand between India and Gulf Cooperation Council countries creates sustained baseline volume.",
+            "alternatives": [],
+            "confidence": 0.95,
+            "evidence": {
+              "in_ae_organic": 14025,
+              "in_ae_paid": 3835,
+              "in_us_organic": 8332
+            },
+            "rules": []
+          },
+          {
+            "what": "Document upload retry rates peak among web users in Great Britain and Qatar desktops",
+            "why": "Potential friction in file size limits, format validation rules, or camera capture workflows on specific desktop and web browser implementations outside mobile native apps.",
+            "alternatives": [],
+            "confidence": 0.75,
+            "evidence": {
+              "gb_web_avg_retries": 0.601,
+              "qa_desktop_avg_retries": 0.579,
+              "ae_web_avg_retries": 0.545
+            },
+            "rules": []
+          }
+        ],
+        "metrics": {
+          "insights": 5,
+          "confidence_avg": 0.874,
+          "confidence_min": 0.75,
+          "insights_with_context_ref": 1,
+          "insights_with_recommendation": 5,
+          "cuts_reported": 5,
+          "duration_ms": 6269.5
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 6.269,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "2083b89633bec80d",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:39.404Z",
+      "endTime": "2026-08-02T02:34:44.595Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "e3fbce190e3bce05",
+      "type": "GENERATION",
+      "environment": "default",
+      "name": "agent:analytics",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:44.662Z",
+      "updatedAt": "2026-08-02T02:34:44.679Z",
+      "input": "# Business context first (context v1)\n\nRead this before the query results; it defines what matters and which anomalies are already explained.\n\n# Metric definitions\n\n```json\n[\n  {\n    \"key\": \"Step-through rate\",\n    \"value\": \"users at stage N+1 \\u00f7 users at stage N.\"\n  },\n  {\n    \"key\": \"Drop-off rate (per funnel stage)\",\n    \"value\": \"1 \\u2212 (users at stage N+1 \\u00f7 users at stage N), counting distinct `user_id` reaching each stage in order within the window.\"\n  },\n  {\n    \"key\": \"On-time delivery rate\",\n    \"value\": \"applications issued on or before `visa_issuance_eta_days` \\u00f7 applications issued. (Reported by the fulfilment team from post-purchase systems; not computable from the funnel tables here.)\"\n  },\n  {\n    \"key\": \"Conversion rate\",\n    \"value\": \"completed purchases \\u00f7 **sessions**. A session is a single app-open / web visit. This is the headline number reported to leadership.\"\n  }\n]\n```\n\n# Known issues log\n\n```json\n[\n  {\n    \"key\": \"K7\",\n    \"value\": \"App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor funnel-timing shifts around the rollout are expected.\"\n  },\n  {\n    \"key\": \"K5\",\n    \"value\": \"WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went live in February; it can lift returns to the funnel for previously-dropped users.\"\n  },\n  {\n    \"key\": \"K1\",\n    \"value\": \"iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP field fails to autofill, and some users abandon at the pay step. Payment-heavy geos (Gulf card users) are most exposed. Watch `pay_now_clicked \\u2192 purchase_completed` for iOS.\"\n  },\n  {\n    \"key\": \"K6\",\n    \"value\": \"SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated `coupon_applied` and lower realised `value`.\"\n  }\n]\n```\nCheck every anomaly against this before inventing an explanation.\n\n# Context problems found\n\n```json\n[\n  {\n    \"kind\": \"contradiction\",\n    \"severity\": \"high\",\n    \"subject\": \"relationship:shared application_id\",\n    \"detail\": \"The relationship states that pre-application events like `destination_card_clicked` share an `application_id`, but the Application entity definition explicitly states that application_id is created at the `application_started` step and that events *before* it carry an empty `application_id`.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"metric:Revenue per conversion\",\n    \"detail\": \"metric is named but has no executable formula or denominator\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K2\",\n    \"detail\": \"K2 mentions a passport scan model update in April 2026 and related capture failures on Android devices, but states no specific time window or affected segment boundaries (beyond generic Android devices) to filter out or isolate the anomaly.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K3\",\n    \"detail\": \"K3 notes that MRZ OCR is weaker on non-Latin passports and requires more retries, but lacks a stated time window, segment identifier, or filtering criteria to evaluate its impact on pass rates.\"\n  }\n]\n```\n\n# Query results\n\n```json\n[\n  {\n    \"question\": \"What is the overall baseline count of events and unique users across the core funnel tables?\",\n    \"sql\": \"SELECT 'destination_card_clicked' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.auth_completed\",\n    \"cut\": \"overall\",\n    \"columns\": [\n      \"stage\",\n      \"total_events\",\n      \"unique_users\"\n    ],\n    \"rows\": [\n      [\n        \"application_started\",\n        154413,\n        154413\n      ],\n      [\n        \"destination_card_clicked\",\n        1000000,\n        1000000\n      ],\n      [\n        \"auth_completed\",\n        183790,\n        183790\n      ]\n    ],\n    \"row_count\": 3,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the daily trend of destination card clicks and application starts over time?\",\n    \"sql\": \"SELECT toDate(timestamp) AS dt, count() AS clicks, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20\",\n    \"cut\": \"trend\",\n    \"columns\": [\n      \"dt\",\n      \"clicks\",\n      \"unique_users\"\n    ],\n    \"rows\": [\n      [\n        \"2026-01-01\",\n        4531,\n        4531\n      ],\n      [\n        \"2026-01-02\",\n        4486,\n        4486\n      ],\n      [\n        \"2026-01-03\",\n        4633,\n        4633\n      ],\n      [\n        \"2026-01-04\",\n        4471,\n        4471\n      ],\n      [\n        \"2026-01-05\",\n        4496,\n        4496\n      ],\n      [\n        \"2026-01-06\",\n        3800,\n        3800\n      ],\n      [\n        \"2026-01-07\",\n        3689,\n        3689\n      ],\n      [\n        \"2026-01-08\",\n        4675,\n        4675\n      ],\n      [\n        \"2026-01-09\",\n        4599,\n        4599\n      ],\n      [\n        \"2026-01-10\",\n        4643,\n        4643\n      ],\n      [\n        \"2026-01-11\",\n        4599,\n        4599\n      ],\n      [\n        \"2026-01-12\",\n        4679,\n        4679\n      ],\n      [\n        \"2026-01-13\",\n        3796,\n        3796\n      ],\n      [\n        \"2026-01-14\",\n        3940,\n        3940\n      ],\n      [\n        \"2026-01-15\",\n        4783,\n        4783\n      ],\n      [\n        \"2026-01-16\",\n        4633,\n        4633\n      ],\n      [\n        \"2026-01-17\",\n        4640,\n        4640\n      ],\n      [\n        \"2026-01-18\",\n        4758,\n        4758\n      ],\n      [\n        \"2026-01-19\",\n        4616,\n        4616\n      ],\n      [\n        \"2026-01-20\",\n        3968,\n        3968\n      ]\n    ],\n    \"row_count\": 20,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"How do application starts and authentication events break down by device type and operating system?\",\n    \"sql\": \"SELECT device_type, os, count() AS total_starts, uniqExact(user_id) AS unique_users FROM atlys.application_started GROUP BY device_type, os ORDER BY total_starts DESC LIMIT 20\",\n    \"cut\": \"device\",\n    \"columns\": [\n      \"device_type\",\n      \"os\",\n      \"total_starts\",\n      \"unique_users\"\n    ],\n    \"rows\": [\n      [\n        \"ios\",\n        \"iOS\",\n        63520,\n        63520\n      ],\n      [\n        \"android\",\n        \"Android\",\n        40720,\n        40720\n      ],\n      [\n        \"web-user-b2c\",\n        \"Windows\",\n        19044,\n        19044\n      ],\n      [\n        \"web-user-b2c\",\n        \"Mac OS X\",\n        10396,\n        10396\n      ],\n      [\n        \"android\",\n        null,\n        8907,\n        8907\n      ],\n      [\n        \"Desktop\",\n        \"Windows\",\n        7428,\n        7428\n      ],\n      [\n        \"Desktop\",\n        \"Mac OS X\",\n        3227,\n        3227\n      ],\n      [\n        \"web-user-b2c\",\n        \"Linux\",\n        1171,\n        1171\n      ]\n    ],\n    \"row_count\": 8,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the geographical distribution of application starts by country code and city?\",\n    \"sql\": \"SELECT geoip_country_code, city, count() AS starts FROM atlys.application_started GROUP BY geoip_country_code, city ORDER BY starts DESC LIMIT 20\",\n    \"cut\": \"geo\",\n    \"columns\": [\n      \"geoip_country_code\",\n      \"city\",\n      \"starts\"\n    ],\n    \"rows\": [\n      [\n        \"IN\",\n        \"Mumbai\",\n        86506\n      ],\n      [\n        \"AE\",\n        \"Dubai\",\n        21630\n      ],\n      [\n        \"OTHER\",\n        \"Unknown\",\n        13600\n      ],\n      [\n        \"US\",\n        \"New York\",\n        7756\n      ],\n      [\n        \"GB\",\n        \"London\",\n        6183\n      ],\n      [\n        \"AU\",\n        \"Sydney\",\n        5949\n      ],\n      [\n        \"SA\",\n        \"Riyadh\",\n        4716\n      ],\n      [\n        \"QA\",\n        \"Doha\",\n        3163\n      ],\n      [\n        \"OM\",\n        \"Muscat\",\n        2581\n      ],\n      [\n        \"SG\",\n        \"Singapore\",\n        2329\n      ]\n    ],\n    \"row_count\": 10,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What are the stage-to-stage conversion and volume counts across the available funnel steps?\",\n    \"sql\": \"SELECT 'destination_clicks' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.auth_completed UNION ALL SELECT 'document_uploaded' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.document_uploaded ORDER BY cnt DESC\",\n    \"cut\": \"funnel\",\n    \"columns\": [\n      \"stage\",\n      \"cnt\",\n      \"unique_users\"\n    ],\n    \"rows\": [\n      [\n        \"application_started\",\n        154413,\n        154413\n      ],\n      [\n        \"document_uploaded\",\n        20446,\n        20446\n      ],\n      [\n        \"destination_clicks\",\n        1000000,\n        1000000\n      ],\n      [\n        \"auth_completed\",\n        183790,\n        183790\n      ]\n    ],\n    \"row_count\": 4,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"How do user segments based on citizenship, destination, and paid search acquisition (gclid presence) distribute across application starts?\",\n    \"sql\": \"SELECT citizenship, destination, if(gclid != '' AND gclid IS NOT NULL, 'paid_search', 'organic') AS acquisition_channel, count() AS starts FROM atlys.application_started GROUP BY citizenship, destination, acquisition_channel ORDER BY starts DESC LIMIT 20\",\n    \"cut\": \"segment\",\n    \"columns\": [\n      \"citizenship\",\n      \"destination\",\n      \"acquisition_channel\",\n      \"starts\"\n    ],\n    \"rows\": [\n      [\n        \"in\",\n        \"AE\",\n        \"organic\",\n        14025\n      ],\n      [\n        \"in\",\n        \"US\",\n        \"organic\",\n        8332\n      ],\n      [\n        \"in\",\n        \"ID\",\n        \"organic\",\n        7501\n      ],\n      [\n        \"in\",\n        \"TH\",\n        \"organic\",\n        5339\n      ],\n      [\n        \"in\",\n        \"VN\",\n        \"organic\",\n        4458\n      ],\n      [\n        \"in\",\n        \"EG\",\n        \"organic\",\n        4281\n      ],\n      [\n        \"in\",\n        \"GB\",\n        \"organic\",\n        3854\n      ],\n      [\n        \"in\",\n        \"AE\",\n        \"paid_search\",\n        3835\n      ],\n      [\n        \"in\",\n        \"AU\",\n        \"organic\",\n        3796\n      ],\n      [\n        \"other\",\n        \"AE\",\n        \"organic\",\n        3220\n      ],\n      [\n        \"in\",\n        \"MA\",\n        \"organic\",\n        3119\n      ],\n      [\n        \"in\",\n        \"HK\",\n        \"organic\",\n        2687\n      ],\n      [\n        \"in\",\n        \"GR\",\n        \"organic\",\n        2591\n      ],\n      [\n        \"in\",\n        \"MY\",\n        \"organic\",\n        2426\n      ],\n      [\n        \"in\",\n        \"TR\",\n        \"organic\",\n        2350\n      ],\n      [\n        \"in\",\n        \"US\",\n        \"paid_search\",\n        2222\n      ],\n      [\n        \"in\",\n        \"JP\",\n        \"organic\",\n        2141\n      ],\n      [\n        \"in\",\n        \"ID\",\n        \"paid_search\",\n        2124\n      ],\n      [\n        \"in\",\n        \"CH\",\n        \"organic\",\n        1994\n      ],\n      [\n        \"other\",\n        \"US\",\n        \"organic\",\n        1932\n      ]\n    ],\n    \"row_count\": 20,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What are the outlier combinations of device type and geographic country code showing unusually high document upload retry rates or failure thresholds?\",\n    \"sql\": \"SELECT device_type, geoip_country_code, avg(retry_count) AS avg_retries, count() AS events_count FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING count() > 5 ORDER BY avg_retries DESC LIMIT 10\",\n    \"cut\": \"anomaly\",\n    \"columns\": [\n      \"device_type\",\n      \"geoip_country_code\",\n      \"avg_retries\",\n      \"events_count\"\n    ],\n    \"rows\": [\n      [\n        \"web-user-b2c\",\n        \"GB\",\n        0.6013071895424836,\n        153\n      ],\n      [\n        \"Desktop\",\n        \"QA\",\n        0.5789473684210527,\n        38\n      ],\n      [\n        \"web-user-b2c\",\n        \"AE\",\n        0.5446428571428571,\n        560\n      ],\n      [\n        \"ios\",\n        \"SG\",\n        0.5371900826446281,\n        121\n      ],\n      [\n        \"Desktop\",\n        \"SG\",\n        0.5294117647058824,\n        17\n      ],\n      [\n        \"ios\",\n        \"SA\",\n        0.5060240963855421,\n        249\n      ],\n      [\n        \"android\",\n        \"SA\",\n        0.5048076923076923,\n        208\n      ],\n      [\n        \"android\",\n        \"QA\",\n        0.5035460992907801,\n        141\n      ],\n      [\n        \"web-user-b2c\",\n        \"SA\",\n        0.49166666666666664,\n        120\n      ],\n      [\n        \"ios\",\n        \"GB\",\n        0.4753623188405797,\n        345\n      ]\n    ],\n    \"row_count\": 10,\n    \"error\": \"\"\n  },\n  {\n    \"question\": \"What is the distribution of authentication attempts across new versus returning users by device type?\",\n    \"sql\": \"SELECT device_type, is_new_user, avg(attempts) AS avg_attempts, count() AS auth_events FROM atlys.auth_completed GROUP BY device_type, is_new_user ORDER BY auth_events DESC LIMIT 20\",\n    \"cut\": \"segment\",\n    \"columns\": [\n      \"device_type\",\n      \"is_new_user\",\n      \"avg_attempts\",\n      \"auth_events\"\n    ],\n    \"rows\": [\n      [\n        \"ios\",\n        1,\n        1.1785697178713417,\n        41754\n      ],\n      [\n        \"ios\",\n        0,\n        1.1752402156081556,\n        34136\n      ],\n      [\n        \"android\",\n        1,\n        1.182566393342308,\n        32684\n      ],\n      [\n        \"android\",\n        0,\n        1.180095851430283,\n        26708\n      ],\n      [\n        \"web-user-b2c\",\n        1,\n        1.1869989722507708,\n        19460\n      ],\n      [\n        \"web-user-b2c\",\n        0,\n        1.1844898460028224,\n        16299\n      ],\n      [\n        \"Desktop\",\n        1,\n        1.1765799256505576,\n        6994\n      ],\n      [\n        \"Desktop\",\n        0,\n        1.1821025195482189,\n        5755\n      ]\n    ],\n    \"row_count\": 8,\n    \"error\": \"\"\n  }\n]\n```\n\n# Focus\n\nAnalyze the existing funnel and surface the most important issues, with the why.\n\n# Coverage\n\nSuccessful queries: 8\nCuts covered: anomaly, device, funnel, geo, overall, segment, trend\nTotal rows across all results: 83\n\nWrite the insights. Cover headline metrics, trends, segment gaps, funnel bottlenecks, and anomalies. Every insight must have a `why`. Return only the JSON object.",
+      "output": {
+        "summary": "Core funnel volumes show healthy acquisition with 1,000,000 destination clicks leading to 154,413 application starts, but document uploads drop severely to 20,446, pointing to a major verification bottleneck. iOS leads device starts (63,520) while India to UAE/US organic traffic dominates segment distribution.",
+        "insights": [
+          {
+            "headline": "Destination clicks heavily outpace application starts in top-of-funnel conversion",
+            "detail": "The funnel records 1,000,000 destination card clicks yielding 183,790 auth completions and 154,413 application starts, before dropping sharply to 20,446 document uploads.",
+            "why": "High browse-to-intent drop-off is typical for travel research platforms where users explore visa requirements without immediate intent to apply, compounded by friction entering the formal application flow.",
+            "confidence": 0.9,
+            "cut": "funnel",
+            "evidence": {
+              "destination_clicks": 1000000,
+              "auth_completed": 183790,
+              "application_started": 154413,
+              "document_uploaded": 20446
+            },
+            "context_refs": [
+              "Step-through rate",
+              "Drop-off rate (per funnel stage)"
+            ],
+            "recommendation": "Examine the step between authentication and application start to identify abandonment reasons, and test lighter entry forms for browsing users."
+          },
+          {
+            "headline": "Daily destination card clicks exhibit periodic volume dips every 6 to 7 days",
+            "detail": "Daily traffic counts hover around 4,500 to 4,700 clicks but drop consistently to approximately 3,700 to 3,900 clicks on specific intervals (e.g., Jan 6, Jan 13, Jan 20).",
+            "why": "Weekly seasonality driven by weekend drops in travel planning behavior where business or leisure research dips on specific days.",
+            "confidence": 0.85,
+            "cut": "trend",
+            "evidence": {
+              "min_dip_clicks": 3689,
+              "peak_clicks": 4783
+            },
+            "context_refs": [],
+            "recommendation": "Confirm day-of-week trends across a full quarter to ensure no recurring marketing or technical batch job aligns with these troughs."
+          },
+          {
+            "headline": "iOS devices capture the largest share of application starts across platforms",
+            "detail": "iOS accounts for 63,520 application starts, outperforming Android at 40,720 and Windows web-user-b2c at 19,044.",
+            "why": "Reflects the high mobile app adoption rate among Atlys users, particularly in primary travel corridors where iOS market share is strong.",
+            "confidence": 0.92,
+            "cut": "device",
+            "evidence": {
+              "ios_starts": 63520,
+              "android_starts": 40720,
+              "windows_starts": 19044
+            },
+            "context_refs": [],
+            "recommendation": "Ensure mobile feature parity and monitor OS-specific regressions such as WebKit input handling."
+          },
+          {
+            "headline": "Indian citizenship traveling to the UAE represents the largest user segment",
+            "detail": "Indian citizens traveling to the UAE generate 14,025 organic starts and 3,835 paid search starts, significantly outdistancing other country and destination pairings.",
+            "why": "High expatriate and tourism travel demand between India and Gulf Cooperation Council countries creates sustained baseline volume.",
+            "confidence": 0.95,
+            "cut": "segment",
+            "evidence": {
+              "in_ae_organic": 14025,
+              "in_ae_paid": 3835,
+              "in_us_organic": 8332
+            },
+            "context_refs": [],
+            "recommendation": "Prioritize localization, payment method optimization, and document processing speed for the India-UAE corridor."
+          },
+          {
+            "headline": "Document upload retry rates peak among web users in Great Britain and Qatar desktops",
+            "detail": "British web users show an average retry count of 0.60 across 153 events, and Qatari desktop users show 0.58 retries across 38 events during document uploads.",
+            "why": "Potential friction in file size limits, format validation rules, or camera capture workflows on specific desktop and web browser implementations outside mobile native apps.",
+            "confidence": 0.75,
+            "cut": "anomaly",
+            "evidence": {
+              "gb_web_avg_retries": 0.601,
+              "qa_desktop_avg_retries": 0.579,
+              "ae_web_avg_retries": 0.545
+            },
+            "context_refs": [],
+            "recommendation": "Inspect client-side error logs and file upload constraints for web and desktop users in GB and QA."
+          }
+        ]
+      },
+      "metadata": {
+        "feature": "analyze",
+        "surface": "cli",
+        "provider": "gemini",
+        "agent": "analytics",
+        "operation": "interpret_results",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": "gemini-3.5-flash-lite",
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 5.191,
+      "timeToFirstToken": null,
+      "usageDetails": {
+        "input": 6188,
+        "output": 1219,
+        "total": 7407
+      },
+      "costDetails": {
+        "input": 0.0018564,
+        "output": 0.0030475,
+        "total": 0.0049039
+      },
+      "usagePricingTierId": "cmsb6m3xk000ol7071ejctv4f_tier_default",
+      "usagePricingTierName": "Standard",
+      "inputPrice": 1.5e-06,
+      "outputPrice": 9e-06,
+      "totalPrice": 0,
+      "calculatedInputCost": 0.0018564,
+      "calculatedOutputCost": 0.0030475,
+      "calculatedTotalCost": 0.0049039,
+      "unit": "TOKENS",
+      "promptTokens": 6188,
+      "completionTokens": 1219,
+      "totalTokens": 7407,
+      "modelId": "cmsb6m3xk000ol7071ejctv4f",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 6188,
+        "output": 1219,
+        "total": 7407
+      }
+    },
+    {
+      "id": "de7e2b51ae510ef7",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:38.363Z",
+      "endTime": "2026-08-02T02:34:39.121Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "e3fbce190e3bce05",
+      "type": "EMBEDDING",
+      "environment": "default",
+      "name": "agent:analytics",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:40.062Z",
+      "updatedAt": "2026-08-02T02:34:40.219Z",
+      "input": {
+        "texts": 1
+      },
+      "output": {
+        "vectors": 1,
+        "dimensions": 3072
+      },
+      "metadata": {
+        "feature": "analyze",
+        "surface": "cli",
+        "provider": "gemini",
+        "agent": "analytics",
+        "operation": "embed",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": "gemini-embedding-001",
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 0.758,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": "cmsb6m4580021l707dncor3i4_tier_default",
+      "usagePricingTierName": "Standard",
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": "cmsb6m4580021l707dncor3i4",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "210d64c66b09f4fc",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:30.718Z",
+      "endTime": "2026-08-02T02:34:37.309Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "f5a49992f23747b5",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:plan_queries",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:40.062Z",
+      "updatedAt": "2026-08-02T02:34:40.211Z",
+      "input": null,
+      "output": {
+        "questions": [
+          "What is the overall baseline count of events and unique users across the core funnel tables?",
+          "What is the daily trend of destination card clicks and application starts over time?",
+          "How do application starts and authentication events break down by device type and operating system?",
+          "What is the geographical distribution of application starts by country code and city?",
+          "What are the stage-to-stage conversion and volume counts across the available funnel steps?",
+          "How do user segments based on citizenship, destination, and paid search acquisition (gclid presence) distribute across application starts?",
+          "What are the outlier combinations of device type and geographic country code showing unusually high document upload retry rates or failure thresholds?",
+          "What is the distribution of authentication attempts across new versus returning users by device type?"
+        ]
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "plan_queries",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "decisions": [
+          {
+            "what": "planned 8 queries across 7 cuts",
+            "why": "the brief names device, geo, funnel stage and user segment; a single-dimension read misses the iOS-in-one-region class of finding",
+            "alternatives": [],
+            "confidence": null,
+            "evidence": {
+              "cuts": {
+                "overall": 1,
+                "trend": 1,
+                "device": 1,
+                "geo": 1,
+                "funnel": 1,
+                "segment": 2,
+                "anomaly": 1
+              },
+              "missing_cuts": []
+            },
+            "rules": [
+              "agent-discovery-schema"
+            ]
+          }
+        ],
+        "metrics": {
+          "questions_planned": 8,
+          "cuts_covered": 7,
+          "cuts_missing": 0,
+          "raw_queries_rejected": 0,
+          "duration_ms": 6590.5
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 6.591,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "e3b38a2f45900aba",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:37.310Z",
+      "endTime": "2026-08-02T02:34:38.330Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "f5a49992f23747b5",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:run_queries",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:40.062Z",
+      "updatedAt": "2026-08-02T02:34:40.210Z",
+      "input": null,
+      "output": {
+        "queries": 8,
+        "failed": 0
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "run_queries",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "sql": {
+          "query": "SELECT device_type, is_new_user, avg(attempts) AS avg_attempts, count() AS auth_events FROM atlys.auth_completed GROUP BY device_type, is_new_user ORDER BY auth_events DESC LIMIT 20",
+          "purpose": "What is the distribution of authentication attempts across new versus returning users by device type?",
+          "rows_returned": 8
+        },
+        "decisions": [
+          {
+            "what": "ran 8 queries, 0 failed",
+            "why": "every query carries LIMIT-equivalent settings and a wall-clock cap, so a bad generated query is bounded rather than cluster-wide",
+            "alternatives": [],
+            "confidence": null,
+            "evidence": {
+              "settings": {
+                "max_execution_time": 30,
+                "max_rows_to_read": 1000000000,
+                "max_bytes_to_read": 100000000000,
+                "max_result_rows": 10000,
+                "result_overflow_mode": "break",
+                "timeout_before_checking_execution_speed": 0,
+                "readonly": 1
+              },
+              "failures": []
+            },
+            "rules": [
+              "agent-query-safety"
+            ]
+          }
+        ],
+        "metrics": {
+          "queries_run": 8,
+          "queries_failed": 0,
+          "queries_succeeded": 8,
+          "rows_returned": 83,
+          "query_ms_total": 1014,
+          "query_ms_slowest": 310,
+          "duration_ms": 1020.6
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 1.02,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "4af02021dd91fe11",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:33.198Z",
+      "endTime": "2026-08-02T02:34:37.308Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "210d64c66b09f4fc",
+      "type": "GENERATION",
+      "environment": "default",
+      "name": "agent:analytics",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:40.062Z",
+      "updatedAt": "2026-08-02T02:34:40.194Z",
+      "input": "# Database: atlys (context v1)\n\n# Business context\n\n```json\n[\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K7\",\n    \"value\": \"App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor funnel-timing shifts around the rollout are expected.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Step-through rate\",\n    \"value\": \"users at stage N+1 \\u00f7 users at stage N.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K5\",\n    \"value\": \"WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went live in February; it can lift returns to the funnel for previously-dropped users.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Drop-off rate (per funnel stage)\",\n    \"value\": \"1 \\u2212 (users at stage N+1 \\u00f7 users at stage N), counting distinct `user_id` reaching each stage in order within the window.\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K1\",\n    \"value\": \"iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP field fails to autofill, and some users abandon at the pay step. Payment-heavy geos (Gulf card users) are most exposed. Watch `pay_now_clicked \\u2192 purchase_completed` for iOS.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"On-time delivery rate\",\n    \"value\": \"applications issued on or before `visa_issuance_eta_days` \\u00f7 applications issued. (Reported by the fulfilment team from post-purchase systems; not computable from the funnel tables here.)\"\n  },\n  {\n    \"kind\": \"known_issue\",\n    \"key\": \"K6\",\n    \"value\": \"SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated `coupon_applied` and lower realised `value`.\"\n  },\n  {\n    \"kind\": \"metric\",\n    \"key\": \"Conversion rate\",\n    \"value\": \"completed purchases \\u00f7 **sessions**. A session is a single app-open / web visit. This is the headline number reported to leadership.\"\n  },\n  {\n    \"kind\": \"entity\",\n    \"key\": \"segment cuts\",\n    \"value\": \"`device_type` / `os`, `geoip_country_code`, `destination`, `citizenship`, `co_travelers`, acquisition (`gclid` present \\u21d2 paid search)\"\n  }\n]\n```\n\n# Schema\n\n```json\n[\n  {\n    \"table\": \"application_started\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"purpose\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"eta_shown\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"flow\",\n        \"type\": \"Nullable(String)\"\n      }\n    ],\n    \"row_count\": 154413\n  },\n  {\n    \"table\": \"auth_completed\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"auth_method\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_new_user\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"attempts\",\n        \"type\": \"Nullable(UInt8)\"\n      }\n    ],\n    \"row_count\": 183790\n  },\n  {\n    \"table\": \"context_embeddings\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"kind\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"key\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"text\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"embedding\",\n        \"type\": \"Array(Float32)\"\n      }\n    ],\n    \"row_count\": 38\n  },\n  {\n    \"table\": \"context_entries\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"kind\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"key\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"value\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"source\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"detail\",\n        \"type\": \"String\"\n      }\n    ],\n    \"row_count\": 322\n  },\n  {\n    \"table\": \"context_issues\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"kind\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"severity\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"subject\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"detail\",\n        \"type\": \"String\"\n      }\n    ],\n    \"row_count\": 4\n  },\n  {\n    \"table\": \"context_versions\",\n    \"columns\": [\n      {\n        \"name\": \"version\",\n        \"type\": \"UInt32\"\n      },\n      {\n        \"name\": \"created_at\",\n        \"type\": \"DateTime64(3, 'UTC')\"\n      },\n      {\n        \"name\": \"source\",\n        \"type\": \"LowCardinality(String)\"\n      },\n      {\n        \"name\": \"summary\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"entry_count\",\n        \"type\": \"UInt32\"\n      }\n    ],\n    \"row_count\": 1\n  },\n  {\n    \"table\": \"destination_card_clicked\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"visa_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"card_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"page_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"flow\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_guest_browse\",\n        \"type\": \"Nullable(UInt8)\"\n      }\n    ],\n    \"row_count\": 1000000\n  },\n  {\n    \"table\": \"document_uploaded\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_version\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_lib\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_country_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"geoip_subdivision_1_code\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"city\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"client_ip\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"latitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"longitude\",\n        \"type\": \"Nullable(Float64)\"\n      },\n      {\n        \"name\": \"locale\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"language\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"funnel_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"co_travelers\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_guest\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_referral\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_enterprise\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"gclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"fbclid\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"gad_source\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"citizenship\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"destination\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"is_back_filled\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"duplicate_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"doc_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"capture_mode\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"scan_mode\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"retry_count\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"failed_attempt_threshold\",\n        \"type\": \"Nullable(UInt8)\"\n      },\n      {\n        \"name\": \"is_crossed_failed_attempt_threshold\",\n        \"type\": \"Nullable(UInt8)\"\n      }\n    ],\n    \"row_count\": 20446\n  },\n  {\n    \"table\": \"landing_page_scrolled\",\n    \"columns\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"UUID\"\n      },\n      {\n        \"name\": \"timestamp\",\n        \"type\": \"DateTime\"\n      },\n      {\n        \"name\": \"user_id\",\n        \"type\": \"String\"\n      },\n      {\n        \"name\": \"application_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"app_session_id\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"device_type\",\n        \"type\": \"Nullable(String)\"\n      },\n      {\n        \"name\": \"os\",\n        \"\n```\n\n# Known problems with the context layer\n\n```json\n[\n  {\n    \"kind\": \"contradiction\",\n    \"severity\": \"high\",\n    \"subject\": \"relationship:shared application_id\",\n    \"detail\": \"The relationship states that pre-application events like `destination_card_clicked` share an `application_id`, but the Application entity definition explicitly states that application_id is created at the `application_started` step and that events *before* it carry an empty `application_id`.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"metric:Revenue per conversion\",\n    \"detail\": \"metric is named but has no executable formula or denominator\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K2\",\n    \"detail\": \"K2 mentions a passport scan model update in April 2026 and related capture failures on Android devices, but states no specific time window or affected segment boundaries (beyond generic Android devices) to filter out or isolate the anomaly.\"\n  },\n  {\n    \"kind\": \"gap\",\n    \"severity\": \"high\",\n    \"subject\": \"known_issue:K3\",\n    \"detail\": \"K3 notes that MRZ OCR is weaker on non-Latin passports and requires more retries, but lacks a stated time window, segment identifier, or filtering criteria to evaluate its impact on pass rates.\"\n  }\n]\n```\nWhere a metric is ambiguous, compute it both ways and say so.\n\n# Focus\n\nAnalyze the existing funnel and surface the most important issues, with the why.\n\nPlan the queries. You MUST cover all cuts: overall, trend, device, geo, funnel, segment, and at least one anomaly query. Every query MUST use GROUP BY or aggregate functions. Never use SELECT *. Return only the JSON object.",
+      "output": {
+        "questions": [
+          {
+            "question": "What is the overall baseline count of events and unique users across the core funnel tables?",
+            "cut": "overall",
+            "why": "Establishes the headline volume baseline for users and events across the entire dataset.",
+            "sql": "SELECT 'destination_card_clicked' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS total_events, uniqExact(user_id) AS unique_users FROM atlys.auth_completed"
+          },
+          {
+            "question": "What is the daily trend of destination card clicks and application starts over time?",
+            "cut": "trend",
+            "why": "Monitors activity over time to spot growth patterns, campaign impacts like SUMMER20, or release timing shifts.",
+            "sql": "SELECT toDate(timestamp) AS dt, count() AS clicks, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked GROUP BY dt ORDER BY dt LIMIT 20"
+          },
+          {
+            "question": "How do application starts and authentication events break down by device type and operating system?",
+            "cut": "device",
+            "why": "Assesses device and OS breakdown to detect platform-specific issues like the iOS OTP autofill or Android passport scanning regressions.",
+            "sql": "SELECT device_type, os, count() AS total_starts, uniqExact(user_id) AS unique_users FROM atlys.application_started GROUP BY device_type, os ORDER BY total_starts DESC LIMIT 20"
+          },
+          {
+            "question": "What is the geographical distribution of application starts by country code and city?",
+            "cut": "geo",
+            "why": "Evaluates geographic concentration, paying special attention to Gulf card users and payment-heavy regions exposed to the iOS OTP autofill issue.",
+            "sql": "SELECT geoip_country_code, city, count() AS starts FROM atlys.application_started GROUP BY geoip_country_code, city ORDER BY starts DESC LIMIT 20"
+          },
+          {
+            "question": "What are the stage-to-stage conversion and volume counts across the available funnel steps?",
+            "cut": "funnel",
+            "why": "Measures drop-off rates and step-through rates per funnel stage as defined by business requirements.",
+            "sql": "SELECT 'destination_clicks' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.destination_card_clicked UNION ALL SELECT 'application_started' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.application_started UNION ALL SELECT 'auth_completed' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.auth_completed UNION ALL SELECT 'document_uploaded' AS stage, count() AS cnt, uniqExact(user_id) AS unique_users FROM atlys.document_uploaded ORDER BY cnt DESC"
+          },
+          {
+            "question": "How do user segments based on citizenship, destination, and paid search acquisition (gclid presence) distribute across application starts?",
+            "cut": "segment",
+            "why": "Compares conversion and engagement across user segments like citizenship, destination, and paid search acquisition (gclid).",
+            "sql": "SELECT citizenship, destination, if(gclid != '' AND gclid IS NOT NULL, 'paid_search', 'organic') AS acquisition_channel, count() AS starts FROM atlys.application_started GROUP BY citizenship, destination, acquisition_channel ORDER BY starts DESC LIMIT 20"
+          },
+          {
+            "question": "What are the outlier combinations of device type and geographic country code showing unusually high document upload retry rates or failure thresholds?",
+            "cut": "anomaly",
+            "why": "Identifies cross-dimensional outliers and anomalies, such as specific device and geo combinations struggling with document uploads or auth attempts.",
+            "sql": "SELECT device_type, geoip_country_code, avg(retry_count) AS avg_retries, count() AS events_count FROM atlys.document_uploaded GROUP BY device_type, geoip_country_code HAVING count() > 5 ORDER BY avg_retries DESC LIMIT 10"
+          },
+          {
+            "question": "What is the distribution of authentication attempts across new versus returning users by device type?",
+            "cut": "segment",
+            "why": "Evaluates user segment behavior (new vs returning users) and how authentication attempts vary by device.",
+            "sql": "SELECT device_type, is_new_user, avg(attempts) AS avg_attempts, count() AS auth_events FROM atlys.auth_completed GROUP BY device_type, is_new_user ORDER BY auth_events DESC LIMIT 20"
+          }
+        ]
+      },
+      "metadata": {
+        "feature": "analyze",
+        "surface": "cli",
+        "provider": "gemini",
+        "agent": "analytics",
+        "operation": "plan_queries",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": "gemini-3.5-flash-lite",
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 4.11,
+      "timeToFirstToken": null,
+      "usageDetails": {
+        "input": 14665,
+        "output": 1154,
+        "total": 15819
+      },
+      "costDetails": {
+        "input": 0.0043995,
+        "output": 0.002885,
+        "total": 0.0072845
+      },
+      "usagePricingTierId": "cmsb6m3xk000ol7071ejctv4f_tier_default",
+      "usagePricingTierName": "Standard",
+      "inputPrice": 1.5e-06,
+      "outputPrice": 9e-06,
+      "totalPrice": 0,
+      "calculatedInputCost": 0.0043995,
+      "calculatedOutputCost": 0.002885,
+      "calculatedTotalCost": 0.0072845,
+      "unit": "TOKENS",
+      "promptTokens": 14665,
+      "completionTokens": 1154,
+      "totalTokens": 15819,
+      "modelId": "cmsb6m3xk000ol7071ejctv4f",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 14665,
+        "output": 1154,
+        "total": 15819
+      }
+    },
+    {
+      "id": "346951abbb8d716b",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:30.765Z",
+      "endTime": "2026-08-02T02:34:33.109Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "210d64c66b09f4fc",
+      "type": "EMBEDDING",
+      "environment": "default",
+      "name": "agent:analytics",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:34.976Z",
+      "updatedAt": "2026-08-02T02:34:35.031Z",
+      "input": {
+        "texts": 1
+      },
+      "output": {
+        "vectors": 1,
+        "dimensions": 3072
+      },
+      "metadata": {
+        "feature": "analyze",
+        "surface": "cli",
+        "provider": "gemini",
+        "agent": "analytics",
+        "operation": "embed",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": "gemini-embedding-001",
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 2.344,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": "cmsb6m4580021l707dncor3i4_tier_default",
+      "usagePricingTierName": "Standard",
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": "cmsb6m4580021l707dncor3i4",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "b781d2f24ed6fd46",
+      "traceId": "497c9d11672d1eba5a101617b5a6159a",
+      "startTime": "2026-08-02T02:34:30.646Z",
+      "endTime": "2026-08-02T02:34:30.717Z",
+      "projectId": "cmsavvkb0000bl707b2vaykku",
+      "parentObservationId": "f5a49992f23747b5",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "analytics:discover",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-02T02:34:34.976Z",
+      "updatedAt": "2026-08-02T02:34:35.023Z",
+      "input": null,
+      "output": {
+        "tables": 14,
+        "context_version": 1
+      },
+      "metadata": {
+        "agent": "analytics",
+        "action": "discover",
+        "context_version": 1,
+        "feature": "analyze",
+        "surface": "cli",
+        "sql": {
+          "query": "SELECT table, name, type FROM system.columns WHERE database = 'atlys' ORDER BY table, position",
+          "purpose": "schema discovery before planning any query",
+          "rows_returned": null
+        },
+        "decisions": [
+          {
+            "what": "discovered 14 tables at context v1",
+            "why": "schema is read from the database and context from MAX(version), so a table created moments ago is already in scope",
+            "alternatives": [],
+            "confidence": null,
+            "evidence": {
+              "tables": [
+                "application_started",
+                "auth_completed",
+                "context_embeddings",
+                "context_entries",
+                "context_issues",
+                "context_versions",
+                "destination_card_clicked",
+                "document_uploaded",
+                "landing_page_scrolled",
+                "pay_now_clicked",
+                "purchase_completed",
+                "search_typed",
+                "ui_agent_insights",
+                "ui_schema_changes"
+              ],
+              "context_version": 1
+            },
+            "rules": [
+              "agent-discovery-schema"
+            ]
+          }
+        ],
+        "metrics": {
+          "tables_discovered": 14,
+          "columns_discovered": 314,
+          "context_version": 1,
+          "context_entries": 322,
+          "context_issues": 4,
+          "duration_ms": 70.8
+        },
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.44.0",
+          "service.instance.id": "08d54967-6ace-4c15-a7d6-a65308105b3c",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.15.0",
+          "attributes": {
+            "public_key": "pk-lf-a6cbff34-e7f3-4148-a06d-24f4c332e14c"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 0.071,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "inputPrice": 0,
+      "outputPrice": 0,
+      "totalPrice": 0,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "modelId": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    }
+  ],
+  "htmlPath": "/project/cmsavvkb0000bl707b2vaykku/traces/497c9d11672d1eba5a101617b5a6159a",
+  "totalCost": 0.0121884
+}

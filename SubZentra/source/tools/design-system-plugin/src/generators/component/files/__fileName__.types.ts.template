@@ -1,0 +1,74 @@
+import type {
+  RawComponentOwnProps,
+  RawComponentProps,
+} from '../../types/component';
+
+/**
+ * <%= className %> variants definition
+ */
+<% if (variants.length === 0) { %>
+export const <%= className %>Variants = {} as const;
+<% } else { %>
+export const <%= className %>Variants = {
+<% for (const v of variants) { %>
+  <%= v.name %>: [<% for (let i = 0; i < v.values.length; i++) { %>'<%= v.values[i] %>'<% if (i < v.values.length - 1) { %>, <% } %><% } %>] as const,
+<% } %>
+} as const;
+<% } %>
+
+/**
+ * <%= className %> modifiers definition
+ */
+<% if (modifiers.length === 0) { %>
+export const <%= className %>Modifiers = [] as const;
+<% } else { %>
+export const <%= className %>Modifiers = [<% for (let i = 0; i < modifiers.length; i++) { %>'<%= modifiers[i] %>'<% if (i < modifiers.length - 1) { %>, <% } %><% } %>] as const;
+<% } %>
+
+/**
+ * <%= className %> slots definition
+ */
+<% if (slots.length === 0) { %>
+export const <%= className %>Slots = [] as const;
+<% } else { %>
+export const <%= className %>Slots = [<% for (let i = 0; i < slots.length; i++) { %>'<%= slots[i] %>'<% if (i < slots.length - 1) { %>, <% } %><% } %>] as const;
+<% } %>
+
+/**
+ * Variants type for <%= className %>
+ */
+export type <%= className %>Variants = typeof <%= className %>Variants;
+
+/**
+ * Modifiers type for <%= className %>
+ */
+export type <%= className %>Modifiers = typeof <%= className %>Modifiers;
+
+/**
+ * Slots type for <%= className %>
+ */
+export type <%= className %>Slots = typeof <%= className %>Slots;
+
+/**
+ * Own props for <%= className %> (variants + modifiers + slots)
+ */
+export type <%= className %>OwnProps = RawComponentOwnProps<
+  <%= className %>Variants,
+  <%= className %>Modifiers,
+  <%= className %>Slots
+>;
+
+/**
+ * Props for <%= className %> component
+ */
+export type <%= className %>Props<T extends React.ElementType = '<%= rootElement %>'> = RawComponentProps<
+  T,
+  <%= className %>OwnProps
+>;
+
+/**
+ * <%= className %> component type
+ */
+export type <%= className %>Component = <T extends React.ElementType = '<%= rootElement %>'>(
+  props: <%= className %>Props<T>,
+) => React.ReactNode;

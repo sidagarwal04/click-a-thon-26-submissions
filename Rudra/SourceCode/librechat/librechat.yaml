@@ -1,0 +1,48 @@
+# LibreChat config — connects to the ClickHouse MCP SSE sidecar and gives the model
+# the concurrency schema via serverInstructions (so it queries data, not the internet).
+# Docs: https://www.librechat.ai/docs/configuration/librechat_yaml
+version: 1.2.8
+cache: true
+
+# LibreChat blocks private/SSRF MCP targets by default; the sidecar resolves to a
+# private Docker IP, so allowlist its hostname (a hostname match bypasses the SSRF block).
+mcpSettings:
+  allowedDomains:
+    - "mcp-clickhouse"
+
+interface:
+  mcpServers:
+    use: true
+
+mcpServers:
+  clickhouse:
+    type: sse
+    url: http://mcp-clickhouse:8000/sse          # the sidecar container on the compose network
+    serverInstructions: |
+      You answer SonyLIV foreground-only concurrency questions ONLY by querying ClickHouse
+      (database `sonyliv`) with the run_query tool. NEVER answer from general knowledge and
+      NEVER ask about real-world events — this is synthetic SonyLIV streaming data for one
+      day: 2026-07-31 (UTC).
+
+      Main serving table:
+        sonyliv.hist_minute_full(minute DateTime UTC, content_id, platform, app_version,
+          video_type, country, video_resolution, audio_language, subtitle_language,
+          player_version, cnt)
+        cnt = foreground-active sessions in that (minute, dimension tuple).
+
+      Rules:
+      - "viewership" / "viewers" / "concurrency" all mean the same thing.
+      - Concurrency at a minute = sum(cnt). PEAK over a range = max of the per-minute sum:
+          SELECT max(c) FROM (SELECT minute, sum(cnt) c FROM sonyliv.hist_minute_full
+                              WHERE <filters> GROUP BY minute)
+      - AVERAGE = avg of that per-minute sum. Hour/day grain: group the per-minute curve by
+        toStartOfHour(minute) / toDate(minute,'Asia/Kolkata') then max()/avg().
+      - Filters are equality on the dimension columns (incl. app_version); values are
+        lowercase (android_phone, india, hin, vod, live). Content attributes not stored on
+        the table — title, show_name, category — resolve from content_id with
+        dictGet('sonyliv.content_dict', 'title'|'show_name'|'category', tuple(content_id)).
+      - Always constrain minute to a range, add LIMIT<=100 on row-returning queries, and
+        always run the SQL then report the number and show the query. Do not query other tables.
+      - EFFICIENCY (rate limits): the schema above is COMPLETE and authoritative. Do NOT call
+        list_databases or list_tables. Answer each question with a SINGLE run_query call (one
+        SELECT); if several numbers are needed, combine them into one query. Do not re-run to verify.

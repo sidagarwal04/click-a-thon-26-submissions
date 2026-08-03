@@ -1,0 +1,30 @@
+# evidence: replica_parity_phoenix_next
+# what: independently re-derived phoenix_next serving layer against phoenix, frozen slice
+# run_utc: 2026-08-01 19:53:04
+# git: f1b6d38-dirty
+# host: ss-cric
+# row_count: 2203368
+# event_watermark: 2026-08-01 20:03:11.372
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:44:51   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	phoenix	phoenix_next	verdict
+frozen_slice_raw_events	905558	905558	PASS
+closure	0	0	PASS
+uclosure	0	0	PASS
+runs	17585	17585	PASS
+uruns	16582	16582	PASS
+peak	2828	2828	PASS
+curve_minutes_compared	21600	21600	
+curve_differing_rows	0	0	PASS
+curve_missing_keys	0	0	PASS
+curve_unexpected_keys	0	0	PASS
+average_definitions_differing_rows	0	0	PASS
+#	corpus_window	2026-07-13 00:00:00 .. 2026-07-28 00:00:00
+#	headline_day	2026-07-26 00:00:00 .. 2026-07-27 00:00:00
+#	frozen_delta_rows_physical	24892	24892	(recorded, merge-dependent, not a gate)
+verdict	PASS	PASS	PASS

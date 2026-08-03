@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/*
+  The SonyLIV surface, measured from sonyliv.com rather than recalled.
+
+  Dark is not a category default here — it is the brand's own ground and the
+  operator's real scene: this runs beside a terminal and a ClickHouse console
+  while a live concurrency curve moves. Pure #000 is what SonyLIV paints (6.2M
+  px² of it on the home page, dominant by a wide margin), so the ground is #000
+  and the surfaces climb from it.
+
+  ONE signal colour. SonyLIV's whole home page carries a single non-neutral:
+  #FFA800, on the logo tick, the active-nav border, and the Subscribe control.
+  Everything else is black, white and two greys. This file keeps that discipline
+  rather than importing a second accent, so hierarchy is carried by FORM —
+  filled vs outlined, solid vs dashed, weight, size — not by inventing hues.
+
+  Red is the one addition, and it is an addition: an operator's tool has to be
+  able to say "this is wrong" and the brand surface never needs to.
+*/
+@theme {
+  /* Ground and surfaces. #000 and #222 are measured; the two between them are
+     derived, because a data table needs more separation steps than a poster. */
+  --color-ground: #000000;
+  --color-sunken: #0a0a0a;
+  --color-panel: #141414;
+  --color-raised: #222222;
+
+  --color-line: #2e2e2e;
+  --color-line-soft: #1c1c1c;
+
+  /* Measured: #fff primary, #aaa secondary. The tertiary is derived and pinned
+     at 6.0:1 on black — SonyLIV only needs two text steps, a dashboard needs
+     three, and the third still has to pass as body text. */
+  --color-ink: #ffffff;
+  --color-ink-2: #aaaaaa;
+  --color-ink-3: #8a8a8a;
+
+  /* The brand. 10.9:1 on black. */
+  --color-accent: #ffa800;
+  --color-accent-dim: #7a5200;
+  --color-accent-wash: #2a1c00;
+
+  /* "Live" is the SAME hue as the accent, deliberately, and the token is kept
+     only so component code reads by meaning. In this system "happening now" and
+     "the brand" are one colour; where two live quantities must be told apart —
+     the fleet line against the pipeline line — the second is white and dashed,
+     which is SonyLIV's own gold-over-white hierarchy rather than a hue we made
+     up. Do not fork this into a teal or a green. */
+  --color-live: #ffa800;
+  --color-live-wash: #2a1c00;
+
+  --color-bad: #ff5a5f;
+  --color-bad-wash: #2a1011;
+
+  /* Radii are measured: SonyLIV runs a strict two-step system, 4px on controls
+     and 10px on cards and tiles. Nothing in between. */
+  --radius-sm: 4px;
+  --radius: 4px;
+  --radius-lg: 10px;
+
+  /* Inter is the face SonyLIV actually renders. --font-inter is injected by
+     next/font in layout.tsx, which self-hosts it into the static export. */
+  --font-sans: var(--font-inter), ui-sans-serif, -apple-system, system-ui,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Mono is ours, not SonyLIV's: it carries measurements, timestamps and ids,
+     which is what mono is for. It is never used as a costume for "technical". */
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Every column of digits in this app lines up. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Micro-labels. Inter at this size with open tracking, not mono — SonyLIV sets
+  its chrome in the text face and reserves nothing for a second family, and at
+  10px mono's wider figures cost more room than they earn.
+*/
+.eyebrow {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Native controls, restyled once rather than per component. */
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="password"],
+select {
+  background: var(--color-sunken);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+input::placeholder {
+  /* ink-3, not a dimmer grey: placeholders are body text and hold 4.5:1. */
+  color: var(--color-ink-3);
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  width: auto;
+}
+
+/* These values are typed, never spun. */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

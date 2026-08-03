@@ -1,0 +1,2651 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RCA · Automated Root-Cause Analyst</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="data.js"></script>
+  <script src="api.js"></script>
+  <script src="config.js"></script>
+  <script src="//www.unpkg.com/@hyperdx/browser@0.21.0/build/index.js"></script>
+  <script>
+    window.HyperDX.init({
+      url: (window.RCA_CONFIG && window.RCA_CONFIG.hyperdxUrl) || 'http://localhost:4318',
+      apiKey: window.RCA_CONFIG && window.RCA_CONFIG.hyperdxApiKey, //omit for Managed ClickStack
+      service: 'rca-frontend',
+      tracePropagationTargets: [/localhost:8080/i], // links traces to the Go backend (SERVER_PORT=8080)
+    });
+  </script>
+  <style>
+    :root {
+      /* sampled from clickhouse.com — brand yellow #F4F692 on warm near-black #131312.
+     NOT #FAFF69: that is 100% saturation and reads acid. Real brand is 83%. */
+      --bg: #131312;
+      --surface: #1A1A19;
+      --surface2: #222220;
+      --surface3: #282825;
+      --line: #33332F;
+      --ch-yellow: #F4F692;
+      --ch-yellow-hi: #FAFBC4;
+      --ch-yellow-dim: #B9BB70;
+      /* text colors bumped up from the original #8C8C85/#5E5E58 — those sat under a 4.5:1
+     contrast ratio against --surface, borderline for body copy at any size. These clear it. */
+      --text: #F5F5F2;
+      --muted: #ABABA2;
+      --faint: #84847A;
+      --danger: #FF7A7D;
+      --danger-dim: #3A2422;
+      --ok: #8EE6AC;
+      --warn: #EDC06B;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 4px 18px rgba(0, 0, 0, .28);
+      color-scheme: dark;
+      /* native <select> popups + scrollbars follow the dark theme */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #root {
+      min-height: 100vh
+    }
+
+    /* ---------- shell ---------- */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      padding: 0 28px;
+      height: 66px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 680;
+      letter-spacing: -.02em;
+      font-size: 17px
+    }
+
+    .logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: var(--ch-yellow);
+      display: grid;
+      place-items: center;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      font-family: var(--mono)
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px
+    }
+
+    .tab {
+      padding: 8px 16px;
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 560;
+      transition: .15s;
+      border: 1px solid transparent;
+      background: none;
+      font-size: 14.5px;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: var(--surface2)
+    }
+
+    .tab.on {
+      color: #000;
+      background: var(--ch-yellow);
+      font-weight: 660
+    }
+
+    .spacer {
+      flex: 1
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--mono)
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 8px var(--ok)
+    }
+
+    .page {
+      padding: 28px 32px 60px;
+      max-width: 1920px;
+      margin: 0 auto
+    }
+
+    /* ---------- controls ---------- */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 0
+    }
+
+    .field label {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--muted);
+      font-weight: 650
+    }
+
+    select,
+    input[type=date] {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14.5px;
+      font-family: inherit;
+      min-width: 140px;
+      outline: none;
+      transition: .15s;
+      cursor: pointer;
+    }
+
+    select:hover,
+    input[type=date]:hover {
+      border-color: #4A4A44
+    }
+
+    select:focus,
+    input[type=date]:focus {
+      border-color: var(--ch-yellow);
+      box-shadow: 0 0 0 3px rgba(244, 246, 146, .14)
+    }
+
+    select:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    input[type=date] {
+      font-family: var(--mono);
+      font-size: 13.5px
+    }
+
+    .seg {
+      display: flex;
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px
+    }
+
+    .seg button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 7px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 560;
+      font-family: inherit;
+      transition: .14s;
+      white-space: nowrap;
+    }
+
+    .seg button:hover:not(:disabled) {
+      color: var(--text)
+    }
+
+    .seg button.on {
+      background: var(--ch-yellow);
+      color: #000;
+      font-weight: 660
+    }
+
+    .seg button:disabled {
+      opacity: .3;
+      cursor: not-allowed
+    }
+
+    .btn {
+      background: var(--ch-yellow);
+      color: #000;
+      border: none;
+      border-radius: 9px;
+      padding: 11px 22px;
+      font-weight: 680;
+      font-size: 14.5px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: .15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--ch-yellow-hi);
+      transform: translateY(-1px)
+    }
+
+    .btn:active {
+      transform: translateY(0)
+    }
+
+    .btn.ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--line)
+    }
+
+    .btn.ghost:hover {
+      background: #2B2B27;
+      border-color: #4A4A44
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none
+    }
+
+    .spin {
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(0, 0, 0, .25);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: sp .6s linear infinite
+    }
+
+    @keyframes sp {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* ---------- cards ---------- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow)
+    }
+
+    .card-hd {
+      padding: 17px 22px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .card-ttl {
+      font-weight: 660;
+      font-size: 16.5px;
+      letter-spacing: -.01em
+    }
+
+    .card-sub {
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--mono)
+    }
+
+    .card-bd {
+      padding: 22px
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 17px 19px;
+      transition: .2s;
+      box-shadow: var(--shadow)
+    }
+
+    .kpi:hover {
+      border-color: #4A4A44;
+      transform: translateY(-1px)
+    }
+
+    .kpi .k {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--muted);
+      font-weight: 650;
+      margin-bottom: 8px
+    }
+
+    .kpi .v {
+      font-size: 29px;
+      font-weight: 700;
+      font-family: var(--mono);
+      letter-spacing: -.03em;
+      transition: color .4s;
+      line-height: 1.1
+    }
+
+    .kpi .d {
+      font-size: 12.5px;
+      font-family: var(--mono);
+      margin-top: 6px;
+      color: var(--muted)
+    }
+
+    /* ---------- chart ---------- */
+    .chartwrap {
+      position: relative;
+      width: 100%
+    }
+
+    svg.chart {
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible
+    }
+
+    .chart path.series {
+      fill: none;
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      transition: d .55s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .chart path.area {
+      transition: d .55s cubic-bezier(.4, 0, .2, 1)
+    }
+
+    .chart circle.pt {
+      transition: cx .55s cubic-bezier(.4, 0, .2, 1), cy .55s cubic-bezier(.4, 0, .2, 1), r .2s
+    }
+
+    .chart circle.anom {
+      animation: pulse 1.6s ease-in-out infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        r: 5;
+        opacity: 1
+      }
+
+      50% {
+        r: 8;
+        opacity: .55
+      }
+    }
+
+    .chart .grid {
+      stroke: var(--line);
+      stroke-width: 1
+    }
+
+    .chart .axis {
+      fill: var(--muted);
+      font-size: 12px;
+      font-family: var(--mono)
+    }
+
+    .chart rect.band {
+      fill: var(--danger);
+      opacity: .10;
+      transition: .4s
+    }
+
+    .draw {
+      stroke-dasharray: 4000;
+      stroke-dashoffset: 4000;
+      animation: draw 1.1s ease forwards
+    }
+
+    @keyframes draw {
+      to {
+        stroke-dashoffset: 0
+      }
+    }
+
+    .tip {
+      position: absolute;
+      pointer-events: none;
+      background: #000;
+      border: 1px solid #3A3A3A;
+      border-radius: 9px;
+      padding: 10px 13px;
+      font-size: 13px;
+      font-family: var(--mono);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .6);
+      z-index: 20;
+      white-space: nowrap;
+    }
+
+    .tip .t-d {
+      color: var(--muted);
+      font-size: 11.5px;
+      margin-bottom: 6px
+    }
+
+    .tip .t-r {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .tip .t-v {
+      font-weight: 650
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line)
+    }
+
+    .lg {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: .15s
+    }
+
+    .lg:hover {
+      color: var(--text)
+    }
+
+    .lg .sw {
+      width: 11px;
+      height: 3px;
+      border-radius: 2px
+    }
+
+    .lg.off {
+      opacity: .35
+    }
+
+    /* ---------- findings ---------- */
+    .finding {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--danger);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      animation: slide .35s ease backwards;
+    }
+
+    @keyframes slide {
+      from {
+        opacity: 0;
+        transform: translateY(9px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .f-hd {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 11px
+    }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: var(--danger-dim);
+      color: var(--danger);
+      font-weight: 640;
+    }
+
+    .pill.y {
+      background: rgba(244, 246, 146, .14);
+      color: var(--ch-yellow)
+    }
+
+    .pill.g {
+      background: rgba(74, 222, 128, .14);
+      color: var(--ok)
+    }
+
+    .pill.n {
+      background: var(--surface2);
+      color: var(--muted)
+    }
+
+    .f-seg {
+      font-weight: 660;
+      font-size: 16px
+    }
+
+    .f-body {
+      color: var(--text);
+      font-size: 14.5px;
+      line-height: 1.7
+    }
+
+    .f-body b {
+      color: var(--ch-yellow-hi);
+      font-family: var(--mono);
+      font-weight: 660
+    }
+
+    .f-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+      gap: 11px;
+      margin-top: 14px
+    }
+
+    .f-cell {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 11px 13px
+    }
+
+    .f-cell .k {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 5px
+    }
+
+    .f-cell .v {
+      font-family: var(--mono);
+      font-size: 15.5px;
+      font-weight: 660
+    }
+
+    /* ---------- root-cause callout — the answer to "what actually caused this",
+   pulled out of the candidate table so it can't be missed ---------- */
+    .rootcause {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(244, 246, 146, .14), rgba(244, 246, 146, .05));
+      border: 1px solid rgba(244, 246, 146, .35);
+      border-radius: 11px;
+    }
+
+    .rootcause .ic {
+      font-size: 26px;
+      line-height: 1;
+      flex: none
+    }
+
+    .rootcause .rc-body {
+      flex: 1;
+      min-width: 0
+    }
+
+    .rootcause .rc-k {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--ch-yellow-dim);
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .rootcause .rc-v {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.01em
+    }
+
+    .rootcause .rc-v b {
+      color: var(--ch-yellow-hi);
+      font-family: var(--mono)
+    }
+
+    .rootcause .rc-stat {
+      flex: none;
+      text-align: right
+    }
+
+    .rootcause .rc-stat .n {
+      font-size: 30px;
+      font-weight: 750;
+      font-family: var(--mono);
+      color: var(--ch-yellow-hi);
+      line-height: 1
+    }
+
+    .rootcause .rc-stat .l {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: 3px
+    }
+
+    .rootcause.global {
+      background: linear-gradient(135deg, rgba(142, 230, 172, .14), rgba(142, 230, 172, .05));
+      border-color: rgba(142, 230, 172, .35)
+    }
+
+    .rootcause.global .rc-k {
+      color: var(--ok)
+    }
+
+    .rootcause.unexplained {
+      background: linear-gradient(135deg, rgba(255, 122, 125, .12), rgba(255, 122, 125, .04));
+      border-color: rgba(255, 122, 125, .3)
+    }
+
+    .rootcause.unexplained .rc-k {
+      color: var(--danger)
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted)
+    }
+
+    .empty .ic {
+      font-size: 32px;
+      margin-bottom: 14px;
+      opacity: .6
+    }
+
+    /* ---------- table ---------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      font-weight: 660;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    th:hover {
+      color: var(--text)
+    }
+
+    th.num,
+    td.num {
+      text-align: right;
+      font-family: var(--mono)
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(51, 51, 47, .6)
+    }
+
+    tr:last-child td {
+      border-bottom: none
+    }
+
+    tbody tr {
+      transition: background .12s
+    }
+
+    tbody tr:hover {
+      background: var(--surface2)
+    }
+
+    .bar {
+      height: 4px;
+      background: var(--ch-yellow);
+      border-radius: 2px;
+      transition: width .5s cubic-bezier(.4, 0, .2, 1);
+      margin-top: 6px
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+      align-items: start
+    }
+
+    @media(max-width:1080px) {
+      .grid2 {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .scroll {
+      overflow-x: auto
+    }
+
+    .note {
+      background: rgba(244, 246, 146, .06);
+      border: 1px solid rgba(244, 246, 146, .2);
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+
+    .note b {
+      color: var(--ch-yellow)
+    }
+
+    /* ---------- expand chart (full-width, in-page — no browser Fullscreen API) ---------- */
+    .fs-btn {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      border-radius: 7px;
+      padding: 7px 11px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: .15s;
+      line-height: 1;
+    }
+
+    .fs-btn:hover {
+      color: var(--text);
+      border-color: #4A4A44
+    }
+
+    .card.expanded {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+
+    .card.expanded .card-hd {
+      padding: 20px 32px
+    }
+
+    .card.expanded .card-bd {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px 40px 40px
+    }
+
+    .card.expanded .chartwrap {
+      width: 100%
+    }
+
+    .card.expanded svg.chart {
+      height: 78vh;
+      width: 100%
+    }
+
+    body.expanded-open {
+      overflow: hidden
+    }
+
+    /* ---------- custom date-range picker ---------- */
+    .dp {
+      position: relative
+    }
+
+    .dp-btn {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 13px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      transition: .15s;
+      white-space: nowrap;
+    }
+
+    .dp-btn:hover {
+      border-color: #37373E
+    }
+
+    .dp-btn.open {
+      border-color: var(--ch-yellow);
+      box-shadow: 0 0 0 3px rgba(244, 246, 146, .1)
+    }
+
+    .dp-btn .arw {
+      color: var(--faint)
+    }
+
+    .dp-ico {
+      width: 13px;
+      height: 13px;
+      opacity: .55;
+      flex: none
+    }
+
+    .dp-pop {
+      position: absolute;
+      top: calc(100% + 8px);
+      z-index: 200;
+      /* left/right set inline — flips to stay on screen */
+      background: var(--surface);
+      border: 1px solid #33333A;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 18px 52px rgba(0, 0, 0, .75);
+      animation: pop .16s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    @keyframes pop {
+      from {
+        opacity: 0;
+        transform: translateY(-6px) scale(.985)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .dp-presets {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 13px;
+      flex-wrap: wrap;
+      max-width: 266px
+    }
+
+    .dp-preset {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: .14s;
+      font-family: inherit;
+    }
+
+    .dp-preset:hover {
+      color: #000;
+      background: var(--ch-yellow);
+      border-color: var(--ch-yellow)
+    }
+
+    .dp-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 9px
+    }
+
+    .dp-mon {
+      font-weight: 640;
+      font-size: 13px;
+      letter-spacing: -.01em
+    }
+
+    .dp-nav {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 15px;
+      line-height: 1;
+      font-family: inherit;
+    }
+
+    .dp-nav:hover:not(:disabled) {
+      background: var(--surface2);
+      color: var(--text)
+    }
+
+    .dp-nav:disabled {
+      opacity: .2;
+      cursor: not-allowed
+    }
+
+    .dp-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 34px);
+      gap: 2px
+    }
+
+    .dp-wd {
+      font-size: 9.5px;
+      color: var(--faint);
+      text-align: center;
+      padding: 3px 0;
+      font-weight: 660;
+      letter-spacing: .04em
+    }
+
+    .dp-day {
+      height: 30px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-family: var(--mono);
+      cursor: pointer;
+      transition: background .1s, color .1s;
+      border: none;
+      background: none;
+      color: var(--text);
+      border-radius: 6px;
+      position: relative;
+    }
+
+    .dp-day:hover:not(:disabled):not(.end) {
+      background: #2C2C33
+    }
+
+    .dp-day:disabled {
+      color: #2B2B31;
+      cursor: not-allowed
+    }
+
+    .dp-day.blank {
+      visibility: hidden
+    }
+
+    .dp-day.rng {
+      background: rgba(244, 246, 146, .12);
+      border-radius: 0
+    }
+
+    .dp-day.rs {
+      border-radius: 6px 0 0 6px
+    }
+
+    .dp-day.re {
+      border-radius: 0 6px 6px 0
+    }
+
+    .dp-day.end {
+      background: var(--ch-yellow);
+      color: #000;
+      font-weight: 700;
+      border-radius: 6px
+    }
+
+    .dp-ft {
+      margin-top: 11px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--faint);
+      font-family: var(--mono);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ---------- trace panel ---------- */
+    .trace-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--line);
+      background: none;
+      border-bottom: none;
+      border-left: none;
+      border-right: none;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-family: inherit;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: .12s;
+    }
+    .trace-toggle:hover { color: var(--text); background: rgba(255,255,255,.02); }
+    .trace-toggle .tgl-ic { font-size: 14px; transition: transform .2s; }
+    .trace-toggle .tgl-ic.open { transform: rotate(90deg); }
+    .trace-toggle .trace-id {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--faint);
+      margin-left: auto;
+    }
+
+    .trace-body {
+      border-top: 1px solid var(--line);
+      padding: 16px 18px 18px;
+      animation: slide .2s ease backwards;
+    }
+
+    .trace-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      row-gap: 8px;
+    }
+    .ts {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--surface2);
+      white-space: nowrap;
+    }
+    .ts.done { border-color: rgba(142,230,172,.35); color: var(--ok); background: rgba(142,230,172,.07); }
+    .ts.err  { border-color: rgba(255,122,125,.35); color: var(--danger); background: rgba(255,122,125,.07); }
+    .ts-arr { color: var(--faint); font-size: 13px; margin: 0 4px; }
+
+    .phase-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .phase-card {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 12px 14px;
+    }
+    .phase-card .ph-name {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--faint);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .phase-card .ph-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 24px;
+      font-size: 13px;
+    }
+    .phase-card .ph-kv { display: flex; flex-direction: column; gap: 2px; }
+    .phase-card .ph-k { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
+    .phase-card .ph-v { font-family: var(--mono); font-weight: 640; }
+    .ph-v.up   { color: var(--danger); }
+    .ph-v.down { color: var(--ok); }
+    .ph-v.hi   { color: var(--ch-yellow-hi); }
+
+    .sql-trail-hd {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 11.5px;
+      color: var(--faint);
+      font-family: var(--mono);
+      user-select: none;
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+      margin-top: 10px;
+    }
+    .sql-trail-hd:hover { color: var(--muted); }
+    .sql-trail-hd .arr { transition: transform .18s; }
+    .sql-trail-hd .arr.open { transform: rotate(90deg); }
+    .sql-block {
+      background: var(--surface3);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px 13px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 6px;
+      line-height: 1.55;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .sql-idx {
+      font-size: 9px;
+      color: var(--faint);
+      margin-bottom: 4px;
+      letter-spacing: .04em;
+    }
+    .sql-entry { margin-bottom: 12px; }
+    .sql-entry:last-child { margin-bottom: 0; }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useRef, useEffect } = React;
+
+    // ── Detection mode switch ────────────────────────────────────────────────
+    // Both modes use their live API pipeline. V1 polls incident details until
+    // deterministic drilldown and optional LLM narration are complete.
+    const DETECTION_MODE = 'v1'; // 'v1' | 'v2'
+
+    /* ══════════════════════════════════════════════════════════════
+       METRIC REGISTRY  —  mirrors the backend registry exactly.
+       Every metric is SUM(num)/SUM(den) * scale.  Counters only.
+       ══════════════════════════════════════════════════════════════ */
+    const METRICS = {
+      fill_rate: { label: 'Fill Rate', num: 'fills', den: 'reqs', scale: 1, fmt: 'pct', minDen: 2000, minEffect: .03 },
+      ecpm: { label: 'eCPM', num: 'revenue', den: 'imps', scale: 1000, fmt: 'usd', minDen: 5000, minEffect: .08 },
+      ctr: { label: 'CTR', num: 'clicks', den: 'imps', scale: 1, fmt: 'pct3', minDen: 40000, minEffect: .15 },
+      render_rate: { label: 'Render Rate', num: 'imps', den: 'fills', scale: 1, fmt: 'pct', minDen: 2000, minEffect: .02 },
+      requests: { label: 'Requests', num: 'reqs', den: null, scale: 1, fmt: 'int', minDen: 0, minEffect: .10 },
+      revenue: { label: 'Revenue', num: 'revenue', den: null, scale: 1, fmt: 'usd2', minDen: 0, minEffect: .08 },
+    };
+    const V1_SUPPORTED_METRICS = new Set(['revenue', 'fill_rate', 'ecpm', 'ctr', 'requests']);
+    const DIM_LABEL = {
+      __global__: 'All traffic (global)', os_version: 'OS Version', region: 'Region', country: 'Country',
+      device_model: 'Device Model', ad_format: 'Ad Format', app_category: 'App Category',
+      publisher_tier: 'Publisher Tier', vertical: 'Advertiser Vertical', campaign_type: 'Campaign Type',
+      'os_version x region': 'OS × Region', 'ad_format x region': 'Format × Region',
+    };
+    // advertiser attributes exist only on filled rows → never slice fill/volume metrics by them
+    const ADV_DIMS = new Set(['vertical', 'campaign_type']);
+    const PALETTE = ['#F4F692', '#7DD3FC', '#F49BC4', '#7FD69B', '#F0A868', '#A99BE8', '#5FC9C0', '#E0B455',
+      '#EE8A8A', '#9AA3AE', '#BE96DC', '#6FCBA0', '#7FAEE8', '#E8BD8E', '#E8A5A5', '#B5D96A'];
+
+    /* ── load rows ───────────────────────────────────────────── */
+    const C = window.RCA_COLS;
+    const ROWS = window.RCA_DATA.map(r => ({
+      day: r[0], dim: r[1], val: r[2], reqs: r[3], fills: r[4], imps: r[5], clicks: r[6], revenue: r[7]
+    }));
+    const DIMS = [...new Set(ROWS.map(r => r.dim))];
+    const VALS_BY_DIM = {};
+    // Exclude the empty-string bucket (unfilled requests with no advertiser, on
+    // adv_vertical/campaign_type) from the selectable list — it sorts first
+    // alphabetically, so without this it silently became the default selection
+    // with no visible label, and every metric is degenerate for it anyway (0
+    // impressions/clicks/revenue by construction).
+    DIMS.forEach(d => { VALS_BY_DIM[d] = [...new Set(ROWS.filter(r => r.dim === d && r.val !== '').map(r => r.val))].sort(); });
+    const ALL_DAYS = [...new Set(ROWS.map(r => r.day))].sort();
+    const DAY_MIN = ALL_DAYS[0], DAY_MAX = ALL_DAYS[ALL_DAYS.length - 1];
+
+    /* ══ formatting ══ */
+    const fmt = (v, kind) => {
+      if (v == null || !isFinite(v)) return '—';
+      switch (kind) {
+        case 'pct': return (v * 100).toFixed(2) + '%';
+        case 'pct3': return (v * 100).toFixed(3) + '%';
+        case 'usd': return '$' + v.toFixed(3);
+        case 'usd2': return '$' + v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        case 'int': return v.toLocaleString();
+        default: return String(v);
+      }
+    };
+    const pctDelta = v => (v == null || !isFinite(v)) ? '—' : (v > 0 ? '+' : '') + (v * 100).toFixed(1) + '%';
+
+    /* ══════════════════════════════════════════════════════════════
+       EXPORT  —  incidents + root-cause attribution, JSON or CSV
+       ══════════════════════════════════════════════════════════════ */
+    function downloadBlob(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    const csvEscape = v => {
+      if (v == null) return '';
+      const s = String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    // One record per incident: the window/observed/expected numbers plus the full
+    // root-cause explanation — winning segment (or the GLOBAL uniformity evidence),
+    // and the complete candidate ranking so the "why" is auditable, not just the "what".
+    function incidentsToJSON(incidents, metric, dim, val) {
+      return JSON.stringify(incidents.map(inc => {
+        const w = inc.attribution?.winner;
+        return {
+          metric, scope: val === 'all' ? 'all traffic' : `${DIM_LABEL[dim] || dim} = ${val}`,
+          window_start: inc.start, window_end: inc.end, buckets: inc.n,
+          direction: inc.dir < 0 ? 'drop' : 'spike',
+          observed: inc.worst.v, expected: inc.worst.base, deviation_pct: inc.avgResid, robust_z: inc.peakZ,
+          verdict: inc.attribution?.verdict || null,
+          root_cause: w ? {
+            dimension: w.dim, segment: w.val, baseline: w.base, window_value: w.win,
+            change_pct: w.change, explained_pct: w.explained, volume: w.volume,
+          } : (inc.attribution?.verdict === 'GLOBAL'
+            ? {
+              note: 'uniform across every segment tested — no single segment responsible',
+              coefficient_of_variation: inc.attribution.cv, uniform_change_pct: inc.attribution.uniformChange
+            }
+            : null),
+          candidate_ranking: (inc.attribution?.ranked || []).map(c => ({
+            dimension: c.dim, segment: c.val, baseline: c.base, window_value: c.win,
+            change_pct: c.change, volume: c.volume, explained_pct: c.explained,
+          })),
+          llm_narration: inc.narration || null,
+        };
+      }), null, 2);
+    }
+    function incidentsToCSV(incidents, metric, dim, val) {
+      const header = ['metric', 'scope', 'window_start', 'window_end', 'buckets', 'direction', 'observed', 'expected',
+        'deviation_pct', 'robust_z', 'verdict', 'root_cause_dimension', 'root_cause_segment', 'root_cause_explained_pct',
+        'llm_classification', 'llm_verdict', 'llm_confidence'];
+      const scope = val === 'all' ? 'all traffic' : `${DIM_LABEL[dim] || dim} = ${val}`;
+      const rows = incidents.map(inc => {
+        const w = inc.attribution?.winner;
+        return [metric, scope, inc.start, inc.end, inc.n, inc.dir < 0 ? 'drop' : 'spike',
+          inc.worst.v, inc.worst.base, inc.avgResid, inc.peakZ, inc.attribution?.verdict || '',
+          w ? w.dim : (inc.attribution?.verdict === 'GLOBAL' ? '(uniform, no single segment)' : ''),
+          w ? w.val : '', w ? w.explained : '', inc.narration?.classification || '',
+          inc.narration?.verdict || '', inc.narration?.confidence ?? ''].map(csvEscape).join(',');
+      });
+      return [header.join(','), ...rows].join('\n');
+    }
+
+    /* ══ bucketing: counters are additive, so any interval is a regroup ══ */
+    const bucketKey = (day, interval) => {
+      const d = new Date(day + 'T00:00:00Z');
+      if (interval === 'monthly') return day.slice(0, 7) + '-01';
+      if (interval === 'weekly') {                       // ISO monday
+        const wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd);
+        return d.toISOString().slice(0, 10);
+      }
+      return day;                                    // daily
+    };
+
+    function buildSeries(dim, val, from, to, interval, metric) {
+      const M = METRICS[metric], acc = new Map();
+      for (const r of ROWS) {
+        if (r.dim !== dim || r.val !== val) continue;
+        if (r.day < from || r.day > to) continue;
+        const k = bucketKey(r.day, interval);
+        let a = acc.get(k); if (!a) { a = { b: k, reqs: 0, fills: 0, imps: 0, clicks: 0, revenue: 0, days: 0 }; acc.set(k, a); }
+        a.reqs += r.reqs; a.fills += r.fills; a.imps += r.imps; a.clicks += r.clicks; a.revenue += r.revenue; a.days++;
+      }
+      return [...acc.values()].sort((x, y) => x.b < y.b ? -1 : 1).map(a => {
+        const n = a[M.num], d = M.den ? a[M.den] : 1;
+        return { ...a, v: d > 0 ? (n / d) * M.scale : null, den: M.den ? d : a.reqs };
+      });
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       DETECTION  —  same algorithm the backend runs in SQL.
+       baseline = median of same-weekday trailing 3 periods
+       robust z = 0.6745 * resid / MAD(resid)
+       alarm    = |z|>=4  AND  |resid|>=minEffect  AND  den>=minDen
+       ══════════════════════════════════════════════════════════════ */
+    const median = a => {
+      if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1;
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    };
+
+    function detect(series, interval, metric) {
+      const M = METRICS[metric];
+      const lag = interval === 'daily' ? [7, 14, 21] : [1, 2, 3];   // days back vs periods back
+      const idx = new Map(series.map((p, i) => [p.b, i]));
+      const withResid = series.map((p, i) => {
+        let hist = [];
+        if (interval === 'daily') {
+          for (const L of lag) {
+            const d = new Date(p.b + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - L);
+            const j = idx.get(d.toISOString().slice(0, 10));
+            if (j != null && series[j].v != null) hist.push(series[j].v);
+          }
+        } else {
+          for (const L of lag) { const j = i - L; if (j >= 0 && series[j].v != null) hist.push(series[j].v); }
+        }
+        if (hist.length < 2 || p.v == null) return { ...p, base: null, resid: null, z: null };
+        const base = median(hist);
+        return { ...p, base, resid: base > 0 ? p.v / base - 1 : null };
+      });
+      const rs = withResid.map(p => p.resid).filter(r => r != null);
+      const med = median(rs) ?? 0;
+      const mad = median(rs.map(r => Math.abs(r - med))) || 1e-9;
+      return withResid.map(p => {
+        if (p.resid == null) return { ...p, z: null, alarm: false, reasons: null };
+        const z = .6745 * (p.resid - med) / mad;
+        const sigOK = Math.abs(z) >= 4, effectOK = Math.abs(p.resid) >= M.minEffect, volOK = p.den >= M.minDen;
+        const alarm = sigOK && effectOK && volOK;
+        // Explain near-misses, not every quiet day: a point is worth explaining if it's
+        // at least borderline-significant OR at least half the minimum effect size —
+        // that's exactly the shape of the real eCPM-softness case (z was huge because N
+        // is huge, but the % move was too small to be a real incident, not noise dressed
+        // up as one) as well as the reverse (a real-looking % move that isn't backed by
+        // enough samples or consistency to trust yet).
+        let reasons = null;
+        if (!alarm && p.resid != null && (Math.abs(z) >= 2 || Math.abs(p.resid) >= M.minEffect * 0.5)) {
+          reasons = [];
+          if (!volOK) reasons.push(`only ${Math.round(p.den).toLocaleString()} samples (need ≥${M.minDen.toLocaleString()}) — too thin to trust`);
+          if (!sigOK) reasons.push(`z = ${z.toFixed(1)}, short of the ±4.0 significance bar`);
+          if (!effectOK) reasons.push(`moved ${pctDelta(p.resid)}, under the ${(M.minEffect * 100).toFixed(0)}% minimum effect size for ${M.label} — reads as normal noise`);
+        }
+        return { ...p, z, alarm, reasons };
+      });
+    }
+    /* group consecutive alarm buckets into one incident window */
+    function toIncidents(pts) {
+      const out = []; let cur = null;
+      pts.forEach((p, i) => {
+        if (p.alarm) {
+          const dir = Math.sign(p.resid);
+          if (cur && cur.dir === dir && cur.lastIdx === i - 1) { cur.end = p.b; cur.lastIdx = i; cur.pts.push(p); }
+          else { if (cur) out.push(cur); cur = { start: p.b, end: p.b, dir, lastIdx: i, pts: [p] }; }
+        }
+      });
+      if (cur) out.push(cur);
+      return out.map(w => {
+        const worst = w.pts.reduce((a, b) => Math.abs(b.z) > Math.abs(a.z) ? b : a);
+        return {
+          start: w.start, end: w.end, n: w.pts.length,
+          avgResid: w.pts.reduce((s, p) => s + p.resid, 0) / w.pts.length,
+          peakZ: worst.z, worst, dir: w.dir
+        };
+      });
+    }
+    /* same grouping as toIncidents, but for notable dips that did NOT alarm — so a
+       multi-day soft patch (e.g. three days of eCPM softness) reads as one entry
+       with one explanation, not three repeated rows. */
+    function toNotableDips(pts) {
+      const out = []; let cur = null;
+      pts.forEach((p, i) => {
+        if (p.reasons && p.reasons.length) {
+          const dir = Math.sign(p.resid);
+          if (cur && cur.dir === dir && cur.lastIdx === i - 1) { cur.end = p.b; cur.lastIdx = i; cur.pts.push(p); }
+          else { if (cur) out.push(cur); cur = { start: p.b, end: p.b, dir, lastIdx: i, pts: [p] }; }
+        } else if (cur) { out.push(cur); cur = null; }
+      });
+      if (cur) out.push(cur);
+      return out.map(w => {
+        const worst = w.pts.reduce((a, b) => Math.abs(b.z) > Math.abs(a.z) ? b : a);
+        return {
+          start: w.start, end: w.end, n: w.pts.length,
+          avgResid: w.pts.reduce((s, p) => s + p.resid, 0) / w.pts.length,
+          peakZ: worst.z, worst, dir: w.dir, reasons: worst.reasons
+        };
+      });
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       ATTRIBUTION  —  counterfactual score:  d1*(r0-r1)/D1
+       Ranks candidates and picks the most parsimonious among ties.
+       ══════════════════════════════════════════════════════════════ */
+    function localize(metric, win, base, scopeDim = '__global__', scopeVal = 'all') {
+      const M = METRICS[metric];
+      const agg = (dim, val, a, b) => {
+        let n = 0, d = 0;
+        for (const r of ROWS) {
+          if (r.dim !== dim || r.val !== val || r.day < a || r.day > b) continue;
+          n += r[M.num]; d += M.den ? r[M.den] : 1;
+        }
+        return { n, d, v: d > 0 ? (n / d) * M.scale : null };
+      };
+      // Benchmark against whatever's actually being investigated (scopeDim/scopeVal
+      // — the segment currently selected on the Detect page), not always the global
+      // platform total. Viewing a specific segment means the incident IS that
+      // segment's own movement; normalizing "explained %" against the unrelated
+      // global total silently produces >100% (or otherwise meaningless) figures
+      // whenever the global movement that window is smaller than the segment's own.
+      const G1 = agg(scopeDim, scopeVal, win[0], win[1]);
+      const cands = [];
+      for (const dim of DIMS) {
+        if (dim === '__global__') continue;
+        if (ADV_DIMS.has(dim) && (metric === 'fill_rate' || metric === 'requests')) continue;  // invalid slice
+        for (const val of VALS_BY_DIM[dim]) {
+          const w = agg(dim, val, win[0], win[1]), b = agg(dim, val, base[0], base[1]);
+          if (w.v == null || b.v == null || w.d < M.minDen) continue;
+          const score = w.d * (b.v - w.v) / (G1.d * M.scale);
+          // volume = the segment's real magnitude. For ratio metrics that's the denominator
+          // (requests / impressions); for requests & revenue, `d` is only a day-count, so use `n`.
+          cands.push({
+            dim, val, volume: M.den ? w.d : w.n, base: b.v, win: w.v,
+            change: b.v > 0 ? w.v / b.v - 1 : 0, score
+          });
+        }
+      }
+      cands.sort((a, b) => b.score - a.score);
+      const top = cands[0];
+      const totalDrop = (agg(scopeDim, scopeVal, base[0], base[1]).v || 0) - (G1.v || 0);
+      const ranked = cands.slice(0, 12).map(c => ({ ...c, explained: totalDrop !== 0 ? c.score / totalDrop : 0 }));
+
+      // Segments that WERE checked but explain too little to be a cause — the biggest
+      // ones first, since "this large a segment barely moved" is the most convincing
+      // evidence that it's not responsible. Plus dimensions skipped outright (structurally
+      // invalid for this metric), so "ruled out" covers both senses of the word.
+      const ruledOut = cands.filter(c => c !== top)
+        .map(c => ({ ...c, explained: totalDrop !== 0 ? c.score / totalDrop : 0 }))
+        .filter(c => Math.abs(c.explained) < 0.10)
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 10);
+      const skippedDims = DIMS
+        .filter(d => d !== '__global__' && ADV_DIMS.has(d) && (metric === 'fill_rate' || metric === 'requests'))
+        .map(d => ({ dim: d, reason: `${DIM_LABEL[d] || d} exists only on filled rows — not a valid slice for ${M.label}` }));
+
+      if (!top) return { ranked: [], winner: null, verdict: 'UNEXPLAINED', ruledOut, skippedDims };
+
+      // ── GLOBAL test ──────────────────────────────────────────────────────────
+      // If essentially every segment moved by the same amount, no segment is responsible.
+      // Jun 21: all segments -44% ±1% → coefficient of variation ≈ 0.02.
+      // Without this the ranker just names the biggest segment, which is a fabrication.
+      const rels = cands.filter(c => c.volume >= Math.max(M.minDen, 500)).map(c => c.change);
+      let cv = Infinity, mu = 0;
+      if (rels.length >= 4) {
+        mu = rels.reduce((s, x) => s + x, 0) / rels.length;
+        const sd = Math.sqrt(rels.reduce((s, x) => s + (x - mu) ** 2, 0) / rels.length);
+        cv = Math.abs(mu) > 1e-9 ? sd / Math.abs(mu) : Infinity;
+      }
+      if (cv < 0.10) return { ranked, winner: null, verdict: 'GLOBAL', cv, uniformChange: mu, ruledOut, skippedDims };
+
+      // parsimony tie-break: among scores within 5% of max, smallest volume wins
+      const tied = cands.filter(c => c.score >= top.score * 0.95);
+      const w = tied.reduce((a, b) => b.volume < a.volume ? b : a);
+      const winner = { ...w, explained: totalDrop !== 0 ? w.score / totalDrop : 0 };
+      return {
+        ranked, winner, tiedCount: tied.length, cv,
+        verdict: winner.explained >= 0.60 ? 'LOCALIZED' : 'UNEXPLAINED', ruledOut, skippedDims
+      };
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       DATE RANGE PICKER  —  themed, no native input
+       ══════════════════════════════════════════════════════════════ */
+    const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December'];
+    const iso = d => d.toISOString().slice(0, 10);
+    const addM = (ym, n) => {
+      const [y, m] = ym.split('-').map(Number);
+      const d = new Date(Date.UTC(y, m - 1 + n, 1)); return d.toISOString().slice(0, 7)
+    };
+    const shortD = s => { const [, m, d] = s.split('-'); return MON[+m - 1].slice(0, 3) + ' ' + d };
+
+    function DateRange({ from, to, onChange }) {
+      const [open, setOpen] = useState(false);
+      const [anchor, setAnchor] = useState(null);
+      const [hov, setHov] = useState(null);
+      const [month, setMonth] = useState(from.slice(0, 7));
+      const [alignR, setAlignR] = useState(false);
+      const ref = useRef(null);
+      const POP_W = 296;
+
+      // flip the popover to whichever side keeps it fully on screen
+      useEffect(() => {
+        if (!open || !ref.current) return;
+        const r = ref.current.getBoundingClientRect();
+        setAlignR(r.left + POP_W > window.innerWidth - 8 && r.right - POP_W > 8);
+      }, [open]);
+
+      useEffect(() => {
+        if (!open) return;
+        const h = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setAnchor(null); } };
+        const k = e => { if (e.key === 'Escape') { setOpen(false); setAnchor(null); } };
+        document.addEventListener('mousedown', h); document.addEventListener('keydown', k);
+        return () => { document.removeEventListener('mousedown', h); document.removeEventListener('keydown', k); };
+      }, [open]);
+
+      const minM = '2000-01', maxM = '2099-12';
+      const [y, m] = month.split('-').map(Number);
+      const firstDow = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;   // Monday-first
+      const nDays = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const cells = [...Array(firstDow).fill(null),
+      ...Array.from({ length: nDays }, (_, i) => iso(new Date(Date.UTC(y, m - 1, i + 1))))];
+
+      // range currently being previewed
+      const [a, b] = anchor
+        ? (hov && hov < anchor ? [hov, anchor] : [anchor, hov || anchor])
+        : [from, to];
+
+      // Supports two interaction styles with one state machine: two separate clicks
+      // (click day A, click day B) AND click-and-drag (mousedown on A, drag, release
+      // on B) — the latter is what most users instinctively try first, and a plain
+      // click handler never fires for it (mousedown and mouseup land on different
+      // elements, so the browser never synthesizes a "click" event for either).
+      // gestureRef tracks only the current mousedown-to-mouseup gesture, so a
+      // completed first click (mousedown+mouseup on the same day, no drag) can be
+      // told apart from a genuine second pick or a drag release.
+      const gestureRef = useRef({ down: null, isNewAnchor: false });
+      const onDayDown = d => {
+        if (!anchor) { setAnchor(d); setHov(d); gestureRef.current = { down: d, isNewAnchor: true }; }
+        else gestureRef.current = { down: d, isNewAnchor: false };
+      };
+      const onDayUp = d => {
+        const g = gestureRef.current; gestureRef.current = { down: null, isNewAnchor: false };
+        if (!anchor) return;
+        if (g.isNewAnchor && g.down === d) return;      // just finished setting the anchor — wait for more input
+        const s = d < anchor ? d : anchor, e = d < anchor ? anchor : d;
+        onChange(s, e); setAnchor(null); setHov(null); setOpen(false);
+      };
+      const preset = (s, e) => { onChange(s, e); setAnchor(null); setOpen(false); setMonth(s.slice(0, 7)); };
+      const daysBack = n => {
+        const d = new Date(DAY_MAX + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - (n - 1));
+        return iso(d) < DAY_MIN ? DAY_MIN : iso(d)
+      };
+
+      return (
+        <div className="dp" ref={ref}>
+          <button className={'dp-btn' + (open ? ' open' : '')} onClick={() => { setOpen(o => !o); setMonth(from.slice(0, 7)); }}>
+            <svg className="dp-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <rect x="2" y="3" width="12" height="11" rx="2" /><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" />
+            </svg>
+            {shortD(from)}<span className="arw">→</span>{shortD(to)}
+          </button>
+          {open && (
+            <div className="dp-pop" style={{ left: alignR ? 'auto' : 0, right: alignR ? 0 : 'auto' }}>
+              <div className="dp-presets">
+                <button className="dp-preset" onClick={() => preset(DAY_MIN, DAY_MAX)}>All data</button>
+                <button className="dp-preset" onClick={() => preset(daysBack(7), DAY_MAX)}>Last 7d</button>
+                <button className="dp-preset" onClick={() => preset(daysBack(14), DAY_MAX)}>Last 14d</button>
+                <button className="dp-preset" onClick={() => preset('2026-06-01', '2026-06-30')}>June</button>
+                <button className="dp-preset" onClick={() => preset('2026-07-01', '2026-07-10')}>July</button>
+              </div>
+              <div className="dp-hd">
+                <button className="dp-nav" disabled={month <= minM} onClick={() => setMonth(addM(month, -1))}>‹</button>
+                <span className="dp-mon">{MON[m - 1]} {y}</span>
+                <button className="dp-nav" disabled={month >= maxM} onClick={() => setMonth(addM(month, 1))}>›</button>
+              </div>
+              <div className="dp-grid">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <div className="dp-wd" key={i}>{d}</div>)}
+                {cells.map((d, i) => {
+                  if (!d) return <button key={i} className="dp-day blank" disabled />;
+                  const ok = true;
+                  const isEnd = d === a || d === b;
+                  const inR = d > a && d < b;
+                  const cls = 'dp-day' + (isEnd ? ' end' : inR ? ' rng' : '')
+                    + (d === a && b !== a ? ' rs' : '') + (d === b && b !== a ? ' re' : '');
+                  return (
+                    <button key={i} className={cls} disabled={!ok}
+                      onMouseEnter={() => anchor && setHov(d)}
+                      onMouseDown={() => ok && onDayDown(d)} onMouseUp={() => ok && onDayUp(d)}>
+                      {+d.slice(-2)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="dp-ft">
+                <span>{anchor ? 'select end date' : `${from} → ${to}`}</span>
+                <span>{Math.round((new Date(to) - new Date(from)) / 864e5) + 1}d</span>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       CHART
+       ══════════════════════════════════════════════════════════════ */
+    function Chart({ series, metric, bands = [], height = 240, animateKey }) {
+      const wrap = useRef(null); const [hov, setHov] = useState(null);
+      const W = 1000, H = height, ML = 62, MR = 18, MT = 18, MB = 34;
+      const iw = W - ML - MR, ih = H - MT - MB;
+      const M = METRICS[metric];
+
+      const buckets = series[0]?.points.map(p => p.b) || [];
+      const vals = series.flatMap(s => s.points.map(p => p.v)).filter(v => v != null);
+      if (!vals.length) return <div className="empty"><div className="ic">◍</div>No data in this range</div>;
+      let lo = Math.min(...vals), hi = Math.max(...vals);
+      const pad = (hi - lo) * .18 || Math.abs(hi) * .12 || 1; lo -= pad; hi += pad;
+      if (M.fmt === 'int' || M.fmt === 'usd2') lo = Math.min(lo, 0);
+
+      const X = i => buckets.length < 2 ? ML + iw / 2 : ML + (i / (buckets.length - 1)) * iw;
+      const Y = v => MT + ih - ((v - lo) / (hi - lo)) * ih;
+      const line = pts => pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + (p.v == null ? Y(lo) : Y(p.v)).toFixed(1)).join(' ');
+      const area = pts => line(pts) + ` L ${X(pts.length - 1).toFixed(1)} ${MT + ih} L ${X(0).toFixed(1)} ${MT + ih} Z`;
+
+      const ticks = 5, yt = Array.from({ length: ticks }, (_, i) => lo + (hi - lo) * i / (ticks - 1));
+      const step = Math.max(1, Math.ceil(buckets.length / 9));
+
+      const onMove = e => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * W;
+        if (x < ML - 10 || x > W - MR + 10) return setHov(null);
+        const i = Math.round(((x - ML) / iw) * (buckets.length - 1));
+        if (i >= 0 && i < buckets.length) setHov(i);
+      };
+
+      return (
+        <div className="chartwrap" ref={wrap} onMouseLeave={() => setHov(null)}>
+          <svg className="chart" viewBox={`0 0 ${W} ${H}`} onMouseMove={onMove}>
+            {yt.map((t, i) => (
+              <g key={i}>
+                <line className="grid" x1={ML} x2={W - MR} y1={Y(t)} y2={Y(t)} opacity={i === 0 ? .9 : .45} />
+                <text className="axis" x={ML - 10} y={Y(t) + 3.5} textAnchor="end">{fmt(t, M.fmt)}</text>
+              </g>
+            ))}
+            {bands.map((b, i) => {
+              const a = buckets.indexOf(b.start), z = buckets.indexOf(b.end);
+              if (a < 0) return null;
+              const x1 = X(a) - (iw / Math.max(1, buckets.length - 1)) / 2;
+              const x2 = X(z < 0 ? a : z) + (iw / Math.max(1, buckets.length - 1)) / 2;
+              return <rect key={i} className="band" x={Math.max(ML, x1)} y={MT}
+                width={Math.max(6, Math.min(W - MR, x2) - Math.max(ML, x1))} height={ih} rx={3} />;
+            })}
+            {buckets.map((b, i) => i % step === 0 && (
+              <text key={b} className="axis" x={X(i)} y={H - 12} textAnchor="middle">{b.slice(5)}</text>
+            ))}
+            {series.map((s, si) => (
+              <g key={s.key}>
+                {series.length === 1 && (
+                  <>
+                    <defs><linearGradient id={'g' + si} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={s.color} stopOpacity=".10" />
+                      <stop offset="100%" stopColor={s.color} stopOpacity="0" />
+                    </linearGradient></defs>
+                    <path className="area" d={area(s.points)} fill={'url(#g' + si + ')'} />
+                  </>
+                )}
+                <path key={animateKey + s.key} className={'series draw'} d={line(s.points)} stroke={s.color} />
+                {s.points.map((p, i) => p.v != null && (p.alarm || series.length === 1) && (
+                  <circle key={i} className={'pt' + (p.alarm ? ' anom' : '')} cx={X(i)} cy={Y(p.v)}
+                    r={p.alarm ? 5 : 2.6} fill={p.alarm ? 'var(--danger)' : s.color}
+                    stroke={p.alarm ? '#000' : 'none'} strokeWidth={p.alarm ? 1.5 : 0} />
+                ))}
+              </g>
+            ))}
+            {hov != null && (
+              <line className="grid" x1={X(hov)} x2={X(hov)} y1={MT} y2={MT + ih}
+                stroke="var(--ch-yellow)" strokeWidth="1" opacity=".45" strokeDasharray="3 3" />
+            )}
+          </svg>
+          {hov != null && (
+            <div className="tip" style={{
+              left: `calc(${(X(hov) / W) * 100}% + ${X(hov) > W * 0.6 ? -190 : 14}px)`, top: 16
+            }}>
+              <div className="t-d">{buckets[hov]}</div>
+              {series.map(s => {
+                const p = s.points[hov]; if (!p) return null;
+                return (
+                  <div className="t-r" key={s.key}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="sw" style={{ background: s.color, width: 9, height: 3, borderRadius: 2 }} />
+                      <span style={{ color: 'var(--muted)' }}>{s.key}</span>
+                    </span>
+                    <span className="t-v" style={{ color: p.alarm ? 'var(--danger)' : 'var(--text)' }}>
+                      {fmt(p.v, METRICS[metric].fmt)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       TRACE PANEL  —  per-incident investigation trace
+       Shows the deterministic drilldown phases + SQL audit trail
+       for any V1 incident that has a backend ID.
+       ══════════════════════════════════════════════════════════════ */
+    const PHASE_LABELS = {
+      factor_decomposition: 'Factor Decomp',
+      contributions: 'Contributions',
+      segment_zscore: 'Segment Z-Score',
+      pairwise: 'Pairwise',
+      holdout: 'Holdout',
+    };
+
+    function TracePanel({ incidentId }) {
+      const [open, setOpen] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [trace, setTrace] = useState(null);
+      const [traceError, setTraceError] = useState(null);
+      const [sqlOpen, setSqlOpen] = useState(false);
+
+      async function loadTrace() {
+        if (trace || loading) return;
+        setLoading(true);
+        setTraceError(null);
+        try {
+          const t = await window.RCA_API.getIncidentTrace(incidentId);
+          setTrace(t);
+        } catch (err) {
+          setTraceError(err.message || String(err));
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function toggle() {
+        const next = !open;
+        setOpen(next);
+        if (next) loadTrace();
+      }
+
+      const phaseNames = (trace?.phases || []).map(p => p.name);
+
+      return (
+        <>
+          <button className="trace-toggle" onClick={toggle} aria-expanded={open}>
+            <span className={'tgl-ic' + (open ? ' open' : '')}>›</span>
+            <span style={{ fontWeight: 600 }}>Investigation Trace</span>
+            {trace?.status === 'completed' && <span className="pill g" style={{ marginLeft: 6 }}>completed</span>}
+            {trace?.status === 'pending'   && <span className="pill n" style={{ marginLeft: 6 }}>pending</span>}
+            {trace?.trace_id && <span className="trace-id">{trace.trace_id}</span>}
+          </button>
+
+          {open && (
+            <div className="trace-body">
+              {loading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--muted)', fontSize: 13 }}>
+                  <span className="spin" style={{ borderTopColor: 'var(--muted)', borderColor: 'rgba(171,171,162,.2)' }} />
+                  Fetching trace…
+                </div>
+              )}
+              {traceError && (
+                <div style={{ color: 'var(--danger)', fontSize: 12.5, fontFamily: 'var(--mono)' }}>
+                  ✕ {traceError}
+                </div>
+              )}
+              {trace && trace.status === 'pending' && !trace.phases?.length && (
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>
+                  Investigation in progress — drilldown has not completed yet. Refresh to check again.
+                </div>
+              )}
+              {trace && (
+                <>
+                  {/* step progress bar */}
+                  {phaseNames.length > 0 && (
+                    <div className="trace-steps">
+                      {phaseNames.map((name, i) => (
+                        <React.Fragment key={name}>
+                          {i > 0 && <span className="ts-arr">→</span>}
+                          <span className="ts done">{PHASE_LABELS[name] || name}</span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* meta row */}
+                  {(trace.classification || trace.completeness_score != null || trace.execution_time_ms != null) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', fontSize: 12.5, marginBottom: 14, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
+                      {trace.classification && <span>Classification: <b style={{ color: 'var(--ch-yellow-hi)' }}>{trace.classification}</b></span>}
+                      {trace.completeness_score != null && <span>Completeness: <b>{(trace.completeness_score * 100).toFixed(0)}%</b></span>}
+                      {trace.anomaly_date && <span>Anomaly: <b>{trace.anomaly_date}</b></span>}
+                      {trace.baseline_date && <span>Baseline: <b>{trace.baseline_date}</b></span>}
+                      {trace.execution_time_ms != null && <span>Exec: <b>{trace.execution_time_ms.toLocaleString()} ms</b></span>}
+                    </div>
+                  )}
+
+                  {/* phase detail cards */}
+                  <div className="phase-cards">
+                    {(trace.phases || []).map((ph, i) => (
+                      <div className="phase-card" key={i}>
+                        <div className="ph-name">{PHASE_LABELS[ph.name] || ph.name}</div>
+                        <div className="ph-row">
+                          {ph.name === 'factor_decomposition' && (<>
+                            {ph.guilty_factor && <div className="ph-kv"><div className="ph-k">Guilty factor</div><div className="ph-v hi">{ph.guilty_factor}</div></div>}
+                            {ph.factors && Object.entries(ph.factors).map(([f, fv]) => (
+                              <div className="ph-kv" key={f}>
+                                <div className="ph-k">{f}</div>
+                                <div className={'ph-v' + (fv.is_guilty ? ' hi' : '')}>
+                                  {fv.delta_pct != null ? ((fv.delta_pct > 0 ? '+' : '') + (fv.delta_pct * 100).toFixed(1) + '%') : '—'}
+                                  {fv.is_guilty && <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--ch-yellow)' }}>★</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </>)}
+                          {ph.name === 'contributions' && (<>
+                            <div className="ph-kv"><div className="ph-k">Culprits</div><div className="ph-v hi">{ph.culprit_segments?.length ?? 0}</div></div>
+                            {ph.culprit_segments?.slice(0, 3).map((cs, j) => (
+                              <div className="ph-kv" key={j}>
+                                <div className="ph-k">{cs.dimension} = {cs.segment}</div>
+                                <div className="ph-v">{cs.contribution_pct != null ? (cs.contribution_pct * 100).toFixed(0) + '%' : '—'} · z {cs.z_score?.toFixed(1) ?? '—'}</div>
+                              </div>
+                            ))}
+                            {ph.ruled_out_dims?.length > 0 && <div className="ph-kv"><div className="ph-k">Ruled out</div><div className="ph-v" style={{ color: 'var(--faint)' }}>{ph.ruled_out_dims.join(', ')}</div></div>}
+                          </>)}
+                          {ph.name === 'segment_zscore' && (<>
+                            <div className="ph-kv"><div className="ph-k">Top dimension</div><div className="ph-v hi">{ph.top_dimension || '—'}</div></div>
+                            <div className="ph-kv"><div className="ph-k">Top segment</div><div className="ph-v">{ph.top_segment || '—'}</div></div>
+                            <div className="ph-kv"><div className="ph-k">Z-score</div><div className="ph-v">{ph.top_zscore?.toFixed(2) ?? '—'}</div></div>
+                          </>)}
+                          {ph.name === 'pairwise' && (<>
+                            <div className="ph-kv"><div className="ph-k">Intersection</div><div className="ph-v hi">{ph.dim1} = {ph.segment1} ∩ {ph.dim2} = {ph.segment2}</div></div>
+                            <div className="ph-kv"><div className="ph-k">Current</div><div className="ph-v">{ph.current_value != null ? ph.current_value.toFixed(4) : '—'}</div></div>
+                            <div className="ph-kv"><div className="ph-k">Baseline</div><div className="ph-v">{ph.baseline_value != null ? ph.baseline_value.toFixed(4) : '—'}</div></div>
+                          </>)}
+                          {ph.name === 'holdout' && (<>
+                            <div className="ph-kv"><div className="ph-k">Excluded</div><div className="ph-v hi">{ph.dimension} = {ph.excluded_segment}</div></div>
+                            <div className="ph-kv"><div className="ph-k">Deviation w/ excl</div><div className="ph-v">{ph.deviation_with_excl != null ? ((ph.deviation_with_excl * 100).toFixed(1) + '%') : '—'}</div></div>
+                            <div className="ph-kv"><div className="ph-k">Reverted?</div><div className={'ph-v' + (ph.reverted ? ' down' : ' up')}>{ph.reverted ? 'Yes' : 'No'}</div></div>
+                          </>)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* SQL audit trail */}
+                  {trace.sql_audit_trail?.length > 0 && (
+                    <>
+                      <div className="sql-trail-hd" onClick={() => setSqlOpen(o => !o)}>
+                        <span className={'arr' + (sqlOpen ? ' open' : '')}>›</span>
+                        SQL Audit Trail · {trace.sql_audit_trail.length} quer{trace.sql_audit_trail.length === 1 ? 'y' : 'ies'}
+                      </div>
+                      {sqlOpen && (
+                        <div style={{ marginTop: 8 }}>
+                          {trace.sql_audit_trail.map((sql, j) => (
+                            <div className="sql-entry" key={j}>
+                              <div className="sql-idx">Query {j + 1} of {trace.sql_audit_trail.length}</div>
+                              <div className="sql-block">{sql}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </>
+      );
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       PAGE 1  —  DETECT
+       ══════════════════════════════════════════════════════════════ */
+    function DetectPage() {
+      const [metric, setMetric] = useState('revenue');
+      const [interval, setInterval] = useState('daily');
+      const [dim, setDim] = useState('__global__');
+      const [val, setVal] = useState('all');
+      const [from, setFrom] = useState(DAY_MIN);
+      const [to, setTo] = useState(DAY_MAX);
+      const [result, setResult] = useState(null);
+      const [busy, setBusy] = useState(false);
+      const [tick, setTick] = useState(0);
+      const [expanded, setExpanded] = useState(false);
+      const chartRef = useRef(null);
+      const toggleFullscreen = () => setExpanded(e => !e);
+      useEffect(() => {
+        document.body.classList.toggle('expanded-open', expanded);
+        if (!expanded) return;
+        const onKey = e => { if (e.key === 'Escape') setExpanded(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [expanded]);
+
+      // NOTE: changing the interval must NOT clear the findings — an incident is a property
+      // of the data, not of the grain you happen to be viewing it at.
+      useEffect(() => { setResult(null); setTick(t => t + 1); }, [metric, dim, val, from, to]);
+      useEffect(() => { setTick(t => t + 1); }, [interval]);
+      useEffect(() => { const vs = VALS_BY_DIM[dim] || []; if (!vs.includes(val)) setVal(vs[0]); }, [dim]);
+
+      const raw = useMemo(() => buildSeries(dim, val, from, to, interval, metric), [dim, val, from, to, interval, metric]);
+
+      // map each daily-detected incident onto whatever buckets the current view uses
+      const pts = useMemo(() => {
+        if (!result) return raw.map(p => ({ ...p, alarm: false }));
+        const hot = new Set();
+        const items = result.incidents || result.episodes || [];
+        items.forEach(inc => {
+          // v2 episodes use ISO timestamps; v1 incidents use 'YYYY-MM-DD' strings
+          const startDate = inc.start ? inc.start.slice(0, 10) : null;
+          const endDate = inc.end ? inc.end.slice(0, 10) : startDate;
+          if (!startDate) return;
+          for (let d = new Date(startDate + 'T00:00:00Z'); iso(d) <= endDate; d.setUTCDate(d.getUTCDate() + 1))
+            hot.add(bucketKey(iso(d), interval));
+        });
+        return raw.map(p => ({ ...p, alarm: hot.has(p.b) }));
+      }, [raw, result, interval]);
+
+      const run = async () => {
+        setBusy(true);
+        setResult(null);
+        try {
+          if (DETECTION_MODE === 'v1') {
+            const v1result = await window.RCA_API.detectRangeV1({ from, to, metric });
+            setResult({ incidents: v1result.incidents || [], source: 'api-v1' });
+          } else {
+            const v2result = await window.RCA_API.detectHistoricalV2({ from, to });
+            setResult({ episodes: v2result.episodes || [], source: 'api-v2' });
+          }
+        } catch (e) {
+          setResult({ error: e.message || String(e), incidents: [], source: 'error' });
+        } finally {
+          setBusy(false);
+        }
+      };
+
+      const M = METRICS[metric];
+      const last = pts.filter(p => p.v != null).slice(-1)[0];
+      const first = pts.filter(p => p.v != null)[0];
+      const series = [{ key: val === 'all' ? 'All traffic' : val, color: 'var(--ch-yellow)', points: pts }];
+      const bands = result
+        ? (result.incidents || result.episodes || []).map(i => ({
+            start: bucketKey(i.start.slice(0, 10), interval),
+            end: bucketKey((i.end || i.start).slice(0, 10), interval),
+          }))
+        : [];
+      const advBlocked = ADV_DIMS.has(dim) && (metric === 'fill_rate' || metric === 'requests');
+
+      return (
+        <div className="page">
+          <div className="controls">
+            <div className="field"><label>Metric</label>
+              <select value={metric} onChange={e => setMetric(e.target.value)}>
+                {Object.entries(METRICS)
+                  .filter(([k]) => DETECTION_MODE !== 'v1' || V1_SUPPORTED_METRICS.has(k))
+                  .map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
+              </select></div>
+            <div className="field"><label>Segment</label>
+              <select value={dim} onChange={e => setDim(e.target.value)}>
+                {DIMS.map(d => <option key={d} value={d}>{DIM_LABEL[d] || d}</option>)}
+              </select></div>
+            {dim !== '__global__' && (
+              <div className="field"><label>Value</label>
+                <select value={val} onChange={e => setVal(e.target.value)}>
+                  {(VALS_BY_DIM[dim] || []).map(v => <option key={v} value={v}>{v}</option>)}
+                </select></div>
+            )}
+            <div className="field"><label>Interval</label>
+              <div className="seg">
+                <button disabled title="requires an hourly rollup — see API contract">Hourly</button>
+                {['daily', 'weekly', 'monthly'].map(i => (
+                  <button key={i} className={interval === i ? 'on' : ''} onClick={() => setInterval(i)}>
+                    {i[0].toUpperCase() + i.slice(1)}
+                  </button>))}
+              </div></div>
+            <div className="field"><label>Date range</label>
+              <DateRange from={from} to={to} onChange={(s, e) => { setFrom(s); setTo(e); }} /></div>
+            <div className="spacer" />
+            <button className="btn" onClick={run} disabled={busy || advBlocked}>
+              {busy ? <><span className="spin" />Analysing…</> : <>◈ Detect Anomalies</>}
+            </button>
+          </div>
+
+          {advBlocked && (
+            <div className="note">
+              <b>Blocked:</b> advertiser attributes (<code>{dim}</code>) exist only on <i>filled</i> rows —
+              1,972,090 unfilled requests carry no advertiser. Slicing {M.label} by this dimension would
+              force the value to 1.000. Use it for eCPM or CTR instead.
+            </div>
+          )}
+
+          <div className="kpis">
+            <div className="kpi"><div className="k">Current {M.label}</div>
+              <div className="v" style={{ color: last?.alarm ? 'var(--danger)' : 'var(--text)' }}>
+                {fmt(last?.v, M.fmt)}</div>
+              <div className="d">{last?.b || '—'}</div></div>
+            <div className="kpi"><div className="k">Period Change</div>
+              <div className="v" style={{ color: first && last && last.v < first.v ? 'var(--danger)' : 'var(--ok)' }}>
+                {first && last ? pctDelta(last.v / first.v - 1) : '—'}</div>
+              <div className="d">{fmt(first?.v, M.fmt)} → {fmt(last?.v, M.fmt)}</div></div>
+            <div className="kpi"><div className="k">Buckets</div>
+              <div className="v">{pts.length}</div>
+              <div className="d">{interval}</div></div>
+            <div className="kpi"><div className="k">{DETECTION_MODE === 'v2' ? 'Episodes' : 'Incidents'}</div>
+              <div className="v" style={{ color: (result?.incidents?.length || result?.episodes?.length) ? 'var(--danger)' : 'var(--muted)' }}>
+                {result ? (result.incidents?.length ?? result.episodes?.length ?? 0) : '—'}</div>
+              {result && result.incidents?.length > 0 ? (
+                <div className="d" style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  <a style={{ cursor: 'pointer', color: 'var(--ch-yellow)' }}
+                    onClick={() => downloadBlob(`incidents_${metric}_${from}_${to}.json`,
+                      incidentsToJSON(result.incidents, metric, dim, val), 'application/json')}>
+                    ⬇ JSON</a>
+                  <a style={{ cursor: 'pointer', color: 'var(--ch-yellow)' }}
+                    onClick={() => downloadBlob(`incidents_${metric}_${from}_${to}.csv`,
+                      incidentsToCSV(result.incidents, metric, dim, val), 'text/csv')}>
+                    ⬇ CSV</a>
+                </div>
+              ) : <div className="d">{result ? 'detected' : 'not run'}</div>}
+            </div>
+          </div>
+
+          <div className={'card' + (expanded ? ' expanded' : '')} style={{ marginBottom: 18 }} ref={chartRef}>
+            <div className="card-hd">
+              <span className="card-ttl">{M.label}</span>
+              <span className="card-sub">{val === 'all' ? 'all traffic' : `${DIM_LABEL[dim] || dim} = ${val}`} · {from} → {to}</span>
+              <div className="spacer" />
+              {result && interval !== 'daily' &&
+                <span className="pill y">detected on daily · shown {interval}</span>}
+              {result && <span className="pill n">z-threshold 4.0 · min effect {(M.minEffect * 100).toFixed(0)}%</span>}
+              <button className="fs-btn" onClick={toggleFullscreen} title="Fullscreen">⛶</button>
+            </div>
+            <div className="card-bd">
+              <Chart series={series} metric={metric} bands={bands} animateKey={tick} />
+            </div>
+          </div>
+
+          {result?.error && (
+            <div className="card"><div className="empty">
+              <div className="ic" style={{ color: 'var(--danger)' }}>✕</div>
+              <div style={{ color: 'var(--danger)', fontWeight: 600, marginBottom: 6 }}>Detection failed</div>
+              <div style={{ fontSize: 12.5, fontFamily: 'var(--mono)' }}>{result.error}</div>
+            </div></div>
+          )}
+
+          {result && !result.error && result.episodes && (
+            result.episodes.length === 0
+              ? <div className="card"><div className="empty"><div className="ic">✓</div>
+                <div style={{ color: 'var(--ok)', fontWeight: 600, marginBottom: 6 }}>No episodes detected</div>
+                <div style={{ fontSize: 12.5 }}>The v2 scanner found no anomaly episodes in {from} → {to}.</div>
+              </div></div>
+              : result.episodes.map((ep, i) => (
+                <div className="finding" key={i} style={{ animationDelay: (i * .07) + 's' }}>
+                  <div className="f-hd">
+                    <span className="pill">{ep.direction === 'down' ? '▼ DROP' : '▲ SPIKE'}</span>
+                    <span className="f-seg">{ep.primary_metric}</span>
+                    <span className="card-sub">{ep.start?.slice(0,10)}{ep.end && ep.end.slice(0,10) !== ep.start?.slice(0,10) ? ` → ${ep.end.slice(0,10)}` : ''}</span>
+                    <div className="spacer" />
+                    {ep.verification_status && <span className={'pill ' + (ep.verification_status === 'verified' ? 'g' : 'n')}>{ep.verification_status}</span>}
+                    <span className="pill y">confidence {ep.confidence != null ? (ep.confidence * 100).toFixed(0) + '%' : '—'}</span>
+                    <span className="pill" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>{ep.severity}</span>
+                  </div>
+                  {ep.diagnosis && <div className="f-body">{ep.diagnosis}</div>}
+                  {(ep.root_cause_dimension || ep.root_cause_segment) && (
+                    <div className="rootcause">
+                      <div className="ic">🎯</div>
+                      <div className="rc-body">
+                        <div className="rc-k">Root cause</div>
+                        <div className="rc-v"><b>{ep.root_cause_dimension && (DIM_LABEL[ep.root_cause_dimension] || ep.root_cause_dimension)}{ep.root_cause_segment ? ` = ${ep.root_cause_segment}` : ''}</b></div>
+                      </div>
+                      <div className="rc-stat">
+                        <div className="n">{ep.confidence != null ? (ep.confidence * 100).toFixed(0) + '%' : '—'}</div>
+                        <div className="l">confidence</div>
+                      </div>
+                    </div>
+                  )}
+                  {ep.narration && (
+                    <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.55 }}>
+                      {typeof ep.narration === 'string' ? ep.narration
+                        : ep.narration?.summary || ep.narration?.body || JSON.stringify(ep.narration)}
+                    </div>
+                  )}
+                  {ep.evidence?.length > 0 && (
+                    <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)' }}>
+                      <div className="k" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--faint)', marginBottom: 8, fontWeight: 600 }}>Evidence</div>
+                      <div className="scroll"><table>
+                        <thead><tr><th>Query</th><th>Finding</th></tr></thead>
+                        <tbody>{ep.evidence.map((ev, j) => (
+                          <tr key={j}><td style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{ev.query_description || ev.query}</td>
+                            <td style={{ color: 'var(--muted)', fontSize: 12 }}>{ev.finding}</td></tr>
+                        ))}</tbody>
+                      </table></div>
+                    </div>
+                  )}
+                  {ep.ruled_out?.length > 0 && (
+                    <div style={{ padding: '8px 16px', borderTop: '1px solid var(--line)', fontSize: 12, color: 'var(--faint)' }}>
+                      Ruled out: {ep.ruled_out.join(', ')}
+                    </div>
+                  )}
+                </div>
+              ))
+          )}
+
+          {result && !result.error && result.incidents && (
+            result.incidents.length === 0
+              ? <div className="card"><div className="empty"><div className="ic">✓</div>
+                <div style={{ color: 'var(--ok)', fontWeight: 600, marginBottom: 6 }}>No anomalies detected</div>
+                <div style={{ fontSize: 12.5 }}>All buckets within 4σ of their same-period baseline,
+                  or below the {(M.minEffect * 100).toFixed(0)}% minimum effect size.</div></div></div>
+              : result.incidents.map((inc, i) => {
+                const w = inc.attribution?.winner;
+                return (
+                  <div className="finding" key={i} style={{ animationDelay: (i * .07) + 's' }}>
+                    <div className="f-hd">
+                      <span className="pill">{inc.dir < 0 ? '▼ DROP' : '▲ SPIKE'}</span>
+                      <span className="f-seg">{M.label}</span>
+                      <span className="card-sub">{inc.start}{inc.n > 1 ? ` → ${inc.end}` : ''} · {inc.n} bucket{inc.n > 1 ? 's' : ''}</span>
+                      <div className="spacer" />
+                      {inc.attribution && <span className={'pill ' + (inc.attribution.verdict === 'LOCALIZED' ? 'g' : inc.attribution.verdict === 'GLOBAL' ? 'y' : 'n')}>
+                        {inc.attribution.verdict}</span>}
+                      <span className="pill y">z = {inc.peakZ.toFixed(1)}</span>
+                    </div>
+                    <div className="f-body">
+                      {M.label} moved <b>{pctDelta(inc.avgResid)}</b> against a same-period baseline of{' '}
+                      <b>{fmt(inc.worst.base, M.fmt)}</b>, reaching <b>{fmt(inc.worst.v, M.fmt)}</b>.
+                      {w && inc.attribution.verdict === 'LOCALIZED' && <>
+                        {' '}Localised to <b>{DIM_LABEL[w.dim] || w.dim} = {w.val}</b>, which explains{' '}
+                        <b>{(w.explained * 100).toFixed(0)}%</b> of the movement.</>}
+                      {inc.attribution?.verdict === 'GLOBAL' && <>
+                        {' '}<b>No supplied segment stands out</b>; the deterministic drilldown classified this as a global movement
+                        {inc.attribution.uniformChange != null && <> with the guilty factor moving <b>{pctDelta(inc.attribution.uniformChange)}</b></>}
+                        {inc.attribution.cv != null && <> (coefficient of variation <b>{inc.attribution.cv.toFixed(3)}</b>)</>}.</>}
+                      {inc.attribution?.verdict === 'UNEXPLAINED' && <>
+                        {' '}<b>No segment explains enough of the movement</b> to be named as the cause
+                        {w && <> — the strongest candidate ({DIM_LABEL[w.dim] || w.dim} = {w.val}) reaches
+                          only <b>{(w.explained * 100).toFixed(0)}%</b>, under the 60% threshold</>}.</>}
+                      {interval !== 'daily' && <div style={{ marginTop: 8, color: 'var(--faint)', fontSize: 12 }}>
+                        Figures below are the <b style={{ color: 'var(--muted)' }}>daily</b> values for
+                        {' '}{inc.start}{inc.n > 1 ? ` → ${inc.end}` : ''}. The chart bucket is a {interval} rollup,
+                        so the plotted value is diluted across {interval === 'weekly' ? '7 days' : 'the month'}.
+                      </div>}
+                    </div>
+                    {inc.narration && (
+                      <div style={{ padding: '14px 16px', borderTop: '1px solid var(--line)', lineHeight: 1.55 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span className="pill g">LLM VERDICT</span>
+                          {inc.narration.classification && <span className="pill y">{inc.narration.classification}</span>}
+                          <span className="card-sub">confidence {inc.narration.confidence != null ? (inc.narration.confidence * 100).toFixed(0) + '%' : '—'}</span>
+                        </div>
+                        {inc.narration.headline && <div style={{ fontWeight: 700, marginBottom: 5 }}>{inc.narration.headline}</div>}
+                        {inc.narration.verdict && <div style={{ color: 'var(--text)', marginBottom: 6 }}><b>Final verdict:</b> {inc.narration.verdict}</div>}
+                        {inc.narration.summary && <div style={{ color: 'var(--muted)', marginBottom: 6 }}>{inc.narration.summary}</div>}
+                        {inc.narration.business_impact && <div style={{ color: 'var(--muted)', marginBottom: 6 }}><b>Business impact:</b> {inc.narration.business_impact}</div>}
+                        {inc.narration.root_cause && <div style={{ color: 'var(--muted)' }}><b>Root cause:</b> {inc.narration.root_cause}</div>}
+                        {inc.narration.next_actions?.length > 0 && (
+                          <div style={{ marginTop: 8, color: 'var(--faint)', fontSize: 12 }}>
+                            Next actions: {inc.narration.next_actions.join(' · ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {inc.analysisError && (
+                      <div className="note" style={{ margin: '10px 16px' }}>
+                        <b>Final narration unavailable:</b> {inc.analysisError}. Available deterministic findings are shown below.
+                      </div>
+                    )}
+                    {w && inc.attribution.verdict === 'LOCALIZED' && (
+                      <div className="rootcause">
+                        <div className="ic">🎯</div>
+                        <div className="rc-body">
+                          <div className="rc-k">Root cause</div>
+                          <div className="rc-v"><b>{DIM_LABEL[w.dim] || w.dim} = {w.val}</b></div>
+                        </div>
+                        <div className="rc-stat">
+                          <div className="n">{(w.explained * 100).toFixed(0)}%</div>
+                          <div className="l">explained</div>
+                        </div>
+                      </div>
+                    )}
+                    {inc.attribution?.verdict === 'GLOBAL' && (
+                      <div className="rootcause global">
+                        <div className="ic">🌐</div>
+                        <div className="rc-body">
+                          <div className="rc-k">Root cause</div>
+                          <div className="rc-v"><b>Global movement</b> — no single segment responsible</div>
+                        </div>
+                        <div className="rc-stat">
+                          <div className="n">{pctDelta(inc.attribution.uniformChange)}</div>
+                          <div className="l">uniform change</div>
+                        </div>
+                      </div>
+                    )}
+                    {inc.attribution?.verdict === 'UNEXPLAINED' && (
+                      <div className="rootcause unexplained">
+                        <div className="ic">❓</div>
+                        <div className="rc-body">
+                          <div className="rc-k">Root cause</div>
+                          <div className="rc-v"><b>Unresolved</b>{w ? <> — best candidate {DIM_LABEL[w.dim] || w.dim} = {w.val} falls short</> : ''}</div>
+                        </div>
+                        {w && <div className="rc-stat">
+                          <div className="n">{(w.explained * 100).toFixed(0)}%</div>
+                          <div className="l">explained</div>
+                        </div>}
+                      </div>
+                    )}
+                    <div className="f-grid">
+                      <div className="f-cell"><div className="k">Observed</div>
+                        <div className="v" style={{ color: 'var(--danger)' }}>{fmt(inc.worst.v, M.fmt)}</div></div>
+                      <div className="f-cell"><div className="k">Expected</div>
+                        <div className="v">{fmt(inc.worst.base, M.fmt)}</div></div>
+                      <div className="f-cell"><div className="k">Deviation</div>
+                        <div className="v">{pctDelta(inc.avgResid)}</div></div>
+                      <div className="f-cell"><div className="k">Robust z</div>
+                        <div className="v">{inc.peakZ.toFixed(1)}</div></div>
+                      {w?.volume != null && <div className="f-cell"><div className="k">Culprit volume</div>
+                        <div className="v">{w.volume.toLocaleString()}</div></div>}
+                    </div>
+                    {inc.attribution?.ranked.length > 0 && (
+                      <div style={{ marginTop: 14 }}>
+                        <div className="k" style={{
+                          fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em',
+                          color: 'var(--faint)', marginBottom: 8, fontWeight: 600
+                        }}>
+                          {inc.attribution.verdict === 'GLOBAL'
+                            ? 'Uniformity evidence · every segment moved by the same amount'
+                            : 'Candidate ranking · counterfactual score'}</div>
+                        <div className="scroll"><table>
+                          <thead><tr><th>Segment</th><th className="num">Baseline</th>
+                            <th className="num">Window</th><th className="num">Change</th>
+                            <th className="num">Volume</th><th className="num">Explains</th></tr></thead>
+                          <tbody>{inc.attribution.ranked.slice(0, 6).map((c, j) => (
+                            <tr key={j} style={{ background: (j === 0 && inc.attribution.verdict !== 'GLOBAL') ? 'rgba(244,246,146,.04)' : '' }}>
+                              <td>{j === 0 && inc.attribution.verdict !== 'GLOBAL' &&
+                                <span className="pill y" style={{ marginRight: 7 }}>TOP</span>}
+                                <span style={{ color: 'var(--faint)' }}>{DIM_LABEL[c.dim] || c.dim}</span>{' = '}
+                                <b style={{ fontFamily: 'var(--mono)' }}>{c.val}</b></td>
+                              <td className="num">{fmt(c.base, M.fmt)}</td>
+                              <td className="num" style={{ color: 'var(--danger)' }}>{fmt(c.win, M.fmt)}</td>
+                              <td className="num">{pctDelta(c.change)}</td>
+                              <td className="num" style={{ color: 'var(--muted)' }}>{c.volume != null ? c.volume.toLocaleString() : '—'}</td>
+                              <td className="num"><b>{(c.explained * 100).toFixed(0)}%</b>
+                                <div className="bar" style={{ width: Math.min(100, Math.max(0, c.explained * 100)) + '%' }} /></td>
+                            </tr>))}</tbody>
+                        </table></div>
+                      </div>
+                    )}
+                    {inc.attribution?.verdict !== 'GLOBAL' && inc.attribution?.ruledOut?.length > 0 && (
+                      <div style={{ marginTop: 14 }}>
+                        <div className="k" style={{
+                          fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em',
+                          color: 'var(--faint)', marginBottom: 8, fontWeight: 600
+                        }}>
+                          Ruled out · checked, not responsible</div>
+                        <div className="scroll"><table>
+                          <thead><tr><th>Segment</th><th className="num">Baseline</th>
+                            <th className="num">Window</th><th className="num">Change</th>
+                            <th className="num">Volume</th><th>Why ruled out</th></tr></thead>
+                          <tbody>{inc.attribution.ruledOut.map((c, j) => (
+                            <tr key={j}>
+                              <td><span style={{ color: 'var(--faint)' }}>{DIM_LABEL[c.dim] || c.dim}</span>{' = '}
+                                <b style={{ fontFamily: 'var(--mono)' }}>{c.val}</b></td>
+                              <td className="num">{fmt(c.base, M.fmt)}</td>
+                              <td className="num">{fmt(c.win, M.fmt)}</td>
+                              <td className="num">{pctDelta(c.change)}</td>
+                              <td className="num" style={{ color: 'var(--muted)' }}>{c.volume.toLocaleString()}</td>
+                              <td style={{ color: 'var(--muted)', fontSize: 12 }}>
+                                a segment this size ({c.volume.toLocaleString()}) barely moved
+                                ({(c.explained * 100).toFixed(0)}% explained) — not the cause</td>
+                            </tr>))}</tbody>
+                        </table></div>
+                        {inc.attribution.skippedDims?.length > 0 && (
+                          <div style={{ marginTop: 9, fontSize: 12, color: 'var(--faint)' }}>
+                            Also not checked: {inc.attribution.skippedDims.map((s, j) => (
+                              <span key={s.dim}>{j > 0 ? ', ' : ''}
+                                <b style={{ color: 'var(--muted)' }}>{DIM_LABEL[s.dim] || s.dim}</b>
+                                {' '}({s.reason})</span>))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {inc.id && <TracePanel incidentId={inc.id} />}
+                  </div>
+                );
+              })
+          )}
+
+          {result && result.notableDips?.length > 0 && (
+            <div className="card" style={{ marginTop: 18 }}>
+              <div className="card-hd">
+                <span className="card-ttl">Dips checked, not flagged</span>
+                <span className="card-sub">visible movement that didn't clear the anomaly bar</span>
+              </div>
+              <div className="scroll"><table>
+                <thead><tr><th>Window</th><th className="num">Observed</th><th className="num">Expected</th>
+                  <th className="num">Deviation</th><th className="num">z</th><th>Why not flagged</th></tr></thead>
+                <tbody>{result.notableDips.map((d, i) => (
+                  <tr key={i}>
+                    <td>{d.dir < 0 ? '▼ ' : '▲ '}{d.start}{d.n > 1 ? ` → ${d.end}` : ''}</td>
+                    <td className="num">{fmt(d.worst.v, M.fmt)}</td>
+                    <td className="num" style={{ color: 'var(--muted)' }}>{fmt(d.worst.base, M.fmt)}</td>
+                    <td className="num">{pctDelta(d.avgResid)}</td>
+                    <td className="num">{d.peakZ.toFixed(1)}</td>
+                    <td style={{ color: 'var(--muted)', fontSize: 12 }}>{d.reasons.join('; ')}</td>
+                  </tr>))}</tbody>
+              </table></div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       PAGE 2  —  EXPLORE
+       ══════════════════════════════════════════════════════════════ */
+    function ExplorePage() {
+      const [metric, setMetric] = useState('revenue');
+      const [groupBy, setGroupBy] = useState('os_version');
+      const [interval, setInterval] = useState('daily');
+      const [from, setFrom] = useState(DAY_MIN);
+      const [to, setTo] = useState(DAY_MAX);
+      const [hidden, setHidden] = useState(new Set());
+      const [sort, setSort] = useState({ k: 'revenue', dir: -1 });
+      const [tick, setTick] = useState(0);
+      const [expanded, setExpanded] = useState(false);
+      const chartRef = useRef(null);
+      const toggleFullscreen = () => setExpanded(e => !e);
+      useEffect(() => {
+        document.body.classList.toggle('expanded-open', expanded);
+        if (!expanded) return;
+        const onKey = e => { if (e.key === 'Escape') setExpanded(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [expanded]);
+      useEffect(() => { setHidden(new Set()); setTick(t => t + 1); }, [groupBy, metric, interval, from, to]);
+
+      const M = METRICS[metric];
+      const advBlocked = ADV_DIMS.has(groupBy) && (metric === 'fill_rate' || metric === 'requests');
+      const values = VALS_BY_DIM[groupBy] || [];
+
+      const series = useMemo(() => values.map((v, i) => ({
+        key: v, color: PALETTE[i % PALETTE.length],
+        points: buildSeries(groupBy, v, from, to, interval, metric).map(p => ({ ...p, alarm: false }))
+      })).filter(s => s.points.length && !hidden.has(s.key)), [groupBy, from, to, interval, metric, hidden, values]);
+
+      const table = useMemo(() => {
+        const rows = values.map(v => {
+          let a = { reqs: 0, fills: 0, imps: 0, clicks: 0, revenue: 0 };
+          for (const r of ROWS) {
+            if (r.dim !== groupBy || r.val !== v || r.day < from || r.day > to) continue;
+            a.reqs += r.reqs; a.fills += r.fills; a.imps += r.imps; a.clicks += r.clicks; a.revenue += r.revenue;
+          }
+          return {
+            val: v, ...a,
+            fill_rate: a.reqs ? a.fills / a.reqs : null, render_rate: a.fills ? a.imps / a.fills : null,
+            ctr: a.imps ? a.clicks / a.imps : null, ecpm: a.imps ? a.revenue / a.imps * 1000 : null,
+            requests: a.reqs
+          };
+        }).filter(r => r.reqs > 0);
+        return rows.sort((x, y) => ((y[sort.k] ?? -Infinity) - (x[sort.k] ?? -Infinity)) * (sort.dir < 0 ? 1 : -1));
+      }, [groupBy, from, to, sort, values]);
+
+      const maxRev = Math.max(...table.map(r => r.revenue), 1);
+      const th = (k, l, num = true) => (
+        <th className={num ? 'num' : ''} onClick={() => setSort(s => ({ k, dir: s.k === k ? -s.dir : -1 }))}>
+          {l}{sort.k === k ? (sort.dir < 0 ? ' ↓' : ' ↑') : ''}</th>);
+
+      return (
+        <div className="page">
+          <div className="controls">
+            <div className="field"><label>Metric</label>
+              <select value={metric} onChange={e => setMetric(e.target.value)}>
+                {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
+              </select></div>
+            <div className="field"><label>Group by</label>
+              <select value={groupBy} onChange={e => setGroupBy(e.target.value)}>
+                {DIMS.filter(d => d !== '__global__').map(d => <option key={d} value={d}>{DIM_LABEL[d] || d}</option>)}
+              </select></div>
+            <div className="field"><label>Interval</label>
+              <div className="seg">{['daily', 'weekly', 'monthly'].map(i => (
+                <button key={i} className={interval === i ? 'on' : ''} onClick={() => setInterval(i)}>
+                  {i[0].toUpperCase() + i.slice(1)}</button>))}</div></div>
+            <div className="field"><label>Date range</label>
+              <DateRange from={from} to={to} onChange={(s, e) => { setFrom(s); setTo(e); }} /></div>
+          </div>
+
+          {advBlocked && <div className="note"><b>Note:</b> {M.label} cannot be sliced by {DIM_LABEL[groupBy]} —
+            advertiser attributes are absent on unfilled requests. Showing eCPM-safe dimensions only.</div>}
+
+          <div className="grid2">
+            <div className={'card' + (expanded ? ' expanded' : '')} ref={chartRef}>
+              <div className="card-hd">
+                <span className="card-ttl">{M.label} by {DIM_LABEL[groupBy] || groupBy}</span>
+                <span className="card-sub">{series.length} series · {interval}</span>
+                <div className="spacer" />
+                <button className="fs-btn" onClick={toggleFullscreen} title="Fullscreen">⛶</button>
+              </div>
+              <div className="card-bd">
+                <Chart series={series} metric={metric} height={240} animateKey={tick} />
+                <div className="legend">
+                  {values.map((v, i) => (
+                    <div key={v} className={'lg' + (hidden.has(v) ? ' off' : '')}
+                      onClick={() => setHidden(h => { const n = new Set(h); n.has(v) ? n.delete(v) : n.add(v); return n; })}>
+                      <span className="sw" style={{ background: PALETTE[i % PALETTE.length] }} />{v}
+                    </div>))}
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-hd"><span className="card-ttl">Breakdown</span>
+                <span className="card-sub">{from} → {to}</span></div>
+              <div className="scroll"><table>
+                <thead><tr>{th('val', 'Segment', false)}{th('requests', 'Reqs')}{th('fill_rate', 'Fill')}
+                  {th('ecpm', 'eCPM')}{th('revenue', 'Revenue')}</tr></thead>
+                <tbody>{table.map(r => (
+                  <tr key={r.val}>
+                    <td><b>{r.val}</b></td>
+                    <td className="num" style={{ color: 'var(--muted)' }}>{(r.requests / 1000).toFixed(0)}k</td>
+                    <td className="num">{fmt(r.fill_rate, 'pct')}</td>
+                    <td className="num">{fmt(r.ecpm, 'usd')}</td>
+                    <td className="num"><b>${r.revenue.toFixed(0)}</b>
+                      <div className="bar" style={{ width: (r.revenue / maxRev * 100) + '%' }} /></td>
+                  </tr>))}</tbody>
+              </table></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ══ shell ══ */
+    function AllAnomaliesPage() {
+      const [sort, setSort] = useState({ k: 'start', dir: -1 });
+      const [verdictFilter, setVerdictFilter] = useState('all');
+
+      // Scans every metric, on global (unfiltered) traffic, across the entire dataset —
+      // independent of whatever metric/segment/date-range is selected on the Detect page.
+      const all = useMemo(() => {
+        const out = [];
+        Object.keys(METRICS).forEach(metric => {
+          const daily = buildSeries('__global__', 'all', DAY_MIN, DAY_MAX, 'daily', metric);
+          const detected = detect(daily, 'daily', metric);
+          toIncidents(detected).forEach(inc => {
+            const bd = new Date(inc.start + 'T00:00:00Z'); bd.setUTCDate(bd.getUTCDate() - 21);
+            const be = new Date(inc.start + 'T00:00:00Z'); be.setUTCDate(be.getUTCDate() - 1);
+            const attribution = localize(metric, [inc.start, inc.end], [iso(bd), iso(be)], '__global__', 'all');
+            out.push({ metric, ...inc, attribution });
+          });
+        });
+        return out;
+      }, []);
+
+      const filtered = useMemo(() =>
+        verdictFilter === 'all' ? all : all.filter(a => (a.attribution?.verdict || 'UNEXPLAINED') === verdictFilter),
+        [all, verdictFilter]);
+
+      const sorted = useMemo(() => {
+        const rows = [...filtered];
+        rows.sort((x, y) => {
+          let xv, yv;
+          if (sort.k === 'start') { xv = x.start; yv = y.start; }
+          else if (sort.k === 'metric') { xv = METRICS[x.metric].label; yv = METRICS[y.metric].label; }
+          else if (sort.k === 'deviation') { xv = Math.abs(x.avgResid); yv = Math.abs(y.avgResid); }
+          else if (sort.k === 'z') { xv = x.peakZ; yv = y.peakZ; }
+          else if (sort.k === 'explained') { xv = x.attribution?.winner?.explained ?? -1; yv = y.attribution?.winner?.explained ?? -1; }
+          else { xv = x.start; yv = y.start; }
+          if (xv < yv) return -1 * sort.dir; if (xv > yv) return 1 * sort.dir; return 0;
+        });
+        return rows;
+      }, [filtered, sort]);
+
+      const th = (k, l) => (
+        <th onClick={() => setSort(s => ({ k, dir: s.k === k ? -s.dir : 1 }))} style={{ cursor: 'pointer' }}>
+          {l}{sort.k === k ? (sort.dir > 0 ? ' ↑' : ' ↓') : ''}</th>);
+
+      const counts = useMemo(() => {
+        const c = { LOCALIZED: 0, GLOBAL: 0, UNEXPLAINED: 0 };
+        all.forEach(a => { const v = a.attribution?.verdict || 'UNEXPLAINED'; c[v] = (c[v] || 0) + 1; });
+        return c;
+      }, [all]);
+
+      return (
+        <div className="page">
+          <div className="kpis" style={{ marginBottom: 18 }}>
+            <div className="kpi"><div className="k">Total anomalies</div>
+              <div className="v">{all.length}</div>
+              <div className="d">across all {Object.keys(METRICS).length} metrics · {DAY_MIN} → {DAY_MAX}</div></div>
+            <div className="kpi"><div className="k">Localized</div>
+              <div className="v" style={{ color: 'var(--ok)' }}>{counts.LOCALIZED || 0}</div>
+              <div className="d">root cause identified</div></div>
+            <div className="kpi"><div className="k">Global</div>
+              <div className="v" style={{ color: 'var(--warn)' }}>{counts.GLOBAL || 0}</div>
+              <div className="d">no single segment</div></div>
+            <div className="kpi"><div className="k">Unexplained</div>
+              <div className="v" style={{ color: 'var(--danger)' }}>{counts.UNEXPLAINED || 0}</div>
+              <div className="d">below explain threshold</div></div>
+          </div>
+
+          <div className="controls" style={{ marginBottom: 18 }}>
+            <div className="field"><label>Verdict</label>
+              <div className="seg">
+                {['all', 'LOCALIZED', 'GLOBAL', 'UNEXPLAINED'].map(v => (
+                  <button key={v} className={verdictFilter === v ? 'on' : ''} onClick={() => setVerdictFilter(v)}>
+                    {v === 'all' ? 'All' : v[0] + v.slice(1).toLowerCase()}</button>))}
+              </div></div>
+            <div className="spacer" />
+            <span className="card-sub">{sorted.length} of {all.length} shown</span>
+          </div>
+
+          <div className="card">
+            <div className="card-hd">
+              <span className="card-ttl">All detected anomalies</span>
+              <span className="card-sub">every metric, global traffic, full date range — independent of any single filter</span>
+            </div>
+            <div className="scroll">
+              {sorted.length === 0 ? (
+                <div className="empty"><div className="ic">✓</div>
+                  <div style={{ color: 'var(--ok)', fontWeight: 600 }}>No anomalies match this filter</div></div>
+              ) : (
+                <table>
+                  <thead><tr>
+                    {th('metric', 'Metric')}<th>Direction</th>{th('start', 'Window')}
+                    <th className="num">Observed</th><th className="num">Expected</th>
+                    {th('deviation', 'Deviation')}{th('z', 'Robust z')}<th>Verdict</th>
+                    <th>Root cause</th>{th('explained', 'Explained')}
+                  </tr></thead>
+                  <tbody>{sorted.map((inc, i) => {
+                    const M = METRICS[inc.metric];
+                    const w = inc.attribution?.winner;
+                    const verdict = inc.attribution?.verdict || 'UNEXPLAINED';
+                    return (
+                      <tr key={i}>
+                        <td><b>{M.label}</b></td>
+                        <td>{inc.dir < 0 ? '▼ Drop' : '▲ Spike'}</td>
+                        <td style={{ color: 'var(--muted)' }}>{inc.start}{inc.n > 1 ? ` → ${inc.end}` : ''}</td>
+                        <td className="num" style={{ color: 'var(--danger)' }}>{fmt(inc.worst.v, M.fmt)}</td>
+                        <td className="num">{fmt(inc.worst.base, M.fmt)}</td>
+                        <td className="num">{pctDelta(inc.avgResid)}</td>
+                        <td className="num">{inc.peakZ.toFixed(1)}</td>
+                        <td><span className={'pill ' + (verdict === 'LOCALIZED' ? 'g' : verdict === 'GLOBAL' ? 'y' : 'n')}>{verdict}</span></td>
+                        <td>{verdict === 'LOCALIZED' && w ? <><span style={{ color: 'var(--faint)' }}>{DIM_LABEL[w.dim] || w.dim}</span>{' = '}<b style={{ fontFamily: 'var(--mono)' }}>{w.val}</b></>
+                          : verdict === 'GLOBAL' ? <span style={{ color: 'var(--muted)' }}>uniform, no single segment</span>
+                            : w ? <><span style={{ color: 'var(--faint)' }}>{DIM_LABEL[w.dim] || w.dim}</span>{' = '}<span style={{ fontFamily: 'var(--mono)' }}>{w.val}</span> (weak)</>
+                              : <span style={{ color: 'var(--faint)' }}>—</span>}</td>
+                        <td className="num">{w ? (w.explained * 100).toFixed(0) + '%' : '—'}</td>
+                      </tr>
+                    );
+                  })}</tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [page, setPage] = useState('detect');
+      return (
+        <>
+          <div className="topbar">
+            <div className="brand"><div className="logo">CH</div>Root-Cause Analyst</div>
+            <div className="tabs">
+              <button className={'tab' + (page === 'detect' ? ' on' : '')} onClick={() => setPage('detect')}>Detect</button>
+              <button className={'tab' + (page === 'explore' ? ' on' : '')} onClick={() => setPage('explore')}>Explore</button>
+              <button className={'tab' + (page === 'all' ? ' on' : '')} onClick={() => setPage('all')}>All Anomalies</button>
+            </div>
+            <div className="spacer" />
+            <span style={{
+              fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em',
+              padding: '3px 9px', borderRadius: 5,
+              background: DETECTION_MODE === 'v2' ? 'rgba(142,230,172,.13)' : 'rgba(244,246,146,.11)',
+              color: DETECTION_MODE === 'v2' ? 'var(--ok)' : 'var(--ch-yellow-dim)',
+              border: `1px solid ${DETECTION_MODE === 'v2' ? 'rgba(142,230,172,.25)' : 'rgba(244,246,146,.2)'}`,
+            }}>
+              {DETECTION_MODE === 'v2' ? 'V2 · API' : 'V1 · API'}
+            </span>
+            <div className="status"><span className="dot" />{ROWS.length.toLocaleString()} rollup rows · {DAY_MIN} → {DAY_MAX}</div>
+          </div>
+          {page === 'detect' ? <DetectPage /> : page === 'explore' ? <ExplorePage /> : <AllAnomaliesPage />}
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+
+</html>

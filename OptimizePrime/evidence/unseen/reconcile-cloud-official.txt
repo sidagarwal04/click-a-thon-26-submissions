@@ -1,0 +1,41 @@
+RECONCILE — serving layer vs ev_raw
+target: cloud   commit: 9991a1c
+policy (tree):     policy v1 (e965954b23d4) GAP_S=150 TAIL_S=60 UNCLOSED_PAUSE_TO_RUN_END=1 POINT_ACTIVITY_COUNTS=0
+policy (database): v1 (e965954b23d4) GAP_S=150 POINT_ACTIVITY_COUNTS=0 TAIL_S=60 UNCLOSED_PAUSE_TO_RUN_END=1
+
+== 1. THE GATE — truth recomputed from ev_raw, five minutes
+   (peak, both data boundaries, two arbitrary; any non-zero delta is a failure)
+
+   ┌─ord─┬─scope───┬─c1───────────────────────┬─c2───────────┬─c3─────────────┬─c4─────────┬─verdict─┬─policy─────────────────┐
+1. │   0 │ SUMMARY │ minutes_compared=3201716 │ mismatched=0 │ max_abs_diff=0 │ peak=23324 │ PASS    │ policy=v1/e965954b23d4 │
+2. │   2 │ sample  │ 2020-07-02 01:31:00      │ 0            │ 0              │ 0          │ PASS    │                        │
+3. │   2 │ sample  │ 2020-07-05 06:03:00      │ 0            │ 0              │ 0          │ PASS    │                        │
+4. │   2 │ sample  │ 2025-06-03 18:56:00      │ 0            │ 0              │ 0          │ PASS    │                        │
+5. │   2 │ sample  │ 2026-07-31 11:17:00      │ 23324        │ 23324          │ 0          │ PASS    │                        │
+6. │   2 │ sample  │ 2026-08-03 11:26:00      │ 0            │ 0              │ 0          │ PASS    │                        │
+   └─────┴─────────┴──────────────────────────┴──────────────┴────────────────┴────────────┴─────────┴────────────────────────┘
+
+== 2. MODEL COMPARISON — the same minutes under three definitions
+
+   ┌──────────────minute─┬─session_aware─┬─stateless─┬─naive_session_span─┬─naive_overcount─┬─pct_overcount─┐
+1. │ 2026-07-14 15:43:00 │             0 │         0 │                  1 │               1 │           100 │
+2. │ 2026-07-26 10:56:00 │             1 │         0 │                  2 │               1 │            50 │
+3. │ 2026-07-26 11:10:00 │             0 │         0 │                  1 │               1 │           100 │
+4. │ 2026-07-26 11:31:00 │             0 │         0 │                  1 │               1 │           100 │
+   └─────────────────────┴───────────────┴───────────┴────────────────────┴─────────────────┴───────────────┘
+
+== 3. HEADLINE — total counted watch time
+
+Row 1:
+──────
+session_aware_hours: 20815.3
+naive_span_hours:    24809.5
+pct_excluded:        16.1
+
+Note on 2026-07-26 11:31: naive reads 0 while the model reads 5. That is TAIL_S —
+the model credits one cadence past the last event, which at the very end of the
+dataset extends beyond max(event_timestamp). Expected, not a discrepancy.
+
+The gap is backgrounded and paused time. Heartbeats stop while backgrounded
+(0.047/min vs 4.72/min active) but SURVIVE a pause (0.756/min), so gaps alone
+cannot find paused time — it is excluded explicitly. See ADR 0007.

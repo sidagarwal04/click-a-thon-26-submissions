@@ -1,0 +1,17 @@
+# evidence: title_category_serving
+# what: title/category filter answers from concurrency_deltas + content only (category=bhdbj)
+# run_utc: 2026-08-01 18:08:39
+# git: 8f6fa49-dirty
+# host: ss-cric
+# row_count: 2188714
+# event_watermark: 2026-08-01 17:07:20.017
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 18:08:39   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+category_day	bhdbj	2026-07-26 00:00:00	55	2026-07-26 11:00:00	1.2	15.55	111
+serving_path_tables	phoenix.concurrency_deltas,phoenix.content	PASS
+serving_path_read_rows	64126	792868

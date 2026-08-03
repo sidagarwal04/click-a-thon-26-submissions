@@ -1,0 +1,306 @@
+{
+  "table_name": "f_unseen_events",
+  "columns": [
+    {
+      "name": "id",
+      "type": "String",
+      "json_path": "id",
+      "codec": "ZSTD(1)",
+      "default": null,
+      "comment": "32-char hex id, unique per row; row-unique so never leads ORDER BY"
+    },
+    {
+      "name": "timestamp",
+      "type": "DateTime64(3)",
+      "json_path": "timestamp",
+      "codec": "Delta, ZSTD(1)",
+      "default": null,
+      "comment": "ISO-8601 with ms; DateTime64(3) preserves it, plain DateTime would truncate"
+    },
+    {
+      "name": "event",
+      "type": "LowCardinality(String)",
+      "json_path": "event",
+      "codec": null,
+      "default": null,
+      "comment": "6 event types, discriminator, leads ORDER BY"
+    },
+    {
+      "name": "user_id",
+      "type": "String",
+      "json_path": "user_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "entity key; 100% coverage, 2100 distinct"
+    },
+    {
+      "name": "application_id",
+      "type": "String",
+      "json_path": "application_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "secondary key; 100% coverage, 2100 distinct"
+    },
+    {
+      "name": "device_type",
+      "type": "LowCardinality(String)",
+      "json_path": "device_type",
+      "codec": null,
+      "default": "''",
+      "comment": "4 distinct values"
+    },
+    {
+      "name": "os",
+      "type": "LowCardinality(String)",
+      "json_path": "os",
+      "codec": null,
+      "default": "''",
+      "comment": "93.3% coverage; missing not analytically tri-state, use default not Nullable"
+    },
+    {
+      "name": "geoip_country_code",
+      "type": "LowCardinality(String)",
+      "json_path": "geoip_country_code",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct"
+    },
+    {
+      "name": "city",
+      "type": "LowCardinality(String)",
+      "json_path": "city",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct"
+    },
+    {
+      "name": "destination",
+      "type": "LowCardinality(String)",
+      "json_path": "destination",
+      "codec": null,
+      "default": "''",
+      "comment": "14 distinct, ISO-2"
+    },
+    {
+      "name": "currency",
+      "type": "LowCardinality(String)",
+      "json_path": "currency",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct"
+    },
+    {
+      "name": "app_version",
+      "type": "LowCardinality(String)",
+      "json_path": "app_version",
+      "codec": null,
+      "default": "''",
+      "comment": "3 distinct"
+    },
+    {
+      "name": "client_lib",
+      "type": "LowCardinality(String)",
+      "json_path": "client_lib",
+      "codec": null,
+      "default": "''",
+      "comment": "2 distinct"
+    },
+    {
+      "name": "cart_value",
+      "type": "Decimal(18, 4)",
+      "json_path": "cart_value",
+      "codec": null,
+      "default": "0",
+      "comment": "currency-denominated, present on all 6 event types at 100% coverage"
+    },
+    {
+      "name": "coupon_code",
+      "type": "LowCardinality(String)",
+      "json_path": "coupon_code",
+      "codec": null,
+      "default": "''",
+      "comment": "49.3% coverage (null = no-coupon baseline row on checkout_with_coupon); 6 distinct codes -> enum-like"
+    },
+    {
+      "name": "discount_type",
+      "type": "LowCardinality(String)",
+      "json_path": "discount_type",
+      "codec": null,
+      "default": "''",
+      "comment": "only on coupon_applied (10.8% overall coverage), 2 values percent/flat"
+    },
+    {
+      "name": "discount_amount",
+      "type": "Decimal(18, 4)",
+      "json_path": "discount_amount",
+      "codec": null,
+      "default": "0",
+      "comment": "money, summed for margin cost; 40% coverage across coupon_applied/discount_shown/checkout_with_coupon"
+    },
+    {
+      "name": "reject_reason",
+      "type": "LowCardinality(String)",
+      "json_path": "reject_reason",
+      "codec": null,
+      "default": "''",
+      "comment": "only on coupon_rejected (5% overall coverage), 4 values"
+    },
+    {
+      "name": "final_value",
+      "type": "Decimal(18, 4)",
+      "json_path": "final_value",
+      "codec": null,
+      "default": "0",
+      "comment": "money, only on checkout_with_coupon (18.4% overall coverage)"
+    }
+  ],
+  "engine": "MergeTree",
+  "order_by": [
+    "event",
+    "timestamp",
+    "user_id"
+  ],
+  "partition_by": "toYYYYMM(timestamp)",
+  "ttl": "toDateTime(timestamp) + INTERVAL 18 MONTH",
+  "settings": {
+    "ratio_of_defaults_for_sparse_serialization": 0.857
+  },
+  "materialized_views": [
+    {
+      "name": "mv_unseen_funnel_daily",
+      "target_table": "agg_unseen_funnel_daily",
+      "select_sql": "SELECT toDate(timestamp) AS day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state, sumState(discount_amount) AS discount_amount_state FROM f_unseen_events GROUP BY day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason",
+      "justification": "Answers apply rate (field_shown->coupon_applied), valid vs rejected mix, top reject reasons, and segment cuts (device/geo/destination) as pre-aggregated countState/uniqStateIf per day+event+segment instead of scanning raw rows and running windowFunnel over the full 18-month retention window each time.",
+      "serves_questions": [
+        "Coupon apply rate (field_shown -> coupon_applied) and valid vs rejected mix; top reject reasons.",
+        "Segment cuts (device, geo, destination); which codes work where."
+      ],
+      "measured_source_rows": 5363,
+      "measured_target_rows": 4613,
+      "reduction_factor": 1.16,
+      "kept": false
+    },
+    {
+      "name": "mv_unseen_coupon_margin_daily",
+      "target_table": "agg_unseen_coupon_margin_daily",
+      "select_sql": "SELECT toDate(timestamp) AS day, coupon_code, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state, sumState(discount_amount) AS discount_amount_state, sumState(final_value) AS final_value_state FROM f_unseen_events WHERE event = 'checkout_with_coupon' GROUP BY day, coupon_code",
+      "justification": "Answers margin cost (total discount_amount) and which codes drive checkout volume vs erode margin, and enables the no-coupon-baseline conversion-lift comparison (coupon_code = '' row) without re-scanning raw checkout_with_coupon rows per query.",
+      "serves_questions": [
+        "Conversion lift: do coupon users reach checkout_with_coupon at a higher rate than the no-coupon baseline (rows where coupon_code is null)?",
+        "Margin cost: total discount_amount; which codes drive volume vs erode margin."
+      ],
+      "measured_source_rows": 5363,
+      "measured_target_rows": 120,
+      "reduction_factor": 44.69,
+      "kept": true
+    }
+  ],
+  "semantics": {
+    "feature_slug": "unseen",
+    "table_fqn": "atlys.f_unseen_events",
+    "event_column": "event",
+    "event_types": [
+      "coupon_field_shown",
+      "coupon_entered",
+      "coupon_applied",
+      "coupon_rejected",
+      "discount_shown",
+      "checkout_with_coupon"
+    ],
+    "entity_key": "user_id",
+    "entity_key_confidence": 0.8,
+    "secondary_keys": [
+      "application_id"
+    ],
+    "ordered_steps": [
+      "coupon_field_shown",
+      "coupon_entered",
+      "coupon_applied",
+      "discount_shown",
+      "checkout_with_coupon"
+    ],
+    "step_order_source": "spec",
+    "segment_dims": [
+      "device_type",
+      "os",
+      "geoip_country_code",
+      "city",
+      "destination",
+      "client_lib",
+      "app_version",
+      "coupon_code"
+    ],
+    "measures": [
+      {
+        "column": "cart_value",
+        "kind": "money",
+        "scoped_to_events": [],
+        "unit": "currency"
+      },
+      {
+        "column": "discount_amount",
+        "kind": "money",
+        "scoped_to_events": [
+          "coupon_applied",
+          "discount_shown",
+          "checkout_with_coupon"
+        ],
+        "unit": "currency"
+      },
+      {
+        "column": "final_value",
+        "kind": "money",
+        "scoped_to_events": [
+          "checkout_with_coupon"
+        ],
+        "unit": "currency"
+      }
+    ],
+    "flags": [],
+    "disconnected_event_types": [
+      "coupon_rejected"
+    ],
+    "partial_identity_columns": [],
+    "cross_reference_hints": [
+      {
+        "from_column": "user_id",
+        "matches": "shared_key",
+        "targets": [
+          "destination_card_clicked"
+        ],
+        "join_key": "user_id",
+        "evidence": "destination_card_clicked.user_id -> all tables (documented relationship); user_id is 100% covered on all 6 unseen event types."
+      },
+      {
+        "from_column": "app_version",
+        "matches": "existing_column_values",
+        "targets": [
+          "destination_card_clicked"
+        ],
+        "join_key": "app_version,toDate(timestamp)",
+        "evidence": "Segment-vocabulary overlap pattern documented for other feature tables (e.g. f_abandoned_checkout_recovery_events shares app_version/city/client_lib with destination_card_clicked); same join style applies here."
+      }
+    ]
+  },
+  "rationale": {
+    "order_by": "House rule #2 bans a unique id in lead position; the legacy tables use (id, timestamp, user_id) and the id column here is a 5,363-distinct hex string, useless for pruning. event has only E=6 values and every PM question ('apply rate', 'valid vs rejected mix', 'segment cuts') filters or groups by event first, so it leads. timestamp is second because every question is time-windowed (window observed: 2026-06-08..2026-06-28). user_id is third: it is the derived entity_key (100% coverage, 2,100 distinct, present on 6/6 event types, ties with application_id but chosen by first-mention order per house rule tie-break) and is the funnel grouping key for windowFunnel(field_shown->...->checkout_with_coupon).\n\nBake-off on t02_funnel_overall: chosen ORDER BY (event, timestamp, user_id) read 214,751 B / 5,365 rows; straw-man ORDER BY (timestamp, user_id) read 214,751 B / 5,365 rows. At sample volume (5,365 rows) both layouts read the same bytes -- the table fits in a handful of granules, so primary-key pruning cannot discriminate. Event-first retained per house_rules \u00a72 (event prune + sparse serialization); straw-man dropped. Re-run at projected_annual_rows to price the gap.",
+    "partition_by": "toYYYYMM(timestamp) matches all 8 existing tables so cross-table segment-vocabulary joins (app_version/city) prune consistently on the same partition scheme. At current volume (5,363 rows over 21 days) daily partitions would produce ~21 parts averaging ~255 rows each -- far below a healthy part size and would slow merges; monthly is correct even projected to full annual run-rate.",
+    "types": "E=6 event types here (not the generic 5 used in the house-rule example), so an event-scoped column (e.g. discount_type, present only on coupon_applied) has a default ratio of roughly 1 - 1/E = 1 - 1/6 = 0.833 in the balanced case, and the profile confirms it: discount_type coverage is 0.108 (default ratio 0.892), reject_reason coverage 0.050 (default ratio 0.950), final_value 0.184 (default ratio 0.816). These sit close to and above the stock 0.9375 sparse threshold for the highest-sparsity columns but below it for cart_value-adjacent ones, so per house rule we set ratio_of_defaults_for_sparse_serialization = min(0.9, 1 - 1/(E+1)) = min(0.9, 1 - 1/7) = min(0.9, 0.857) = 0.857, which is low enough to make discount_type/reject_reason/final_value/discount_amount/coupon_code go sparse even though they don't clear the stock 0.9375 bar. id is declared String, not UUID -- the profile shows it is a 32-char hex string (id column, e.g. '40e20b22bab295b7731969b1'), which the existing tables' UUID columns would reject. discount_amount and final_value are Decimal(18,4) because they are summed for margin-cost reporting (a money measure per house rule #4), not Float64. timestamp is DateTime64(3) since the source carries millisecond precision ('2026-06-08T06:00:00.000').",
+    "nullable": "No Nullable columns. coupon_code (49.3% coverage), discount_type (10.8%), discount_amount (40.0%), reject_reason (5.0%) and final_value (18.4%) all get DEFAULT '' / 0 instead of Nullable, per house rule #5, avoiding a null-map per column on what are otherwise hot group-by/filter columns. However every identity column (user_id, application_id) has 100% coverage in this feature's profile -- unlike sharer/recipient features, there is no anonymous-event arm here -- so partial_identity_columns is empty and no uniqIf guard is strictly required for correctness, but the analytics layer still uses uniqIf(user_id, user_id != '') defensively since coupon_code's default '' could otherwise be miscounted as a real code in naive uniq(coupon_code) queries.",
+    "ttl": "TTL toDateTime(timestamp) + INTERVAL 18 MONTH on the raw table, matching house-rule default and the other feature tables, paired with the two rollup MVs which are not raw-copies and can be retained longer so daily-granularity trend queries (apply rate over a quarter, margin cost year-over-year) survive raw expiry on a fraction of the bytes.",
+    "mvs": "Two MVs, each targeting a distinct PM question cluster per house rule #7 (an MV must beat a straight raw copy). mv_unseen_funnel_daily pre-aggregates by day+event+segment (device_type/geoip/destination/coupon_code/reject_reason) with countState/uniqStateIf/sumState so the funnel-and-reject-mix and segment-cut questions run as cheap AggregatingMergeTree merges instead of scanning raw rows and running windowFunnel per query. mv_unseen_coupon_margin_daily is scoped to event='checkout_with_coupon' only, aggregated by day+coupon_code, directly serving 'total discount_amount' and 'which codes drive volume vs erode margin' plus the coupon-vs-no-coupon (coupon_code='') baseline comparison for conversion lift. At the observed sample size (5,363 rows, ~21 days) neither MV's reduction factor has been measured yet -- both should be validated post-load against the keep/drop gate (reduction_factor >= 5x) and dropped with a recorded 'kept=false' if they don't clear it; the case for keeping them rests on Atlys's 700K+ applications/year run-rate (per business_def.atlys_operates_run_rate), where the raw table would be several orders of magnitude larger than this sample and the day+event+segment grain collapses that volume hard.",
+    "engine": "Checked the field profile for a re-ingestion/backfill signal (duplicate_id, is_back_filled, dedup_*, *_reingested-shaped column) and found none among the 17 candidate columns -- every column is either envelope, funnel-event, or money/reason data. Default MergeTree is used; no ReplacingMergeTree justified by column shape.",
+    "contrast_with_legacy": "The 8 existing tables are one-table-per-event with ORDER BY (id, timestamp, user_id) and 30-35 Nullable columns out of ~33-38 total (per instrumentation_notes.md, an SDK-template artifact, not a design choice). This feature instead uses one wide table across all 6 event types with event leading ORDER BY (not id), because every PM question here is a within-feature funnel (field_shown -> ... -> checkout_with_coupon) that would otherwise require a 6-way join across per-event tables. Sorting by event first also clusters coupon_applied-only columns like discount_type contiguously, so their ~89% default-run gets long, aligned stretches inside each granule -- which is exactly what makes the 0.857 sparse-serialization threshold effective instead of theoretical.",
+    "generation_log": "attempt 0: lint clean, dry run OK",
+    "order_by_measured_chosen_bytes": "214751",
+    "order_by_measured_straw_bytes": "214751",
+    "order_by_measured_ratio": "1.00"
+  },
+  "ddl_sql": [
+    "CREATE TABLE IF NOT EXISTS f_unseen_events\n(\n    `id` String COMMENT 'json_path=id; 32-char hex id, unique per row; row-unique so never leads ORDER BY' CODEC(ZSTD(1)),\n    `timestamp` DateTime64(3) COMMENT 'json_path=timestamp; ISO-8601 with ms; DateTime64(3) preserves it, plain DateTime would truncate' CODEC(Delta, ZSTD(1)),\n    `event` LowCardinality(String) COMMENT 'json_path=event; 6 event types, discriminator, leads ORDER BY',\n    `user_id` String DEFAULT '' COMMENT 'json_path=user_id; entity key; 100% coverage, 2100 distinct' CODEC(ZSTD(1)),\n    `application_id` String DEFAULT '' COMMENT 'json_path=application_id; secondary key; 100% coverage, 2100 distinct' CODEC(ZSTD(1)),\n    `device_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=device_type; 4 distinct values',\n    `os` LowCardinality(String) DEFAULT '' COMMENT 'json_path=os; 93.3% coverage; missing not analytically tri-state, use default not Nullable',\n    `geoip_country_code` LowCardinality(String) DEFAULT '' COMMENT 'json_path=geoip_country_code; 7 distinct',\n    `city` LowCardinality(String) DEFAULT '' COMMENT 'json_path=city; 7 distinct',\n    `destination` LowCardinality(String) DEFAULT '' COMMENT 'json_path=destination; 14 distinct, ISO-2',\n    `currency` LowCardinality(String) DEFAULT '' COMMENT 'json_path=currency; 7 distinct',\n    `app_version` LowCardinality(String) DEFAULT '' COMMENT 'json_path=app_version; 3 distinct',\n    `client_lib` LowCardinality(String) DEFAULT '' COMMENT 'json_path=client_lib; 2 distinct',\n    `cart_value` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=cart_value; currency-denominated, present on all 6 event types at 100% coverage',\n    `coupon_code` LowCardinality(String) DEFAULT '' COMMENT 'json_path=coupon_code; 49.3% coverage (null = no-coupon baseline row on checkout_with_coupon); 6 distinct codes -> enum-like',\n    `discount_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=discount_type; only on coupon_applied (10.8% overall coverage), 2 values percent/flat',\n    `discount_amount` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=discount_amount; money, summed for margin cost; 40% coverage across coupon_applied/discount_shown/checkout_with_coupon',\n    `reject_reason` LowCardinality(String) DEFAULT '' COMMENT 'json_path=reject_reason; only on coupon_rejected (5% overall coverage), 4 values',\n    `final_value` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=final_value; money, only on checkout_with_coupon (18.4% overall coverage)'\n)\nENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nORDER BY (event, timestamp, user_id)\nTTL toDateTime(timestamp) + INTERVAL 18 MONTH\nSETTINGS ratio_of_defaults_for_sparse_serialization = 0.857",
+    "CREATE TABLE IF NOT EXISTS agg_unseen_funnel_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason)\nEMPTY AS\nSELECT toDate(timestamp) AS day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state, sumState(discount_amount) AS discount_amount_state FROM f_unseen_events GROUP BY day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason",
+    "CREATE TABLE IF NOT EXISTS agg_unseen_coupon_margin_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, coupon_code)\nEMPTY AS\nSELECT toDate(timestamp) AS day, coupon_code, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state, sumState(discount_amount) AS discount_amount_state, sumState(final_value) AS final_value_state FROM f_unseen_events WHERE event = 'checkout_with_coupon' GROUP BY day, coupon_code",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_unseen_funnel_daily\nTO agg_unseen_funnel_daily AS\nSELECT toDate(timestamp) AS day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state, sumState(discount_amount) AS discount_amount_state FROM f_unseen_events GROUP BY day, event, device_type, geoip_country_code, destination, coupon_code, reject_reason",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_unseen_coupon_margin_daily\nTO agg_unseen_coupon_margin_daily AS\nSELECT toDate(timestamp) AS day, coupon_code, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state, sumState(discount_amount) AS discount_amount_state, sumState(final_value) AS final_value_state FROM f_unseen_events WHERE event = 'checkout_with_coupon' GROUP BY day, coupon_code"
+  ]
+}

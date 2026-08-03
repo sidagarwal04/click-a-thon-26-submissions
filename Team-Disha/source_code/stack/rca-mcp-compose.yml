@@ -1,0 +1,45 @@
+# Deterministic RCA MCP (Python) for LibreChat agents
+services:
+  rca-mcp:
+    build:
+      context: ..
+      dockerfile: stack/Dockerfile.rca-mcp
+    restart: always
+    environment:
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_PORT: ${CLICKHOUSE_PORT:-8443}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_SECURE: ${CLICKHOUSE_SECURE:-true}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-default}
+      CLICKHOUSE_RCA_DATABASE: ${CLICKHOUSE_RCA_DATABASE:-eda}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-5.6-sol}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-sol}
+      # Inside compose, collector is reachable by service name
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${RCA_OTEL_ENDPOINT:-http://otel-collector:4318}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-clickathon-rca}
+      HYPERDX_API_KEY: ${HYPERDX_API_KEY:-}
+      # SDK also honors this; keep in sync with HyperDX team apiKey
+      OTEL_EXPORTER_OTLP_HEADERS: authorization=${HYPERDX_API_KEY}
+      CLICKATHON_CHARTS_DIR: /app/charts
+      CLICKATHON_CHARTS_PUBLIC_BASE: http://localhost:8001/charts
+    volumes:
+      # Host materialize writes PNGs here; MCP serves /charts/*
+      - ./charts:/app/charts
+    ports:
+      - "127.0.0.1:8001:8001"
+    networks:
+      - clickathon
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.create_connection(('localhost',8001),2); s.close()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s

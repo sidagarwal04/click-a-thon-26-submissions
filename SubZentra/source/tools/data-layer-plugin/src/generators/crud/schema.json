@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "CrudGenerator",
+  "title": "CRUD Data Layer Generator",
+  "description": "Generate CRUD data layer hooks for an entity",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Entity name (e.g., 'product', 'user')",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What is the entity name? (e.g., product)",
+      "x-priority": "important"
+    },
+    "directory": {
+      "type": "string",
+      "description": "Directory to generate files in (e.g., 'libs/products/data-layer/src')",
+      "x-prompt": "Where should the hooks be generated?"
+    },
+    "dataModel": {
+      "type": "string",
+      "description": "Import path for data model types (e.g., '@open-zentra/products-data-model')",
+      "x-prompt": "What is the import path for the data model types?"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "Base API endpoint (e.g., '/api/products')",
+      "x-prompt": "What is the base API endpoint?"
+    },
+    "idField": {
+      "type": "string",
+      "description": "ID field name on the entity",
+      "default": "id"
+    },
+    "pagination": {
+      "type": "boolean",
+      "description": "Include pagination-oriented list input helpers (current API uses useDLGetList)",
+      "default": false
+    },
+    "skipList": {
+      "type": "boolean",
+      "description": "Skip generating list hook",
+      "default": false
+    },
+    "skipDetail": {
+      "type": "boolean",
+      "description": "Skip generating detail hook",
+      "default": false
+    },
+    "skipCreate": {
+      "type": "boolean",
+      "description": "Skip generating create mutation",
+      "default": false
+    },
+    "skipUpdate": {
+      "type": "boolean",
+      "description": "Skip generating update mutation",
+      "default": false
+    },
+    "skipDelete": {
+      "type": "boolean",
+      "description": "Skip generating delete mutation",
+      "default": false
+    }
+  },
+  "required": ["name", "directory", "dataModel", "endpoint"]
+}

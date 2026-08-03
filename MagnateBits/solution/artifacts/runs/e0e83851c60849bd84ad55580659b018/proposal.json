@@ -1,0 +1,313 @@
+{
+  "table_name": "f_group_family_events",
+  "columns": [
+    {
+      "name": "id",
+      "type": "String",
+      "json_path": "id",
+      "codec": "ZSTD(1)",
+      "default": null,
+      "comment": "32-char hex id, not UUID-parseable; never used in ORDER BY (house rule 2)"
+    },
+    {
+      "name": "timestamp",
+      "type": "DateTime64(3)",
+      "json_path": "timestamp",
+      "codec": "Delta, ZSTD(1)",
+      "default": null,
+      "comment": "ISO-8601 with milliseconds; DateTime would truncate"
+    },
+    {
+      "name": "event",
+      "type": "LowCardinality(String)",
+      "json_path": "event",
+      "codec": null,
+      "default": null,
+      "comment": "discriminator, E=4 values"
+    },
+    {
+      "name": "user_id",
+      "type": "String",
+      "json_path": "user_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "100% coverage, secondary key"
+    },
+    {
+      "name": "application_id",
+      "type": "String",
+      "json_path": "application_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "100% coverage, secondary key"
+    },
+    {
+      "name": "group_id",
+      "type": "String",
+      "json_path": "group_id",
+      "codec": "ZSTD(1)",
+      "default": "''",
+      "comment": "entity key, 100% coverage, 1200 distinct"
+    },
+    {
+      "name": "group_size",
+      "type": "UInt8",
+      "json_path": "group_size",
+      "codec": null,
+      "default": "0",
+      "comment": "5 distinct small ints (2-5), fits UInt8; headline segment dim"
+    },
+    {
+      "name": "destination",
+      "type": "LowCardinality(String)",
+      "json_path": "destination",
+      "codec": null,
+      "default": "''",
+      "comment": "14 distinct values, enum-like"
+    },
+    {
+      "name": "device_type",
+      "type": "LowCardinality(String)",
+      "json_path": "device_type",
+      "codec": null,
+      "default": "''",
+      "comment": "4 distinct values"
+    },
+    {
+      "name": "os",
+      "type": "LowCardinality(String)",
+      "json_path": "os",
+      "codec": null,
+      "default": "''",
+      "comment": "93.7% coverage, not tri-state analytically distinct, default '' not Nullable"
+    },
+    {
+      "name": "geoip_country_code",
+      "type": "LowCardinality(String)",
+      "json_path": "geoip_country_code",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct values"
+    },
+    {
+      "name": "city",
+      "type": "LowCardinality(String)",
+      "json_path": "city",
+      "codec": null,
+      "default": "''",
+      "comment": "7 distinct values"
+    },
+    {
+      "name": "app_version",
+      "type": "LowCardinality(String)",
+      "json_path": "app_version",
+      "codec": null,
+      "default": "''",
+      "comment": "3 distinct values"
+    },
+    {
+      "name": "client_lib",
+      "type": "LowCardinality(String)",
+      "json_path": "client_lib",
+      "codec": null,
+      "default": "''",
+      "comment": "2 distinct values"
+    },
+    {
+      "name": "relation",
+      "type": "LowCardinality(String)",
+      "json_path": "relation",
+      "codec": null,
+      "default": "''",
+      "comment": "event-scoped to traveller_added only (64.1% coverage); '' means not-applicable, not a real relation value, so DEFAULT '' is safe (no legit relation value is empty)"
+    },
+    {
+      "name": "docs_complete",
+      "type": "UInt8",
+      "json_path": "docs_complete",
+      "codec": null,
+      "default": "0",
+      "comment": "bool -> UInt8 DEFAULT 0 per house rule 4; scoped to traveller_added (64.1% coverage), aggregated only within that event filter so 0-default rows from other events never enter the docs-completion measure"
+    },
+    {
+      "name": "traveller_index",
+      "type": "Nullable(UInt8)",
+      "json_path": "traveller_index",
+      "codec": null,
+      "default": null,
+      "comment": "tri-state exception: valid values include 0, so DEFAULT 0 would collide with a real first-traveller index; Nullable distinguishes 'not applicable on this event' from 'index 0'. Scoped to traveller_added/traveller_removed (65.4% coverage)"
+    },
+    {
+      "name": "travellers_submitted",
+      "type": "UInt8",
+      "json_path": "travellers_submitted",
+      "codec": null,
+      "default": "0",
+      "comment": "only on group_submitted (12.6% coverage), values 2-5; 0 default is unambiguous since a real submission is always >=2 travellers"
+    }
+  ],
+  "engine": "MergeTree",
+  "order_by": [
+    "event",
+    "timestamp",
+    "group_id"
+  ],
+  "partition_by": "toYYYYMM(timestamp)",
+  "ttl": "toDateTime(timestamp) + INTERVAL 18 MONTH",
+  "settings": {
+    "ratio_of_defaults_for_sparse_serialization": 0.8
+  },
+  "materialized_views": [
+    {
+      "name": "mv_group_family_funnel_daily",
+      "target_table": "agg_group_family_funnel_daily",
+      "select_sql": "SELECT toDate(timestamp) AS day, event, group_size, destination, device_type, countState() AS events_state, uniqState(group_id) AS groups_state FROM atlys.f_group_family_events GROUP BY day, event, group_size, destination, device_type",
+      "justification": "Answers 'completion rate group_started->group_submitted by group_size, where do large groups fall off' and 'which destinations/segments drive group applications' without a windowFunnel scan of raw rows. At 700K+ applications/yr run rate, group_family at ~1,200 groups/20 days -> ~22k groups/yr -> ~5,453*18=~98k raw rows/yr projected; the daily x event x group_size x destination x device_type grain collapses that to a few thousand rows/yr.",
+      "serves_questions": [
+        "Completion rate (group_started -> group_submitted) by group size \u2014 where do large groups fall off?",
+        "Which destinations / segments drive group applications?"
+      ],
+      "measured_source_rows": 5453,
+      "measured_target_rows": 2736,
+      "reduction_factor": 1.99,
+      "kept": false
+    },
+    {
+      "name": "mv_group_family_docs_completion_daily",
+      "target_table": "agg_group_family_docs_completion_daily",
+      "select_sql": "SELECT toDate(timestamp) AS day, group_size, countState() AS added_state, sumState(docs_complete) AS docs_complete_state, uniqState(group_id) AS groups_state FROM atlys.f_group_family_events WHERE event = 'traveller_added' GROUP BY day, group_size",
+      "justification": "Answers 'is per-traveller docs_complete the bottleneck for big groups' and supports the add/remove churn question's denominator (traveller_added counts) by group_size, at daily grain instead of scanning all 3,495 traveller_added rows per query.",
+      "serves_questions": [
+        "Is per-traveller document completion (docs_complete) the bottleneck for big groups?",
+        "How many travellers are added vs removed per group; is there an add/remove churn?"
+      ],
+      "measured_source_rows": 5453,
+      "measured_target_rows": 104,
+      "reduction_factor": 52.43,
+      "kept": true
+    }
+  ],
+  "semantics": {
+    "feature_slug": "group_family",
+    "table_fqn": "atlys.f_group_family_events",
+    "event_column": "event",
+    "event_types": [
+      "group_started",
+      "traveller_added",
+      "traveller_removed",
+      "group_submitted"
+    ],
+    "entity_key": "group_id",
+    "entity_key_confidence": 0.8,
+    "secondary_keys": [
+      "user_id",
+      "application_id"
+    ],
+    "ordered_steps": [
+      "group_started",
+      "traveller_added",
+      "traveller_removed",
+      "group_submitted"
+    ],
+    "step_order_source": "spec",
+    "segment_dims": [
+      "group_size",
+      "destination",
+      "device_type",
+      "os",
+      "geoip_country_code",
+      "city",
+      "app_version",
+      "client_lib",
+      "relation"
+    ],
+    "measures": [
+      {
+        "column": "group_size",
+        "kind": "count",
+        "scoped_to_events": [],
+        "unit": "travellers"
+      },
+      {
+        "column": "docs_complete",
+        "kind": "rate",
+        "scoped_to_events": [
+          "traveller_added"
+        ],
+        "unit": "boolean"
+      },
+      {
+        "column": "travellers_submitted",
+        "kind": "count",
+        "scoped_to_events": [
+          "group_submitted"
+        ],
+        "unit": "travellers"
+      },
+      {
+        "column": "traveller_index",
+        "kind": "other",
+        "scoped_to_events": [
+          "traveller_added",
+          "traveller_removed"
+        ],
+        "unit": "index"
+      }
+    ],
+    "flags": [
+      "docs_complete"
+    ],
+    "disconnected_event_types": [],
+    "partial_identity_columns": [],
+    "cross_reference_hints": [
+      {
+        "from_column": "app_version",
+        "matches": "existing_column_values",
+        "targets": [
+          "destination_card_clicked",
+          "search_typed",
+          "landing_page_scrolled",
+          "auth_completed",
+          "application_started",
+          "document_uploaded",
+          "pay_now_clicked",
+          "purchase_completed"
+        ],
+        "join_key": "app_version + toDate(timestamp)",
+        "evidence": "f_group_family_events shares no user_id/application_id identities with the 8 pre-existing tables at meaningful overlap; join must be on segment vocabulary (app_version, city, client_lib) plus date, per the documented pattern for other feature tables (relationship.f_*.segment_join entries)"
+      },
+      {
+        "from_column": "application_id",
+        "matches": "shared_key",
+        "targets": [
+          "application_started",
+          "document_uploaded",
+          "pay_now_clicked",
+          "purchase_completed"
+        ],
+        "join_key": "application_id",
+        "evidence": "application_id is present at 100% coverage on all 4 group_family event types and is the same id space created at application_started (entity.application), so it is a legitimate identity join into the post-application-start tables, unlike the segment-only joins used by other feature tables"
+      }
+    ]
+  },
+  "rationale": {
+    "order_by": "Never lead with id: the existing 8 tables use (id, timestamp, user_id) and id is unique per row (5,453 distinct ids for 5,453 rows), making the primary index useless for the group/family queries, which are all 'completion rate by group_size' or 'churn by day', never single-row id lookups. We use (event, timestamp, group_id): event has only E=4 values so it prunes hard and clusters traveller_added (3,495 rows, 64% of the table) away from group_submitted (688 rows) and group_started (1,200 rows), letting a group_size funnel query skip whole granules. timestamp second because every PM question is time-windowed ('where do large groups fall off', daily churn). group_id third (not user_id or application_id, though they are numerically co-extensive at 1,200 distinct values each) because group_id is the name explicitly used in the spec's action bullets and is the funnel grain PMs reference ('per group' add/remove churn, 'by group size').\n\nBake-off on t02_funnel_overall: chosen ORDER BY (event, timestamp, group_id) read 240,112 B / 5,455 rows; straw-man ORDER BY (timestamp, group_id) read 240,112 B / 5,455 rows. At sample volume (5,455 rows) both layouts read the same bytes -- the table fits in a handful of granules, so primary-key pruning cannot discriminate. Event-first retained per house_rules \u00a72 (event prune + sparse serialization); straw-man dropped. Re-run at projected_annual_rows to price the gap.",
+    "partition_by": "toYYYYMM(timestamp), matching all 8 existing tables so any cross-table segment join (see cross_reference_hints) prunes on the same partition boundary. The observed window is 2026-06-08 to 2026-06-28 (21 days, 5,453 rows) \u2014 daily partitions at this volume (~260 rows/day) would create thousands of tiny parts over a year and slow merges for no query benefit, since no query in the spec filters by day at sub-month granularity.",
+    "types": "id is a 32-char hex string with no dashes (sample: 17e63e1da1cd81d146fdaa87) \u2014 declaring it UUID like the legacy tables do would reject every insert; we use String CODEC(ZSTD(1)). timestamp is ISO-8601 with milliseconds so DateTime64(3) CODEC(Delta, ZSTD(1)), not DateTime (would silently drop the .000 precision). group_size/docs_complete/travellers_submitted are small ints (2-5) so UInt8, not UInt32. LowCardinality(String) applied to event (4 values), destination (14), device_type (4), os (4), geoip_country_code (7), city (7), app_version (3), client_lib (2), relation (5) \u2014 all well under the ~10k-distinct threshold where LowCardinality helps. Sparse serialization arithmetic: with E=4 roughly-balanced event types, an event-scoped column (relation, docs_complete: traveller_added-only; travellers_submitted: group_submitted-only; traveller_index: traveller_added+traveller_removed-only) sits near (1 - 1/E) = 0.75-0.80 default ratio empirically (docs_complete coverage 0.641 means default ratio 0.359 within its own scope, but across the whole table it's (rows outside traveller_added)/(total) = (5453-3495)/5453 = 0.359 actually below 0.9375 default threshold too \u2014 the binding case is travellers_submitted at 0.126 coverage, i.e. 0.874 default ratio, still under the stock 0.9375 threshold, so it would NOT go sparse by default). We therefore set ratio_of_defaults_for_sparse_serialization = min(0.9, 1 - 1/(E+1)) = min(0.9, 1 - 1/5) = min(0.9, 0.8) = 0.8, lowering the bar so travellers_submitted (0.874 default ratio) and other event-scoped columns do go sparse, matching the storage profile of one-table-per-event without the join cost.",
+    "nullable": "Only traveller_index is Nullable, and it is justified as a genuine tri-state: its observed values include 0 (first traveller), so DEFAULT 0 would make 'traveller_index absent on this event' indistinguishable from 'this is traveller #0' \u2014 a real ambiguity since traveller_index appears on only traveller_added/traveller_removed (65.4% coverage). Every other partial-coverage column (relation 64.1%, docs_complete 64.1%, travellers_submitted 12.6%, os 93.7%) uses DEFAULT '' / DEFAULT 0 because none of them have a real value that collides with the default (no relation is '', no travellers_submitted is legitimately 0, os absence isn't analytically distinct from unknown-and-unused). This departs from the 8 existing tables, which Nullable nearly every column (30-35 of 33-38 columns) \u2014 that pattern costs a null-map per column and weakens index usage for no analytical gain here.",
+    "ttl": "TTL toDateTime(timestamp) + INTERVAL 18 MONTH on the raw table, paired with two AggregatingMergeTree rollups (agg_group_family_funnel_daily, agg_group_family_docs_completion_daily) that are not subject to this TTL, so daily/group_size trend queries beyond 18 months keep working off the rollups after raw rows expire.",
+    "mvs": "Two MVs, each scoped to a specific PM question rather than a raw copy. mv_group_family_funnel_daily rolls up by day x event x group_size x destination x device_type with countState()/uniqState(group_id) \u2014 answers the completion-by-group-size and destination/segment questions via windowFunnel-equivalent step counts without scanning all 5,453 raw rows per query. mv_group_family_docs_completion_daily is filtered to event='traveller_added' (3,495 of 5,453 rows, 64%) and rolls up sumState(docs_complete)/countState() by day x group_size \u2014 directly answers 'is docs_complete the bottleneck for big groups' and doubles as the traveller_added side of the add/remove churn question. Both use AggregatingMergeTree with *State functions (never bare count()/uniq()) because summing pre-aggregated distinct counts across daily partitions would double-count groups seen on multiple days; uniqMerge is required downstream. At sample volume (5,453 rows over 21 days) these MVs are not yet worth it in isolation, but projected to the 700K+ applications/yr platform run rate, group_family traffic (1,200 groups / 21 days -> ~21k groups/yr, ~95k raw events/yr) makes the daily x segment grain a materially smaller scan for any multi-month trend query \u2014 the keep/drop decision should be re-evaluated post-load by measuring actual reduction_factor and dropping any MV under 5x per house rule 7.",
+    "contrast_with_legacy": "The 8 existing tables are one-table-per-event with ORDER BY (id, timestamp, user_id) and 30-35 Nullable columns out of 33-38 \u2014 instrumentation_notes.md calls this an SDK template artifact, not a design. f_group_family_events instead uses one wide table (event LowCardinality discriminator over 4 event types), ORDER BY (event, timestamp, group_id) with no unique id in the sort key, and only 1 genuinely Nullable column (traveller_index) instead of ~30. This turns the PM's headline question ('group_started -> group_submitted completion by group_size') from a 4-way join across per-event tables into one windowFunnel/GROUP BY over a single table, while the sparse-serialization setting (0.8, derived from E=4) keeps the event-scoped columns (relation, docs_complete, travellers_submitted, traveller_index) as cheap as they'd be in separate tables.",
+    "generation_log": "attempt 0: lint clean, dry run OK",
+    "order_by_measured_chosen_bytes": "240112",
+    "order_by_measured_straw_bytes": "240112",
+    "order_by_measured_ratio": "1.00"
+  },
+  "ddl_sql": [
+    "CREATE TABLE IF NOT EXISTS f_group_family_events\n(\n    `id` String COMMENT 'json_path=id; 32-char hex id, not UUID-parseable; never used in ORDER BY (house rule 2)' CODEC(ZSTD(1)),\n    `timestamp` DateTime64(3) COMMENT 'json_path=timestamp; ISO-8601 with milliseconds; DateTime would truncate' CODEC(Delta, ZSTD(1)),\n    `event` LowCardinality(String) COMMENT 'json_path=event; discriminator, E=4 values',\n    `user_id` String DEFAULT '' COMMENT 'json_path=user_id; 100% coverage, secondary key' CODEC(ZSTD(1)),\n    `application_id` String DEFAULT '' COMMENT 'json_path=application_id; 100% coverage, secondary key' CODEC(ZSTD(1)),\n    `group_id` String DEFAULT '' COMMENT 'json_path=group_id; entity key, 100% coverage, 1200 distinct' CODEC(ZSTD(1)),\n    `group_size` UInt8 DEFAULT 0 COMMENT 'json_path=group_size; 5 distinct small ints (2-5), fits UInt8; headline segment dim',\n    `destination` LowCardinality(String) DEFAULT '' COMMENT 'json_path=destination; 14 distinct values, enum-like',\n    `device_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=device_type; 4 distinct values',\n    `os` LowCardinality(String) DEFAULT '' COMMENT 'json_path=os; 93.7% coverage, not tri-state analytically distinct, default '''' not Nullable',\n    `geoip_country_code` LowCardinality(String) DEFAULT '' COMMENT 'json_path=geoip_country_code; 7 distinct values',\n    `city` LowCardinality(String) DEFAULT '' COMMENT 'json_path=city; 7 distinct values',\n    `app_version` LowCardinality(String) DEFAULT '' COMMENT 'json_path=app_version; 3 distinct values',\n    `client_lib` LowCardinality(String) DEFAULT '' COMMENT 'json_path=client_lib; 2 distinct values',\n    `relation` LowCardinality(String) DEFAULT '' COMMENT 'json_path=relation; event-scoped to traveller_added only (64.1% coverage); '''' means not-applicable, not a real relation value, so DEFAULT '''' is safe (no legit relation value is empty)',\n    `docs_complete` UInt8 DEFAULT 0 COMMENT 'json_path=docs_complete; bool -> UInt8 DEFAULT 0 per house rule 4; scoped to traveller_added (64.1% coverage), aggregated only within that event filter so 0-default rows from other events never enter the docs-completion measure',\n    `traveller_index` Nullable(UInt8) COMMENT 'json_path=traveller_index; tri-state exception: valid values include 0, so DEFAULT 0 would collide with a real first-traveller index; Nullable distinguishes ''not applicable on this event'' from ''index 0''. Scoped to traveller_added/traveller_removed (65.4% coverage)',\n    `travellers_submitted` UInt8 DEFAULT 0 COMMENT 'json_path=travellers_submitted; only on group_submitted (12.6% coverage), values 2-5; 0 default is unambiguous since a real submission is always >=2 travellers'\n)\nENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nORDER BY (event, timestamp, group_id)\nTTL toDateTime(timestamp) + INTERVAL 18 MONTH\nSETTINGS ratio_of_defaults_for_sparse_serialization = 0.8",
+    "CREATE TABLE IF NOT EXISTS agg_group_family_funnel_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, event, group_size, destination, device_type)\nEMPTY AS\nSELECT toDate(timestamp) AS day, event, group_size, destination, device_type, countState() AS events_state, uniqState(group_id) AS groups_state FROM atlys.f_group_family_events GROUP BY day, event, group_size, destination, device_type",
+    "CREATE TABLE IF NOT EXISTS agg_group_family_docs_completion_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, group_size)\nEMPTY AS\nSELECT toDate(timestamp) AS day, group_size, countState() AS added_state, sumState(docs_complete) AS docs_complete_state, uniqState(group_id) AS groups_state FROM atlys.f_group_family_events WHERE event = 'traveller_added' GROUP BY day, group_size",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_group_family_funnel_daily\nTO agg_group_family_funnel_daily AS\nSELECT toDate(timestamp) AS day, event, group_size, destination, device_type, countState() AS events_state, uniqState(group_id) AS groups_state FROM atlys.f_group_family_events GROUP BY day, event, group_size, destination, device_type",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_group_family_docs_completion_daily\nTO agg_group_family_docs_completion_daily AS\nSELECT toDate(timestamp) AS day, group_size, countState() AS added_state, sumState(docs_complete) AS docs_complete_state, uniqState(group_id) AS groups_state FROM atlys.f_group_family_events WHERE event = 'traveller_added' GROUP BY day, group_size"
+  ]
+}

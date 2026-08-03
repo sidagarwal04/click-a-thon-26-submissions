@@ -1,0 +1,44 @@
+services:
+  rca-agent:
+    build:
+      context: .
+      dockerfile: RCA/Dockerfile
+    container_name: rca-agent
+    env_file: .env   # ClickHouse/Gemini/Langfuse credentials — never baked into the image
+    environment:
+      RCA_REPORTS_DIR: "/data/rca_reports"
+    volumes:
+      # writer: read-write, unlike rca-api's mount of the same path below
+      - ./data/rca_reports:/data/rca_reports
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  rca-api:
+    build: ./rca-api
+    container_name: rca-api
+    environment:
+      RCA_API_PORT: "3002"
+      RCA_REPORTS_DIR: "/data/rca_reports"
+      RCA_AGENT_URL: "http://rca-agent:8000"
+    volumes:
+      # rca-agent writes reports to ./data/rca_reports; mounted read-only here since this
+      # process only ever serves reports, never creates them.
+      - ./data/rca_reports:/data/rca_reports:ro
+    depends_on:
+      - rca-agent
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+
+  rca-ui:
+    build:
+      context: ./rca-ui
+      args:
+        VITE_RCA_API_URL: ""
+    container_name: rca-ui
+    ports:
+      - "8090:80"
+    depends_on:
+      - rca-api
+    restart: unless-stopped

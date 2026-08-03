@@ -1,0 +1,22 @@
+# evidence: clickstack_query_spans
+# what: serving queries replayed from system.query_log into ClickStack as OTLP traces
+# run_utc: 2026-08-02 01:03:49
+# git: 46f5725-dirty
+# host: ss-cric
+# row_count: 5566313
+# event_watermark: 2026-08-02 01:03:46.511
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 5566313   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 01:03:46   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+otlp_endpoint	http://localhost:4318
+window_minutes	20
+queries_read	1500
+spans_posted	1500
+http_status	401	(required 200)
+rejected_spans	0	(required 0)
+verdict	FAIL

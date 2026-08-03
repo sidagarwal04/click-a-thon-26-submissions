@@ -1,0 +1,91 @@
+{
+  "call_id": "CALL-05-EASY",
+  "category": "Easy",
+  "title": "Authentication Method Breakdown and Signup Success",
+  "question": "What is the volume breakdown of authentication completions by auth method (google, apple, email, phone) and new user status?",
+  "database": "default",
+  "target_tables": "auth_completed",
+  "timestamp": "2026-08-02T00:14:30.821013+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 239.89,
+    "row_count": 8,
+    "columns_count": 5,
+    "columns": [
+      "auth_method",
+      "is_new_user",
+      "auth_events",
+      "auth_share_pct",
+      "avg_attempts_to_complete"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_easy_05",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/565bfcc6c6f2e0e9ed189aafd75a4a10",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    auth_method,\n    is_new_user,\n    count() AS auth_events,\n    round(count() * 100.0 / sum(count()) OVER (), 2) AS auth_share_pct,\n    round(avg(attempts), 2) AS avg_attempts_to_complete\nFROM default.auth_completed\nGROUP BY auth_method, is_new_user\nORDER BY auth_events DESC",
+  "result_sample": [
+    {
+      "auth_method": "otp",
+      "is_new_user": 1,
+      "auth_events": 60414,
+      "auth_share_pct": 32.87,
+      "avg_attempts_to_complete": 1.18
+    },
+    {
+      "auth_method": "otp",
+      "is_new_user": 0,
+      "auth_events": 49853,
+      "auth_share_pct": 27.12,
+      "avg_attempts_to_complete": 1.18
+    },
+    {
+      "auth_method": "google",
+      "is_new_user": 1,
+      "auth_events": 22297,
+      "auth_share_pct": 12.13,
+      "avg_attempts_to_complete": 1.18
+    },
+    {
+      "auth_method": "google",
+      "is_new_user": 0,
+      "auth_events": 18199,
+      "auth_share_pct": 9.9,
+      "avg_attempts_to_complete": 1.18
+    },
+    {
+      "auth_method": "apple",
+      "is_new_user": 1,
+      "auth_events": 12931,
+      "auth_share_pct": 7.04,
+      "avg_attempts_to_complete": 1.18
+    },
+    {
+      "auth_method": "apple",
+      "is_new_user": 0,
+      "auth_events": 10736,
+      "auth_share_pct": 5.84,
+      "avg_attempts_to_complete": 1.18
+    },
+    {
+      "auth_method": "email",
+      "is_new_user": 1,
+      "auth_events": 5250,
+      "auth_share_pct": 2.86,
+      "avg_attempts_to_complete": 1.17
+    },
+    {
+      "auth_method": "email",
+      "is_new_user": 0,
+      "auth_events": 4110,
+      "auth_share_pct": 2.24,
+      "avg_attempts_to_complete": 1.18
+    }
+  ],
+  "full_results_count": 8,
+  "summary": "Query executed successfully against ClickHouse default database in 239.89ms, returning 8 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Single-table authentication analysis on auth_completed (183k rows). Validates multi-key grouping, new user flags, and attempt friction."
+}

@@ -1,0 +1,52 @@
+{
+  "uid": "sonyliv-concurrency-v1",
+  "title": "SonyLIV — Concurrency Analysis (Gold v1) [KNOWN DRIFT - DO NOT TRUST]",
+  "tags": ["clickhouse", "sonyliv", "click-a-thon", "concurrency", "v1"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Peak Concurrency — Foreground-Only (Gold v1)",
+      "description": "Running cumulative sum of net_delta from gold_minute_deltas_total_v1, maxed over the selected range. CONFIRMED BUG: 0 of 792 rows have net_delta < 0 -- the close-event (-1) branch of mv_intervals_to_gold_total_v1 has never fired, likely because the MV was created after silver_active_intervals_v1's historical 'closed' rows already existed (no POPULATE). Old gold_concurrency_minute (source of truth) shows peak=2670 for the same window; this panel shows ~14234, a ~5.3x overcount. Do not use until the pipeline owner backfills the missing close deltas.",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT max(concurrency) AS value FROM (SELECT minute_time AS time, sum(net_delta) OVER (ORDER BY minute_time ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS concurrency FROM gold_minute_deltas_total_v1) WHERE $__timeFilter(time)"
+      }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Avg Concurrency — Foreground-Only (Gold v1)",
+      "description": "Average of the per-minute cumulative concurrency across the selected range. Same confirmed bug as the Peak panel: no close-deltas exist in gold_minute_deltas_total_v1, so this is a monotonically-growing count, not a real average concurrency. Old gold_concurrency_minute (source of truth) shows avg=31.96 for the same window.",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT round(avg(concurrency), 2) AS value FROM (SELECT minute_time AS time, sum(net_delta) OVER (ORDER BY minute_time ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS concurrency FROM gold_minute_deltas_total_v1) WHERE $__timeFilter(time)"
+      }]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Concurrency Over Time — Foreground-Only (Gold v1)",
+      "description": "Cumulative sum of net_delta (open interval = +1, closed/timed_out = -1 one minute after interval_end, reopened = +1) from gold_minute_deltas_total_v1, ordered by minute_time. The -1 branch has never fired (0 negative rows found), so this line only climbs -- it does not reflect real concurrency. Also note v1's silver_active_intervals_v1 only covers up to 2026-07-26 11:29, while the underlying bronze_raw_events_v1 has data through 2026-08-04 -- the silver/gold backfill is ~9 days behind ingestion.",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 9 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10, "lineWidth": 2, "spanNulls": true }, "color": { "fixedColor": "purple", "mode": "fixed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 0,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT time, concurrency FROM (SELECT minute_time AS time, sum(net_delta) OVER (ORDER BY minute_time ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS concurrency FROM gold_minute_deltas_total_v1) WHERE $__timeFilter(time) ORDER BY time"
+      }]
+    }
+  ]
+}

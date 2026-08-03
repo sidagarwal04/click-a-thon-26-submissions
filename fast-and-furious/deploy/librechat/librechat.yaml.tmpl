@@ -1,0 +1,119 @@
+# librechat.yaml — TEMPLATE. Do not edit the rendered librechat.yaml; it is generated.
+#
+#   ../langfuse-prompt-sync.sh   expands <<LANGFUSE_PROMPT>> and writes librechat.yaml
+#
+# The placeholder is replaced with a JSON-encoded string literal (valid YAML), so the
+# prompt's markdown cannot break this file no matter what it contains.
+#
+# ${VAR} references are resolved by LibreChat itself from the container environment, not by
+# the sync script -- so no secret is ever written into this file or into git.
+version: 1.2.8
+cache: true
+
+interface:
+  # The prompt is versioned in Langfuse, so LibreChat's own prompt library would be a
+  # second, unversioned place to keep one. Off, to keep a single source of truth.
+  prompts: false
+  bookmarks: false
+  # Left on: the demo is largely "look at what it did", and the run panel shows the tool
+  # calls as they happen.
+  runCode: false
+  agents: true
+
+# LibreChat blocks outbound requests to private addresses by default -- SSRF protection,
+# and correct: an MCP url is attacker-influenceable in the general case. Our MCP server is
+# deliberately on a private address, so it needs an explicit exemption or every tool call
+# fails with `Domain "http://host.docker.internal:8848" is not allowed` and the server
+# reports "0 tools" while looking configured.
+#
+# allowedAddresses, not allowedDomains: this permits exactly one host on exactly one port,
+# where allowedDomains would switch the whole instance to whitelist mode and take every
+# other outbound call down with it.
+mcpSettings:
+  allowedAddresses:
+    - 'host.docker.internal:8848'
+
+mcpServers:
+  sonyliv-serving:
+    type: streamable-http
+    # host.docker.internal resolves to the Docker bridge gateway via the extra_hosts entry
+    # in docker-compose.yml. The MCP server binds that address (MCP_ADDR in
+    # /etc/sonyliv/mcp.env) precisely because a container cannot reach the host's loopback.
+    url: http://host.docker.internal:8848/mcp
+    headers:
+      Authorization: 'Bearer ${SONYLIV_MCP_TOKEN}'
+    # Required, not an optimisation. LibreChat auto-detects OAuth by probing, and this
+    # server answers an unauthenticated request with 401 + `WWW-Authenticate: Bearer` --
+    # correct HTTP, and exactly the signal MCP's OAuth discovery looks for. Left to
+    # auto-detect it concludes `OAuth Required: true` and loads **0 tools** while still
+    # logging the server as initialised, which reads as "the model has no tools" rather
+    # than "the handshake was misclassified".
+    requiresOAuth: false
+    # This is the load-bearing line. The server returns its operating rules from
+    # `initialize` -- never sum a peak, always pin the grouping, a missing minute is not an
+    # empty one -- and this injects them into the system message alongside the tools. The
+    # rules then reach the model even in a conversation that started before anyone read the
+    # prompt, and they stay in step with the server rather than being a copy that drifts.
+    serverInstructions: true
+    # A cold ClickHouse Cloud service can take a while on the first query, and the server's
+    # own per-request ceiling is 60s. Matching it means a timeout here is the server's
+    # answer, not the client giving up first.
+    timeout: 60000
+    initTimeout: 20000
+
+endpoints:
+  custom:
+    # LiteLLM rather than LibreChat's native google endpoint. Native would work and would
+    # be one fewer container, but LibreChat has no Langfuse hook -- routing through LiteLLM
+    # is what puts every turn, tool call, latency and token count into Langfuse Cloud. The
+    # OpenAI-compatible custom endpoint is a first-class LibreChat feature, so this costs
+    # nothing in fidelity.
+    - name: 'SonyLIV'
+      apiKey: '${LITELLM_MASTER_KEY}'
+      baseURL: 'http://litellm:4000/v1'
+      models:
+        # One model, deliberately. gemini-2.5-pro cannot run with thinking disabled, and
+        # with thinking on LibreChat drops its answers -- see litellm-config.yaml. An
+        # entry in the picker that returns empty bubbles is worse than a short picker.
+        default: ['gemini-2.5-flash']
+        # Off deliberately: fetch would list whatever LiteLLM knows about, and the picker
+        # should offer only what was configured here on purpose.
+        fetch: false
+      titleConvo: true
+      titleModel: 'gemini-2.5-flash'
+      summarize: false
+      modelDisplayLabel: 'SonyLIV'
+
+modelSpecs:
+  # enforce: false leaves the picker usable rather than locking the UI to this spec; the
+  # spec still supplies the default, which is what matters.
+  enforce: false
+  prioritize: true
+  list:
+    - name: sonyliv-analyst
+      label: 'SonyLIV Concurrency Analyst'
+      description: 'Answers viewing-trend questions from the ClickHouse serving layer.'
+      default: true
+      iconURL: https://raw.githubusercontent.com/ClickHouse/clickhouse-docs/main/static/img/favicon.ico
+      preset:
+        # The AGENTS endpoint, not the custom one, and this is the whole point.
+        #
+        # A custom endpoint requires the person to attach the MCP server from the
+        # chat-area dropdown, once per conversation. Nobody does, and the failure is
+        # silent: the prompt tells the model to answer only from a tool call, so with no
+        # tools it either invents an answer or returns an empty bubble. That is what the
+        # first real demo of this deployment hit.
+        #
+        # The agent binds all 8 tools permanently. agent-id is written by sync-agent.sh
+        # and substituted here by langfuse-prompt-sync.sh; the agent's instructions are
+        # the same Langfuse prompt, version stamp and all.
+        endpoint: agents
+        agent_id: <<AGENT_ID>>
+        model: 'gemini-2.5-flash'
+        maxOutputTokens: 8192
+        # Zero temperature on purpose. Every answer here is a number read from a tool, and
+        # sampling variety in a number is not a feature.
+        temperature: 0
+        # Kept so the prompt is visible in this file and in the trace even on the agent
+        # path, where the agent's own instructions are what the model actually receives.
+        promptPrefix: <<LANGFUSE_PROMPT>>

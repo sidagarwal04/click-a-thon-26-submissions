@@ -1,0 +1,1139 @@
+# Context layer changelog
+
+> Generated from `context_changelog` and `context_snapshot`. Every line is an append-only fact about how the context moved.
+
+## Versions
+
+| version | snapshot id | entries | schema fingerprint | note | run_id |
+|---|---|---|---|---|---|
+| v21 | `ctx_8b46e0fa4ac58269` | 499 | `ce7e3d8416a3` | instrumented unseen | `9dbf0e55` |
+| v20 | `ctx_52b5d376e7f6d440` | 493 | `a8b19c8b7136` | instrumented express_checkout | `4ef677d9` |
+| v19 | `ctx_50a6ae64f410b31d` | 459 | `7b131a1cc951` | instrumented unseen | `29b74c8f` |
+| v18 | `ctx_35b85e6ac81c36ec` | 459 | `7b131a1cc951` | instrumented unseen | `769dc105` |
+| v17 | `ctx_aada8f6360e7e6ac` | 459 | `7b131a1cc951` | instrumented unseen | `7c1cabbe` |
+| v16 | `ctx_d78291186d4a7161` | 459 | `7b131a1cc951` | instrumented unseen | `27c693f6` |
+| v15 | `ctx_6b7cc3346f67df00` | 413 | `2323a5f202c0` | instrumented express_checkout | `95c7559c` |
+| v14 | `ctx_3cbcd3ada88377ab` | 397 | `75e094400126` | instrumented instant_forex | `8565b283` |
+| v13 | `ctx_da500622955a91fa` | 397 | `75e094400126` | bootstrap from base_context.md | `bootstra` |
+| v12 | `ctx_16785ade48400207` | 397 | `41d689bd41af` | instrumented express_checkout | `76b7839d` |
+| v11 | `ctx_9f1f67a3f20210d3` | 377 | `9c614e179a1e` | instrumented express_checkout | `c61900e7` |
+| v10 | `ctx_85a113f2185ccfa0` | 377 | `e7b1e6faebf2` | instrumented group_family | `e0e83851` |
+| v9 | `ctx_f029448593649f85` | 365 | `1236291c13c9` | instrumented deep_linear | `003389e6` |
+| v8 | `ctx_4aeb801cfe0d86ed` | 192 | `27ac2fd2e816` | instrumented instant_forex | `7534cf5b` |
+| v7 | `ctx_372418cfd292aa77` | 178 | `7906c9124da3` | instrumented abandoned_checkout_recovery | `59e10a11` |
+| v6 | `ctx_3454d74a448901e4` | 157 | `7906c9124da3` | instrumented status_sharing | `84d55343` |
+| v5 | `ctx_72bb54f74c750bae` | 133 | `7906c9124da3` | instrumented group_family | `55fab714` |
+| v4 | `ctx_a8d341276bb40a00` | 109 | `7004da7c6561` | instrumented express_checkout | `f0ee8056` |
+| v3 | `ctx_61f15657962c13a2` | 82 | `7004da7c6561` | re-run after detector fix | `t5a_retr` |
+| v2 | `ctx_55f471930bbfda51` | 82 | `7004da7c6561` | instrumented instant_forex | `5b5ff230` |
+| v1 | `ctx_6febe24ca8bb1562` | 43 | `7aaef3c6f3d2` | bootstrap from base_context.md | `bootstra` |
+
+## Entry history
+
+
+### run `9dbf0e5577e6` — 2026-08-02 00:45:52.474000
+
+- **added** `column.agg_unseen_coupon_margin_daily.discount_amount_state` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.discount_amount_state@v1: agg_unseen_coupon_margin_daily.discount_amount_state
+  - auto-documented from the live schema (f_unseen_events)
+- **added** `column.agg_unseen_coupon_margin_daily.events_state` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.events_state@v1: agg_unseen_coupon_margin_daily.events_state
+  - auto-documented from the live schema (f_unseen_events)
+- **added** `column.agg_unseen_coupon_margin_daily.final_value_state` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.final_value_state@v1: agg_unseen_coupon_margin_daily.final_value_state
+  - auto-documented from the live schema (f_unseen_events)
+- **added** `column.mv_unseen_coupon_margin_daily.discount_amount_state` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.discount_amount_state@v1: mv_unseen_coupon_margin_daily.discount_amount_state
+  - auto-documented from the live schema (f_unseen_events)
+- **added** `column.mv_unseen_coupon_margin_daily.events_state` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.events_state@v1: mv_unseen_coupon_margin_daily.events_state
+  - auto-documented from the live schema (f_unseen_events)
+- **added** `column.mv_unseen_coupon_margin_daily.final_value_state` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.final_value_state@v1: mv_unseen_coupon_margin_daily.final_value_state
+  - auto-documented from the live schema (f_unseen_events)
+- **updated** `table.f_unseen_events` (v4 → v5) — updated table_doc table.f_unseen_events@v5: f_unseen_events
+  - auto-documented from the live schema (f_unseen_events)
+
+### run `4ef677d986ed` — 2026-08-02 00:22:06.914000
+
+- **added** `gap.data_quality.base_events.application_id_join` (v1) — added gap gap.data_quality.base_events.application_id_join@v1: data_quality: base_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.base_events.segment_join` (v1) — added relationship relationship.base_events.segment_join@v1: base_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `column.base_events.app_session_id` (v1) — added column_doc column.base_events.app_session_id@v1: base_events.app_session_id
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.app_version` (v1) — added column_doc column.base_events.app_version@v1: base_events.app_version
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.application_id` (v1) — added column_doc column.base_events.application_id@v1: base_events.application_id
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.citizenship` (v1) — added column_doc column.base_events.citizenship@v1: base_events.citizenship
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.city` (v1) — added column_doc column.base_events.city@v1: base_events.city
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.client_ip` (v1) — added column_doc column.base_events.client_ip@v1: base_events.client_ip
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.client_lib` (v1) — added column_doc column.base_events.client_lib@v1: base_events.client_lib
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.co_travelers` (v1) — added column_doc column.base_events.co_travelers@v1: base_events.co_travelers
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.destination` (v1) — added column_doc column.base_events.destination@v1: base_events.destination
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.device` (v1) — added column_doc column.base_events.device@v1: base_events.device
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.device_type` (v1) — added column_doc column.base_events.device_type@v1: base_events.device_type
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.duplicate_id` (v1) — added column_doc column.base_events.duplicate_id@v1: base_events.duplicate_id
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.event` (v1) — added column_doc column.base_events.event@v1: base_events.event
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.fbclid` (v1) — added column_doc column.base_events.fbclid@v1: base_events.fbclid
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.funnel_type` (v1) — added column_doc column.base_events.funnel_type@v1: base_events.funnel_type
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.gad_source` (v1) — added column_doc column.base_events.gad_source@v1: base_events.gad_source
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.gclid` (v1) — added column_doc column.base_events.gclid@v1: base_events.gclid
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.geoip_country_code` (v1) — added column_doc column.base_events.geoip_country_code@v1: base_events.geoip_country_code
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.geoip_subdivision_1_code` (v1) — added column_doc column.base_events.geoip_subdivision_1_code@v1: base_events.geoip_subdivision_1_code
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.id` (v1) — added column_doc column.base_events.id@v1: base_events.id
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.is_back_filled` (v1) — added column_doc column.base_events.is_back_filled@v1: base_events.is_back_filled
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.is_enterprise` (v1) — added column_doc column.base_events.is_enterprise@v1: base_events.is_enterprise
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.is_guest` (v1) — added column_doc column.base_events.is_guest@v1: base_events.is_guest
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.is_referral` (v1) — added column_doc column.base_events.is_referral@v1: base_events.is_referral
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.language` (v1) — added column_doc column.base_events.language@v1: base_events.language
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.latitude` (v1) — added column_doc column.base_events.latitude@v1: base_events.latitude
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.locale` (v1) — added column_doc column.base_events.locale@v1: base_events.locale
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.longitude` (v1) — added column_doc column.base_events.longitude@v1: base_events.longitude
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.os` (v1) — added column_doc column.base_events.os@v1: base_events.os
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.timestamp` (v1) — added column_doc column.base_events.timestamp@v1: base_events.timestamp
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `column.base_events.user_id` (v1) — added column_doc column.base_events.user_id@v1: base_events.user_id
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **added** `table.base_events` (v1) — added table_doc table.base_events@v1: base_events
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+- **updated** `table.f_express_checkout_events` (v4 → v5) — updated table_doc table.f_express_checkout_events@v5: f_express_checkout_events
+  - auto-documented from the live schema (base_events, f_express_checkout_events)
+
+### run `29b74c8fbaa9` — 2026-08-01 23:34:38.120000
+
+- **updated** `table.f_unseen_events` (v3 → v4) — updated table_doc table.f_unseen_events@v4: f_unseen_events
+  - auto-documented from the live schema (f_unseen_events)
+
+### run `769dc10533d9` — 2026-08-01 22:16:13.602000
+
+- **updated** `business_def.unseen.funnel` (v1 → v2) — updated business_def business_def.unseen.funnel@v2: unseen funnel
+  - auto-documented from the live schema (f_unseen_events)
+- **updated** `table.f_unseen_events` (v2 → v3) — updated table_doc table.f_unseen_events@v3: f_unseen_events
+  - auto-documented from the live schema (f_unseen_events)
+
+### run `7c1cabbe53f4` — 2026-08-01 21:51:46.282000
+
+- **updated** `table.f_unseen_events` (v1 → v2) — updated table_doc table.f_unseen_events@v2: f_unseen_events
+  - auto-documented from the live schema (f_unseen_events)
+
+### run `27c693f6a11d` — 2026-08-01 21:47:12.106000
+
+- **added** `gap.data_quality.f_unseen_events.application_id_join` (v1) — added gap gap.data_quality.f_unseen_events.application_id_join@v1: data_quality: f_unseen_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_unseen_events.user_id_join` (v1) — added gap gap.data_quality.f_unseen_events.user_id_join@v1: data_quality: f_unseen_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_unseen_events.segment_join` (v1) — added relationship relationship.f_unseen_events.segment_join@v1: f_unseen_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.unseen.funnel` (v1) — added business_def business_def.unseen.funnel@v1: unseen funnel
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.agg_unseen_coupon_margin_daily.coupon_code` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.coupon_code@v1: agg_unseen_coupon_margin_daily.coupon_code
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.agg_unseen_coupon_margin_daily.day` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.day@v1: agg_unseen_coupon_margin_daily.day
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.agg_unseen_coupon_margin_daily.discount_state` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.discount_state@v1: agg_unseen_coupon_margin_daily.discount_state
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.agg_unseen_coupon_margin_daily.event` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.event@v1: agg_unseen_coupon_margin_daily.event
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.agg_unseen_coupon_margin_daily.rows_state` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.rows_state@v1: agg_unseen_coupon_margin_daily.rows_state
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.agg_unseen_coupon_margin_daily.users_state` (v1) — added column_doc column.agg_unseen_coupon_margin_daily.users_state@v1: agg_unseen_coupon_margin_daily.users_state
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.context_embeddings.body` (v1) — added column_doc column.context_embeddings.body@v1: context_embeddings.body
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.context_embeddings.embedding` (v1) — added column_doc column.context_embeddings.embedding@v1: context_embeddings.embedding
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.context_embeddings.entry_id` (v1) — added column_doc column.context_embeddings.entry_id@v1: context_embeddings.entry_id
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.context_embeddings.key` (v1) — added column_doc column.context_embeddings.key@v1: context_embeddings.key
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.context_embeddings.kind` (v1) — added column_doc column.context_embeddings.kind@v1: context_embeddings.kind
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.context_embeddings.version` (v1) — added column_doc column.context_embeddings.version@v1: context_embeddings.version
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.app_version` (v1) — added column_doc column.f_unseen_events.app_version@v1: f_unseen_events.app_version
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.application_id` (v1) — added column_doc column.f_unseen_events.application_id@v1: f_unseen_events.application_id
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.cart_value` (v1) — added column_doc column.f_unseen_events.cart_value@v1: f_unseen_events.cart_value
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.city` (v1) — added column_doc column.f_unseen_events.city@v1: f_unseen_events.city
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.client_lib` (v1) — added column_doc column.f_unseen_events.client_lib@v1: f_unseen_events.client_lib
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.coupon_code` (v1) — added column_doc column.f_unseen_events.coupon_code@v1: f_unseen_events.coupon_code
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.currency` (v1) — added column_doc column.f_unseen_events.currency@v1: f_unseen_events.currency
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.destination` (v1) — added column_doc column.f_unseen_events.destination@v1: f_unseen_events.destination
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.device_type` (v1) — added column_doc column.f_unseen_events.device_type@v1: f_unseen_events.device_type
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.discount_amount` (v1) — added column_doc column.f_unseen_events.discount_amount@v1: f_unseen_events.discount_amount
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.discount_type` (v1) — added column_doc column.f_unseen_events.discount_type@v1: f_unseen_events.discount_type
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.event` (v1) — added column_doc column.f_unseen_events.event@v1: f_unseen_events.event
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.final_value` (v1) — added column_doc column.f_unseen_events.final_value@v1: f_unseen_events.final_value
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.geoip_country_code` (v1) — added column_doc column.f_unseen_events.geoip_country_code@v1: f_unseen_events.geoip_country_code
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.id` (v1) — added column_doc column.f_unseen_events.id@v1: f_unseen_events.id
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.os` (v1) — added column_doc column.f_unseen_events.os@v1: f_unseen_events.os
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.reject_reason` (v1) — added column_doc column.f_unseen_events.reject_reason@v1: f_unseen_events.reject_reason
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.timestamp` (v1) — added column_doc column.f_unseen_events.timestamp@v1: f_unseen_events.timestamp
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.f_unseen_events.user_id` (v1) — added column_doc column.f_unseen_events.user_id@v1: f_unseen_events.user_id
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.mv_unseen_coupon_margin_daily.coupon_code` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.coupon_code@v1: mv_unseen_coupon_margin_daily.coupon_code
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.mv_unseen_coupon_margin_daily.day` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.day@v1: mv_unseen_coupon_margin_daily.day
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.mv_unseen_coupon_margin_daily.discount_state` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.discount_state@v1: mv_unseen_coupon_margin_daily.discount_state
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.mv_unseen_coupon_margin_daily.event` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.event@v1: mv_unseen_coupon_margin_daily.event
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.mv_unseen_coupon_margin_daily.rows_state` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.rows_state@v1: mv_unseen_coupon_margin_daily.rows_state
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `column.mv_unseen_coupon_margin_daily.users_state` (v1) — added column_doc column.mv_unseen_coupon_margin_daily.users_state@v1: mv_unseen_coupon_margin_daily.users_state
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `entity.unseen.entity_key` (v1) — added entity entity.unseen.entity_key@v1: unseen entity key: user_id
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `table.agg_unseen_coupon_margin_daily` (v1) — added table_doc table.agg_unseen_coupon_margin_daily@v1: agg_unseen_coupon_margin_daily
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `table.context_embeddings` (v1) — added table_doc table.context_embeddings@v1: context_embeddings
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `table.f_unseen_events` (v1) — added table_doc table.f_unseen_events@v1: f_unseen_events
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+- **added** `table.mv_unseen_coupon_margin_daily` (v1) — added table_doc table.mv_unseen_coupon_margin_daily@v1: mv_unseen_coupon_margin_daily
+  - auto-documented from the live schema (agg_unseen_coupon_margin_daily, context_embeddings, f_unseen_events, mv_unseen_coupon_margin_daily)
+
+### run `95c7559c90b7` — 2026-08-01 12:45:11.877000
+
+- **added** `column.agg_express_checkout_latency_daily.amount_avg_state` (v1) — added column_doc column.agg_express_checkout_latency_daily.amount_avg_state@v1: agg_express_checkout_latency_daily.amount_avg_state
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.agg_express_checkout_latency_daily.confirmed_count_state` (v1) — added column_doc column.agg_express_checkout_latency_daily.confirmed_count_state@v1: agg_express_checkout_latency_daily.confirmed_count_state
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.agg_express_checkout_latency_daily.day` (v1) — added column_doc column.agg_express_checkout_latency_daily.day@v1: agg_express_checkout_latency_daily.day
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.agg_express_checkout_latency_daily.destination` (v1) — added column_doc column.agg_express_checkout_latency_daily.destination@v1: agg_express_checkout_latency_daily.destination
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.agg_express_checkout_latency_daily.device_type` (v1) — added column_doc column.agg_express_checkout_latency_daily.device_type@v1: agg_express_checkout_latency_daily.device_type
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.agg_express_checkout_latency_daily.latency_avg_state` (v1) — added column_doc column.agg_express_checkout_latency_daily.latency_avg_state@v1: agg_express_checkout_latency_daily.latency_avg_state
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.agg_express_checkout_latency_daily.saved_method_type` (v1) — added column_doc column.agg_express_checkout_latency_daily.saved_method_type@v1: agg_express_checkout_latency_daily.saved_method_type
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.amount_avg_state` (v1) — added column_doc column.mv_express_checkout_latency_daily.amount_avg_state@v1: mv_express_checkout_latency_daily.amount_avg_state
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.confirmed_count_state` (v1) — added column_doc column.mv_express_checkout_latency_daily.confirmed_count_state@v1: mv_express_checkout_latency_daily.confirmed_count_state
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.day` (v1) — added column_doc column.mv_express_checkout_latency_daily.day@v1: mv_express_checkout_latency_daily.day
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.destination` (v1) — added column_doc column.mv_express_checkout_latency_daily.destination@v1: mv_express_checkout_latency_daily.destination
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.device_type` (v1) — added column_doc column.mv_express_checkout_latency_daily.device_type@v1: mv_express_checkout_latency_daily.device_type
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.latency_avg_state` (v1) — added column_doc column.mv_express_checkout_latency_daily.latency_avg_state@v1: mv_express_checkout_latency_daily.latency_avg_state
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `column.mv_express_checkout_latency_daily.saved_method_type` (v1) — added column_doc column.mv_express_checkout_latency_daily.saved_method_type@v1: mv_express_checkout_latency_daily.saved_method_type
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `table.agg_express_checkout_latency_daily` (v1) — added table_doc table.agg_express_checkout_latency_daily@v1: agg_express_checkout_latency_daily
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **updated** `table.f_express_checkout_events` (v3 → v4) — updated table_doc table.f_express_checkout_events@v4: f_express_checkout_events
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+- **added** `table.mv_express_checkout_latency_daily` (v1) — added table_doc table.mv_express_checkout_latency_daily@v1: mv_express_checkout_latency_daily
+  - auto-documented from the live schema (agg_express_checkout_latency_daily, f_express_checkout_events, mv_express_checkout_latency_daily)
+
+### run `8565b283f00d` — 2026-08-01 11:16:20.377000
+
+- **updated** `metric.conversion_rate` (v3 → v4) — updated metric metric.conversion_rate@v4: Conversion rate
+  - named by an unresolved uncomputable_metric contradiction
+- **updated** `metric.on_time_delivery_rate` (v3 → v4) — updated metric metric.on_time_delivery_rate@v4: On-time delivery rate
+  - named by an unresolved uncomputable_metric contradiction
+- **updated** `table.f_instant_forex_events` (v3 → v4) — updated table_doc table.f_instant_forex_events@v4: f_instant_forex_events
+  - auto-documented from the live schema (f_instant_forex_events)
+
+### run `bootstrap` — 2026-08-01 10:45:48.317000
+
+- **updated** `metric.conversion_rate` (v2 → v3) — updated metric metric.conversion_rate@v3: Conversion rate
+  - bootstrap from base_context.md
+- **updated** `metric.on_time_delivery_rate` (v2 → v3) — updated metric metric.on_time_delivery_rate@v3: On-time delivery rate
+  - bootstrap from base_context.md
+
+### run `76b7839d2f05` — 2026-08-01 10:35:46.533000
+
+- **added** `column.agg_express_checkout_payment_perf_daily.confirmed_count_state` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.confirmed_count_state@v1: agg_express_checkout_payment_perf_daily.confirmed_count_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.day` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.day@v1: agg_express_checkout_payment_perf_daily.day
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.device_type` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.device_type@v1: agg_express_checkout_payment_perf_daily.device_type
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.geoip_country_code` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.geoip_country_code@v1: agg_express_checkout_payment_perf_daily.geoip_country_code
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.latency_avg_state` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.latency_avg_state@v1: agg_express_checkout_payment_perf_daily.latency_avg_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.os` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.os@v1: agg_express_checkout_payment_perf_daily.os
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.otp_entered_count_state` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.otp_entered_count_state@v1: agg_express_checkout_payment_perf_daily.otp_entered_count_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.otp_success_rate_state` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.otp_success_rate_state@v1: agg_express_checkout_payment_perf_daily.otp_success_rate_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.agg_express_checkout_payment_perf_daily.payment_amount_sum_state` (v1) — added column_doc column.agg_express_checkout_payment_perf_daily.payment_amount_sum_state@v1: agg_express_checkout_payment_perf_daily.payment_amount_sum_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.confirmed_count_state` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.confirmed_count_state@v1: mv_express_checkout_payment_perf_daily.confirmed_count_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.day` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.day@v1: mv_express_checkout_payment_perf_daily.day
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.device_type` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.device_type@v1: mv_express_checkout_payment_perf_daily.device_type
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.geoip_country_code` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.geoip_country_code@v1: mv_express_checkout_payment_perf_daily.geoip_country_code
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.latency_avg_state` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.latency_avg_state@v1: mv_express_checkout_payment_perf_daily.latency_avg_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.os` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.os@v1: mv_express_checkout_payment_perf_daily.os
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.otp_entered_count_state` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.otp_entered_count_state@v1: mv_express_checkout_payment_perf_daily.otp_entered_count_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.otp_success_rate_state` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.otp_success_rate_state@v1: mv_express_checkout_payment_perf_daily.otp_success_rate_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `column.mv_express_checkout_payment_perf_daily.payment_amount_sum_state` (v1) — added column_doc column.mv_express_checkout_payment_perf_daily.payment_amount_sum_state@v1: mv_express_checkout_payment_perf_daily.payment_amount_sum_state
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `table.agg_express_checkout_payment_perf_daily` (v1) — added table_doc table.agg_express_checkout_payment_perf_daily@v1: agg_express_checkout_payment_perf_daily
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **updated** `table.f_express_checkout_events` (v2 → v3) — updated table_doc table.f_express_checkout_events@v3: f_express_checkout_events
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+- **added** `table.mv_express_checkout_payment_perf_daily` (v1) — added table_doc table.mv_express_checkout_payment_perf_daily@v1: mv_express_checkout_payment_perf_daily
+  - auto-documented from the live schema (agg_express_checkout_payment_perf_daily, f_express_checkout_events, mv_express_checkout_payment_perf_daily)
+
+### run `c61900e783f7` — 2026-08-01 09:30:56.268000
+
+- **updated** `business_def.express_checkout.funnel` (v1 → v2) — updated business_def business_def.express_checkout.funnel@v2: express_checkout funnel
+  - auto-documented from the live schema (f_express_checkout_events)
+- **updated** `table.f_express_checkout_events` (v1 → v2) — updated table_doc table.f_express_checkout_events@v2: f_express_checkout_events
+  - auto-documented from the live schema (f_express_checkout_events)
+
+### run `e0e83851c608` — 2026-08-01 09:23:59.966000
+
+- **added** `column.agg_group_family_docs_completion_daily.added_state` (v1) — added column_doc column.agg_group_family_docs_completion_daily.added_state@v1: agg_group_family_docs_completion_daily.added_state
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.agg_group_family_docs_completion_daily.day` (v1) — added column_doc column.agg_group_family_docs_completion_daily.day@v1: agg_group_family_docs_completion_daily.day
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.agg_group_family_docs_completion_daily.docs_complete_state` (v1) — added column_doc column.agg_group_family_docs_completion_daily.docs_complete_state@v1: agg_group_family_docs_completion_daily.docs_complete_state
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.agg_group_family_docs_completion_daily.group_size` (v1) — added column_doc column.agg_group_family_docs_completion_daily.group_size@v1: agg_group_family_docs_completion_daily.group_size
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.agg_group_family_docs_completion_daily.groups_state` (v1) — added column_doc column.agg_group_family_docs_completion_daily.groups_state@v1: agg_group_family_docs_completion_daily.groups_state
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **updated** `column.f_group_family_events.traveller_index` (v1 → v2) — updated column_doc column.f_group_family_events.traveller_index@v2: f_group_family_events.traveller_index
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.mv_group_family_docs_completion_daily.added_state` (v1) — added column_doc column.mv_group_family_docs_completion_daily.added_state@v1: mv_group_family_docs_completion_daily.added_state
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.mv_group_family_docs_completion_daily.day` (v1) — added column_doc column.mv_group_family_docs_completion_daily.day@v1: mv_group_family_docs_completion_daily.day
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.mv_group_family_docs_completion_daily.docs_complete_state` (v1) — added column_doc column.mv_group_family_docs_completion_daily.docs_complete_state@v1: mv_group_family_docs_completion_daily.docs_complete_state
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.mv_group_family_docs_completion_daily.group_size` (v1) — added column_doc column.mv_group_family_docs_completion_daily.group_size@v1: mv_group_family_docs_completion_daily.group_size
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `column.mv_group_family_docs_completion_daily.groups_state` (v1) — added column_doc column.mv_group_family_docs_completion_daily.groups_state@v1: mv_group_family_docs_completion_daily.groups_state
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `table.agg_group_family_docs_completion_daily` (v1) — added table_doc table.agg_group_family_docs_completion_daily@v1: agg_group_family_docs_completion_daily
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **updated** `table.f_group_family_events` (v1 → v2) — updated table_doc table.f_group_family_events@v2: f_group_family_events
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+- **added** `table.mv_group_family_docs_completion_daily` (v1) — added table_doc table.mv_group_family_docs_completion_daily@v1: mv_group_family_docs_completion_daily
+  - auto-documented from the live schema (agg_group_family_docs_completion_daily, f_group_family_events, mv_group_family_docs_completion_daily)
+
+### run `003389e657fb` — 2026-08-01 06:54:42.298000
+
+- **added** `gap.data_quality.f_deep_linear_events.user_id_join` (v1) — added gap gap.data_quality.f_deep_linear_events.user_id_join@v1: data_quality: f_deep_linear_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_double_fanout_events.user_id_join` (v1) — added gap gap.data_quality.f_double_fanout_events.user_id_join@v1: data_quality: f_double_fanout_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_mutation_heavy_events.user_id_join` (v1) — added gap gap.data_quality.f_mutation_heavy_events.user_id_join@v1: data_quality: f_mutation_heavy_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_sparse_envelope_events.user_id_join` (v1) — added gap gap.data_quality.f_sparse_envelope_events.user_id_join@v1: data_quality: f_sparse_envelope_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_deep_linear_events.segment_join` (v1) — added relationship relationship.f_deep_linear_events.segment_join@v1: f_deep_linear_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_double_fanout_events.segment_join` (v1) — added relationship relationship.f_double_fanout_events.segment_join@v1: f_double_fanout_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_mutation_heavy_events.segment_join` (v1) — added relationship relationship.f_mutation_heavy_events.segment_join@v1: f_mutation_heavy_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_sparse_envelope_events.segment_join` (v1) — added relationship relationship.f_sparse_envelope_events.segment_join@v1: f_sparse_envelope_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.deep_linear.funnel` (v1) — added business_def business_def.deep_linear.funnel@v1: deep_linear funnel
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_auth_latency_daily.auth_count_state` (v1) — added column_doc column.agg_deep_linear_auth_latency_daily.auth_count_state@v1: agg_deep_linear_auth_latency_daily.auth_count_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_auth_latency_daily.card_network` (v1) — added column_doc column.agg_deep_linear_auth_latency_daily.card_network@v1: agg_deep_linear_auth_latency_daily.card_network
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_auth_latency_daily.day` (v1) — added column_doc column.agg_deep_linear_auth_latency_daily.day@v1: agg_deep_linear_auth_latency_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_auth_latency_daily.destination` (v1) — added column_doc column.agg_deep_linear_auth_latency_daily.destination@v1: agg_deep_linear_auth_latency_daily.destination
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_auth_latency_daily.device_type` (v1) — added column_doc column.agg_deep_linear_auth_latency_daily.device_type@v1: agg_deep_linear_auth_latency_daily.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_auth_latency_daily.latency_avg_state` (v1) — added column_doc column.agg_deep_linear_auth_latency_daily.latency_avg_state@v1: agg_deep_linear_auth_latency_daily.latency_avg_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.bookings_state` (v1) — added column_doc column.agg_deep_linear_funnel_daily.bookings_state@v1: agg_deep_linear_funnel_daily.bookings_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.day` (v1) — added column_doc column.agg_deep_linear_funnel_daily.day@v1: agg_deep_linear_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.destination` (v1) — added column_doc column.agg_deep_linear_funnel_daily.destination@v1: agg_deep_linear_funnel_daily.destination
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.device_type` (v1) — added column_doc column.agg_deep_linear_funnel_daily.device_type@v1: agg_deep_linear_funnel_daily.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.event` (v1) — added column_doc column.agg_deep_linear_funnel_daily.event@v1: agg_deep_linear_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.events_state` (v1) — added column_doc column.agg_deep_linear_funnel_daily.events_state@v1: agg_deep_linear_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_deep_linear_funnel_daily.users_state` (v1) — added column_doc column.agg_deep_linear_funnel_daily.users_state@v1: agg_deep_linear_funnel_daily.users_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.app_version` (v1) — added column_doc column.agg_double_fanout_funnel_daily.app_version@v1: agg_double_fanout_funnel_daily.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.city` (v1) — added column_doc column.agg_double_fanout_funnel_daily.city@v1: agg_double_fanout_funnel_daily.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.day` (v1) — added column_doc column.agg_double_fanout_funnel_daily.day@v1: agg_double_fanout_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.event` (v1) — added column_doc column.agg_double_fanout_funnel_daily.event@v1: agg_double_fanout_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.events_state` (v1) — added column_doc column.agg_double_fanout_funnel_daily.events_state@v1: agg_double_fanout_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.topic` (v1) — added column_doc column.agg_double_fanout_funnel_daily.topic@v1: agg_double_fanout_funnel_daily.topic
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.uniq_entities` (v1) — added column_doc column.agg_double_fanout_funnel_daily.uniq_entities@v1: agg_double_fanout_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_double_fanout_funnel_daily.uniq_users` (v1) — added column_doc column.agg_double_fanout_funnel_daily.uniq_users@v1: agg_double_fanout_funnel_daily.uniq_users
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.day` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.day@v1: agg_mutation_heavy_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.event` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.event@v1: agg_mutation_heavy_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.events_state` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.events_state@v1: agg_mutation_heavy_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.item_category` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.item_category@v1: agg_mutation_heavy_funnel_daily.item_category
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.items_after` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.items_after@v1: agg_mutation_heavy_funnel_daily.items_after
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.sum_basket_value_minor` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.sum_basket_value_minor@v1: agg_mutation_heavy_funnel_daily.sum_basket_value_minor
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.uniq_entities` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.uniq_entities@v1: agg_mutation_heavy_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_mutation_heavy_funnel_daily.uniq_users` (v1) — added column_doc column.agg_mutation_heavy_funnel_daily.uniq_users@v1: agg_mutation_heavy_funnel_daily.uniq_users
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.app_version` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.app_version@v1: agg_sparse_envelope_funnel_daily.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.avg_scan_duration_ms` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.avg_scan_duration_ms@v1: agg_sparse_envelope_funnel_daily.avg_scan_duration_ms
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.city` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.city@v1: agg_sparse_envelope_funnel_daily.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.day` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.day@v1: agg_sparse_envelope_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.event` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.event@v1: agg_sparse_envelope_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.events_state` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.events_state@v1: agg_sparse_envelope_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.geoip_country_code` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.geoip_country_code@v1: agg_sparse_envelope_funnel_daily.geoip_country_code
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.uniq_entities` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.uniq_entities@v1: agg_sparse_envelope_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.agg_sparse_envelope_funnel_daily.uniq_users` (v1) — added column_doc column.agg_sparse_envelope_funnel_daily.uniq_users@v1: agg_sparse_envelope_funnel_daily.uniq_users
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.app_version` (v1) — added column_doc column.f_deep_linear_events.app_version@v1: f_deep_linear_events.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.auth_latency_ms` (v1) — added column_doc column.f_deep_linear_events.auth_latency_ms@v1: f_deep_linear_events.auth_latency_ms
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.booking_id` (v1) — added column_doc column.f_deep_linear_events.booking_id@v1: f_deep_linear_events.booking_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.city` (v1) — added column_doc column.f_deep_linear_events.city@v1: f_deep_linear_events.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.client_lib` (v1) — added column_doc column.f_deep_linear_events.client_lib@v1: f_deep_linear_events.client_lib
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.destination` (v1) — added column_doc column.f_deep_linear_events.destination@v1: f_deep_linear_events.destination
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.device_type` (v1) — added column_doc column.f_deep_linear_events.device_type@v1: f_deep_linear_events.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.document_kind` (v1) — added column_doc column.f_deep_linear_events.document_kind@v1: f_deep_linear_events.document_kind
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.document_scan_page_count` (v1) — added column_doc column.f_deep_linear_events.document_scan_page_count@v1: f_deep_linear_events.document_scan_page_count
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.document_scan_quality_score` (v1) — added column_doc column.f_deep_linear_events.document_scan_quality_score@v1: f_deep_linear_events.document_scan_quality_score
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.event` (v1) — added column_doc column.f_deep_linear_events.event@v1: f_deep_linear_events.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.geoip_country_code` (v1) — added column_doc column.f_deep_linear_events.geoip_country_code@v1: f_deep_linear_events.geoip_country_code
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.id` (v1) — added column_doc column.f_deep_linear_events.id@v1: f_deep_linear_events.id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.insurance_tier` (v1) — added column_doc column.f_deep_linear_events.insurance_tier@v1: f_deep_linear_events.insurance_tier
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.os` (v1) — added column_doc column.f_deep_linear_events.os@v1: f_deep_linear_events.os
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.payment_amount_minor` (v1) — added column_doc column.f_deep_linear_events.payment_amount_minor@v1: f_deep_linear_events.payment_amount_minor
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.payment_card_issuer_country` (v1) — added column_doc column.f_deep_linear_events.payment_card_issuer_country@v1: f_deep_linear_events.payment_card_issuer_country
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.payment_card_network` (v1) — added column_doc column.f_deep_linear_events.payment_card_network@v1: f_deep_linear_events.payment_card_network
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.payment_method` (v1) — added column_doc column.f_deep_linear_events.payment_method@v1: f_deep_linear_events.payment_method
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.slot_window` (v1) — added column_doc column.f_deep_linear_events.slot_window@v1: f_deep_linear_events.slot_window
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.timestamp` (v1) — added column_doc column.f_deep_linear_events.timestamp@v1: f_deep_linear_events.timestamp
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_deep_linear_events.user_id` (v1) — added column_doc column.f_deep_linear_events.user_id@v1: f_deep_linear_events.user_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.app_version` (v1) — added column_doc column.f_double_fanout_events.app_version@v1: f_double_fanout_events.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.board_id` (v1) — added column_doc column.f_double_fanout_events.board_id@v1: f_double_fanout_events.board_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.city` (v1) — added column_doc column.f_double_fanout_events.city@v1: f_double_fanout_events.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.client_lib` (v1) — added column_doc column.f_double_fanout_events.client_lib@v1: f_double_fanout_events.client_lib
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.device_type` (v1) — added column_doc column.f_double_fanout_events.device_type@v1: f_double_fanout_events.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.event` (v1) — added column_doc column.f_double_fanout_events.event@v1: f_double_fanout_events.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.geoip_country_code` (v1) — added column_doc column.f_double_fanout_events.geoip_country_code@v1: f_double_fanout_events.geoip_country_code
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.id` (v1) — added column_doc column.f_double_fanout_events.id@v1: f_double_fanout_events.id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.os` (v1) — added column_doc column.f_double_fanout_events.os@v1: f_double_fanout_events.os
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.reaction` (v1) — added column_doc column.f_double_fanout_events.reaction@v1: f_double_fanout_events.reaction
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.reply_id` (v1) — added column_doc column.f_double_fanout_events.reply_id@v1: f_double_fanout_events.reply_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.reply_kind` (v1) — added column_doc column.f_double_fanout_events.reply_kind@v1: f_double_fanout_events.reply_kind
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.thread_id` (v1) — added column_doc column.f_double_fanout_events.thread_id@v1: f_double_fanout_events.thread_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.timestamp` (v1) — added column_doc column.f_double_fanout_events.timestamp@v1: f_double_fanout_events.timestamp
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.topic` (v1) — added column_doc column.f_double_fanout_events.topic@v1: f_double_fanout_events.topic
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.user_id` (v1) — added column_doc column.f_double_fanout_events.user_id@v1: f_double_fanout_events.user_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_double_fanout_events.visibility` (v1) — added column_doc column.f_double_fanout_events.visibility@v1: f_double_fanout_events.visibility
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.app_version` (v1) — added column_doc column.f_mutation_heavy_events.app_version@v1: f_mutation_heavy_events.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.basket_id` (v1) — added column_doc column.f_mutation_heavy_events.basket_id@v1: f_mutation_heavy_events.basket_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.basket_value_minor` (v1) — added column_doc column.f_mutation_heavy_events.basket_value_minor@v1: f_mutation_heavy_events.basket_value_minor
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.city` (v1) — added column_doc column.f_mutation_heavy_events.city@v1: f_mutation_heavy_events.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.client_lib` (v1) — added column_doc column.f_mutation_heavy_events.client_lib@v1: f_mutation_heavy_events.client_lib
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.device_type` (v1) — added column_doc column.f_mutation_heavy_events.device_type@v1: f_mutation_heavy_events.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.event` (v1) — added column_doc column.f_mutation_heavy_events.event@v1: f_mutation_heavy_events.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.geoip_country_code` (v1) — added column_doc column.f_mutation_heavy_events.geoip_country_code@v1: f_mutation_heavy_events.geoip_country_code
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.id` (v1) — added column_doc column.f_mutation_heavy_events.id@v1: f_mutation_heavy_events.id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.item_category` (v1) — added column_doc column.f_mutation_heavy_events.item_category@v1: f_mutation_heavy_events.item_category
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.item_id` (v1) — added column_doc column.f_mutation_heavy_events.item_id@v1: f_mutation_heavy_events.item_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.items_after` (v1) — added column_doc column.f_mutation_heavy_events.items_after@v1: f_mutation_heavy_events.items_after
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.os` (v1) — added column_doc column.f_mutation_heavy_events.os@v1: f_mutation_heavy_events.os
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.position_from` (v1) — added column_doc column.f_mutation_heavy_events.position_from@v1: f_mutation_heavy_events.position_from
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.position_to` (v1) — added column_doc column.f_mutation_heavy_events.position_to@v1: f_mutation_heavy_events.position_to
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.timestamp` (v1) — added column_doc column.f_mutation_heavy_events.timestamp@v1: f_mutation_heavy_events.timestamp
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_mutation_heavy_events.user_id` (v1) — added column_doc column.f_mutation_heavy_events.user_id@v1: f_mutation_heavy_events.user_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.app_version` (v1) — added column_doc column.f_sparse_envelope_events.app_version@v1: f_sparse_envelope_events.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.assist_reason` (v1) — added column_doc column.f_sparse_envelope_events.assist_reason@v1: f_sparse_envelope_events.assist_reason
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.city` (v1) — added column_doc column.f_sparse_envelope_events.city@v1: f_sparse_envelope_events.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.client_lib` (v1) — added column_doc column.f_sparse_envelope_events.client_lib@v1: f_sparse_envelope_events.client_lib
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.close_reason` (v1) — added column_doc column.f_sparse_envelope_events.close_reason@v1: f_sparse_envelope_events.close_reason
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.device_type` (v1) — added column_doc column.f_sparse_envelope_events.device_type@v1: f_sparse_envelope_events.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.event` (v1) — added column_doc column.f_sparse_envelope_events.event@v1: f_sparse_envelope_events.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.geoip_country_code` (v1) — added column_doc column.f_sparse_envelope_events.geoip_country_code@v1: f_sparse_envelope_events.geoip_country_code
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.id` (v1) — added column_doc column.f_sparse_envelope_events.id@v1: f_sparse_envelope_events.id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.kiosk_lane` (v1) — added column_doc column.f_sparse_envelope_events.kiosk_lane@v1: f_sparse_envelope_events.kiosk_lane
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.os` (v1) — added column_doc column.f_sparse_envelope_events.os@v1: f_sparse_envelope_events.os
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.scan_duration_ms` (v1) — added column_doc column.f_sparse_envelope_events.scan_duration_ms@v1: f_sparse_envelope_events.scan_duration_ms
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.scan_kind` (v1) — added column_doc column.f_sparse_envelope_events.scan_kind@v1: f_sparse_envelope_events.scan_kind
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.scan_result` (v1) — added column_doc column.f_sparse_envelope_events.scan_result@v1: f_sparse_envelope_events.scan_result
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.timestamp` (v1) — added column_doc column.f_sparse_envelope_events.timestamp@v1: f_sparse_envelope_events.timestamp
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.user_id` (v1) — added column_doc column.f_sparse_envelope_events.user_id@v1: f_sparse_envelope_events.user_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.f_sparse_envelope_events.visit_id` (v1) — added column_doc column.f_sparse_envelope_events.visit_id@v1: f_sparse_envelope_events.visit_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_auth_latency_daily.auth_count_state` (v1) — added column_doc column.mv_deep_linear_auth_latency_daily.auth_count_state@v1: mv_deep_linear_auth_latency_daily.auth_count_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_auth_latency_daily.card_network` (v1) — added column_doc column.mv_deep_linear_auth_latency_daily.card_network@v1: mv_deep_linear_auth_latency_daily.card_network
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_auth_latency_daily.day` (v1) — added column_doc column.mv_deep_linear_auth_latency_daily.day@v1: mv_deep_linear_auth_latency_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_auth_latency_daily.destination` (v1) — added column_doc column.mv_deep_linear_auth_latency_daily.destination@v1: mv_deep_linear_auth_latency_daily.destination
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_auth_latency_daily.device_type` (v1) — added column_doc column.mv_deep_linear_auth_latency_daily.device_type@v1: mv_deep_linear_auth_latency_daily.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_auth_latency_daily.latency_avg_state` (v1) — added column_doc column.mv_deep_linear_auth_latency_daily.latency_avg_state@v1: mv_deep_linear_auth_latency_daily.latency_avg_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.bookings_state` (v1) — added column_doc column.mv_deep_linear_funnel_daily.bookings_state@v1: mv_deep_linear_funnel_daily.bookings_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.day` (v1) — added column_doc column.mv_deep_linear_funnel_daily.day@v1: mv_deep_linear_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.destination` (v1) — added column_doc column.mv_deep_linear_funnel_daily.destination@v1: mv_deep_linear_funnel_daily.destination
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.device_type` (v1) — added column_doc column.mv_deep_linear_funnel_daily.device_type@v1: mv_deep_linear_funnel_daily.device_type
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.event` (v1) — added column_doc column.mv_deep_linear_funnel_daily.event@v1: mv_deep_linear_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.events_state` (v1) — added column_doc column.mv_deep_linear_funnel_daily.events_state@v1: mv_deep_linear_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_deep_linear_funnel_daily.users_state` (v1) — added column_doc column.mv_deep_linear_funnel_daily.users_state@v1: mv_deep_linear_funnel_daily.users_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.app_version` (v1) — added column_doc column.mv_double_fanout_funnel_daily.app_version@v1: mv_double_fanout_funnel_daily.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.city` (v1) — added column_doc column.mv_double_fanout_funnel_daily.city@v1: mv_double_fanout_funnel_daily.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.day` (v1) — added column_doc column.mv_double_fanout_funnel_daily.day@v1: mv_double_fanout_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.event` (v1) — added column_doc column.mv_double_fanout_funnel_daily.event@v1: mv_double_fanout_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.events_state` (v1) — added column_doc column.mv_double_fanout_funnel_daily.events_state@v1: mv_double_fanout_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.topic` (v1) — added column_doc column.mv_double_fanout_funnel_daily.topic@v1: mv_double_fanout_funnel_daily.topic
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.uniq_entities` (v1) — added column_doc column.mv_double_fanout_funnel_daily.uniq_entities@v1: mv_double_fanout_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_double_fanout_funnel_daily.uniq_users` (v1) — added column_doc column.mv_double_fanout_funnel_daily.uniq_users@v1: mv_double_fanout_funnel_daily.uniq_users
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.day` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.day@v1: mv_mutation_heavy_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.event` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.event@v1: mv_mutation_heavy_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.events_state` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.events_state@v1: mv_mutation_heavy_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.item_category` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.item_category@v1: mv_mutation_heavy_funnel_daily.item_category
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.items_after` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.items_after@v1: mv_mutation_heavy_funnel_daily.items_after
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.sum_basket_value_minor` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.sum_basket_value_minor@v1: mv_mutation_heavy_funnel_daily.sum_basket_value_minor
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.uniq_entities` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.uniq_entities@v1: mv_mutation_heavy_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_mutation_heavy_funnel_daily.uniq_users` (v1) — added column_doc column.mv_mutation_heavy_funnel_daily.uniq_users@v1: mv_mutation_heavy_funnel_daily.uniq_users
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.app_version` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.app_version@v1: mv_sparse_envelope_funnel_daily.app_version
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.avg_scan_duration_ms` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.avg_scan_duration_ms@v1: mv_sparse_envelope_funnel_daily.avg_scan_duration_ms
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.city` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.city@v1: mv_sparse_envelope_funnel_daily.city
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.day` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.day@v1: mv_sparse_envelope_funnel_daily.day
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.event` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.event@v1: mv_sparse_envelope_funnel_daily.event
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.events_state` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.events_state@v1: mv_sparse_envelope_funnel_daily.events_state
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.geoip_country_code` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.geoip_country_code@v1: mv_sparse_envelope_funnel_daily.geoip_country_code
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.uniq_entities` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.uniq_entities@v1: mv_sparse_envelope_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `column.mv_sparse_envelope_funnel_daily.uniq_users` (v1) — added column_doc column.mv_sparse_envelope_funnel_daily.uniq_users@v1: mv_sparse_envelope_funnel_daily.uniq_users
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `entity.deep_linear.entity_key` (v1) — added entity entity.deep_linear.entity_key@v1: deep_linear entity key: booking_id
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.agg_deep_linear_auth_latency_daily` (v1) — added table_doc table.agg_deep_linear_auth_latency_daily@v1: agg_deep_linear_auth_latency_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.agg_deep_linear_funnel_daily` (v1) — added table_doc table.agg_deep_linear_funnel_daily@v1: agg_deep_linear_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.agg_double_fanout_funnel_daily` (v1) — added table_doc table.agg_double_fanout_funnel_daily@v1: agg_double_fanout_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.agg_mutation_heavy_funnel_daily` (v1) — added table_doc table.agg_mutation_heavy_funnel_daily@v1: agg_mutation_heavy_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.agg_sparse_envelope_funnel_daily` (v1) — added table_doc table.agg_sparse_envelope_funnel_daily@v1: agg_sparse_envelope_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.f_deep_linear_events` (v1) — added table_doc table.f_deep_linear_events@v1: f_deep_linear_events
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.f_double_fanout_events` (v1) — added table_doc table.f_double_fanout_events@v1: f_double_fanout_events
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.f_mutation_heavy_events` (v1) — added table_doc table.f_mutation_heavy_events@v1: f_mutation_heavy_events
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.f_sparse_envelope_events` (v1) — added table_doc table.f_sparse_envelope_events@v1: f_sparse_envelope_events
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.mv_deep_linear_auth_latency_daily` (v1) — added table_doc table.mv_deep_linear_auth_latency_daily@v1: mv_deep_linear_auth_latency_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.mv_deep_linear_funnel_daily` (v1) — added table_doc table.mv_deep_linear_funnel_daily@v1: mv_deep_linear_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.mv_double_fanout_funnel_daily` (v1) — added table_doc table.mv_double_fanout_funnel_daily@v1: mv_double_fanout_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.mv_mutation_heavy_funnel_daily` (v1) — added table_doc table.mv_mutation_heavy_funnel_daily@v1: mv_mutation_heavy_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+- **added** `table.mv_sparse_envelope_funnel_daily` (v1) — added table_doc table.mv_sparse_envelope_funnel_daily@v1: mv_sparse_envelope_funnel_daily
+  - auto-documented from the live schema (agg_deep_linear_auth_latency_daily, agg_deep_linear_funnel_daily, agg_double_fanout_funnel_daily, agg_mutation_heavy_funnel_daily, agg_sparse_envelope_funnel_daily, f_deep_linear_events, f_double_fanout_events, f_mutation_heavy_events, f_sparse_envelope_events, mv_deep_linear_auth_latency_daily, mv_deep_linear_funnel_daily, mv_double_fanout_funnel_daily, mv_mutation_heavy_funnel_daily, mv_sparse_envelope_funnel_daily)
+
+### run `7534cf5b2bde` — 2026-08-01 04:57:23.547000
+
+- **updated** `business_def.instant_forex.funnel` (v1 → v2) — updated business_def business_def.instant_forex.funnel@v2: instant_forex funnel
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.agg_instant_forex_funnel_daily.city` (v1) — added column_doc column.agg_instant_forex_funnel_daily.city@v1: agg_instant_forex_funnel_daily.city
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.agg_instant_forex_funnel_daily.day` (v1) — added column_doc column.agg_instant_forex_funnel_daily.day@v1: agg_instant_forex_funnel_daily.day
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.agg_instant_forex_funnel_daily.event` (v1) — added column_doc column.agg_instant_forex_funnel_daily.event@v1: agg_instant_forex_funnel_daily.event
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.agg_instant_forex_funnel_daily.events_state` (v1) — added column_doc column.agg_instant_forex_funnel_daily.events_state@v1: agg_instant_forex_funnel_daily.events_state
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.agg_instant_forex_funnel_daily.sum_addon_value_inr` (v1) — added column_doc column.agg_instant_forex_funnel_daily.sum_addon_value_inr@v1: agg_instant_forex_funnel_daily.sum_addon_value_inr
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.agg_instant_forex_funnel_daily.uniq_entities` (v1) — added column_doc column.agg_instant_forex_funnel_daily.uniq_entities@v1: agg_instant_forex_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.mv_instant_forex_funnel_daily.city` (v1) — added column_doc column.mv_instant_forex_funnel_daily.city@v1: mv_instant_forex_funnel_daily.city
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.mv_instant_forex_funnel_daily.day` (v1) — added column_doc column.mv_instant_forex_funnel_daily.day@v1: mv_instant_forex_funnel_daily.day
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.mv_instant_forex_funnel_daily.event` (v1) — added column_doc column.mv_instant_forex_funnel_daily.event@v1: mv_instant_forex_funnel_daily.event
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.mv_instant_forex_funnel_daily.events_state` (v1) — added column_doc column.mv_instant_forex_funnel_daily.events_state@v1: mv_instant_forex_funnel_daily.events_state
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.mv_instant_forex_funnel_daily.sum_addon_value_inr` (v1) — added column_doc column.mv_instant_forex_funnel_daily.sum_addon_value_inr@v1: mv_instant_forex_funnel_daily.sum_addon_value_inr
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `column.mv_instant_forex_funnel_daily.uniq_entities` (v1) — added column_doc column.mv_instant_forex_funnel_daily.uniq_entities@v1: mv_instant_forex_funnel_daily.uniq_entities
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **updated** `entity.instant_forex.entity_key` (v1 → v2) — updated entity entity.instant_forex.entity_key@v2: instant_forex entity key: user_id
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `table.agg_instant_forex_funnel_daily` (v1) — added table_doc table.agg_instant_forex_funnel_daily@v1: agg_instant_forex_funnel_daily
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **updated** `table.f_instant_forex_events` (v2 → v3) — updated table_doc table.f_instant_forex_events@v3: f_instant_forex_events
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+- **added** `table.mv_instant_forex_funnel_daily` (v1) — added table_doc table.mv_instant_forex_funnel_daily@v1: mv_instant_forex_funnel_daily
+  - auto-documented from the live schema (agg_instant_forex_funnel_daily, f_instant_forex_events, mv_instant_forex_funnel_daily)
+
+### run `59e10a11574d` — 2026-08-01 04:56:54.782000
+
+- **added** `gap.data_quality.f_abandoned_checkout_recovery_events.application_id_join` (v1) — added gap gap.data_quality.f_abandoned_checkout_recovery_events.application_id_join@v1: data_quality: f_abandoned_checkout_recovery_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_abandoned_checkout_recovery_events.user_id_join` (v1) — added gap gap.data_quality.f_abandoned_checkout_recovery_events.user_id_join@v1: data_quality: f_abandoned_checkout_recovery_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_abandoned_checkout_recovery_events.segment_join` (v1) — added relationship relationship.f_abandoned_checkout_recovery_events.segment_join@v1: f_abandoned_checkout_recovery_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.abandoned_checkout_recovery.funnel` (v1) — added business_def business_def.abandoned_checkout_recovery.funnel@v1: abandoned_checkout_recovery funnel
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.app_version` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.app_version@v1: f_abandoned_checkout_recovery_events.app_version
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.application_id` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.application_id@v1: f_abandoned_checkout_recovery_events.application_id
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.channel` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.channel@v1: f_abandoned_checkout_recovery_events.channel
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.city` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.city@v1: f_abandoned_checkout_recovery_events.city
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.client_lib` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.client_lib@v1: f_abandoned_checkout_recovery_events.client_lib
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.destination` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.destination@v1: f_abandoned_checkout_recovery_events.destination
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.device_type` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.device_type@v1: f_abandoned_checkout_recovery_events.device_type
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.drop_step` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.drop_step@v1: f_abandoned_checkout_recovery_events.drop_step
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.event` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.event@v1: f_abandoned_checkout_recovery_events.event
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.geoip_country_code` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.geoip_country_code@v1: f_abandoned_checkout_recovery_events.geoip_country_code
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.hours_since_drop` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.hours_since_drop@v1: f_abandoned_checkout_recovery_events.hours_since_drop
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.id` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.id@v1: f_abandoned_checkout_recovery_events.id
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.os` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.os@v1: f_abandoned_checkout_recovery_events.os
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.timestamp` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.timestamp@v1: f_abandoned_checkout_recovery_events.timestamp
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `column.f_abandoned_checkout_recovery_events.user_id` (v1) — added column_doc column.f_abandoned_checkout_recovery_events.user_id@v1: f_abandoned_checkout_recovery_events.user_id
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `entity.abandoned_checkout_recovery.entity_key` (v1) — added entity entity.abandoned_checkout_recovery.entity_key@v1: abandoned_checkout_recovery entity key: user_id
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+- **added** `table.f_abandoned_checkout_recovery_events` (v1) — added table_doc table.f_abandoned_checkout_recovery_events@v1: f_abandoned_checkout_recovery_events
+  - auto-documented from the live schema (f_abandoned_checkout_recovery_events)
+
+### run `84d55343f482` — 2026-08-01 04:56:30.124000
+
+- **added** `gap.data_quality.f_status_sharing_events.application_id_join` (v1) — added gap gap.data_quality.f_status_sharing_events.application_id_join@v1: data_quality: f_status_sharing_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_status_sharing_events.user_id_join` (v1) — added gap gap.data_quality.f_status_sharing_events.user_id_join@v1: data_quality: f_status_sharing_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_status_sharing_events.segment_join` (v1) — added relationship relationship.f_status_sharing_events.segment_join@v1: f_status_sharing_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.status_sharing.funnel` (v1) — added business_def business_def.status_sharing.funnel@v1: status_sharing funnel
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.app_version` (v1) — added column_doc column.f_status_sharing_events.app_version@v1: f_status_sharing_events.app_version
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.application_id` (v1) — added column_doc column.f_status_sharing_events.application_id@v1: f_status_sharing_events.application_id
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.channel` (v1) — added column_doc column.f_status_sharing_events.channel@v1: f_status_sharing_events.channel
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.city` (v1) — added column_doc column.f_status_sharing_events.city@v1: f_status_sharing_events.city
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.client_lib` (v1) — added column_doc column.f_status_sharing_events.client_lib@v1: f_status_sharing_events.client_lib
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.cta` (v1) — added column_doc column.f_status_sharing_events.cta@v1: f_status_sharing_events.cta
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.destination` (v1) — added column_doc column.f_status_sharing_events.destination@v1: f_status_sharing_events.destination
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.device_type` (v1) — added column_doc column.f_status_sharing_events.device_type@v1: f_status_sharing_events.device_type
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.event` (v1) — added column_doc column.f_status_sharing_events.event@v1: f_status_sharing_events.event
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.geoip_country_code` (v1) — added column_doc column.f_status_sharing_events.geoip_country_code@v1: f_status_sharing_events.geoip_country_code
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.id` (v1) — added column_doc column.f_status_sharing_events.id@v1: f_status_sharing_events.id
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.os` (v1) — added column_doc column.f_status_sharing_events.os@v1: f_status_sharing_events.os
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.recipient_is_new_user` (v1) — added column_doc column.f_status_sharing_events.recipient_is_new_user@v1: f_status_sharing_events.recipient_is_new_user
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.share_id` (v1) — added column_doc column.f_status_sharing_events.share_id@v1: f_status_sharing_events.share_id
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.status_shared` (v1) — added column_doc column.f_status_sharing_events.status_shared@v1: f_status_sharing_events.status_shared
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.timestamp` (v1) — added column_doc column.f_status_sharing_events.timestamp@v1: f_status_sharing_events.timestamp
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `column.f_status_sharing_events.user_id` (v1) — added column_doc column.f_status_sharing_events.user_id@v1: f_status_sharing_events.user_id
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `entity.status_sharing.entity_key` (v1) — added entity entity.status_sharing.entity_key@v1: status_sharing entity key: share_id
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `gap.data_quality.f_status_sharing_events.partial_identity` (v1) — added gap gap.data_quality.f_status_sharing_events.partial_identity@v1: f_status_sharing_events: partial identity coverage
+  - auto-documented from the live schema (f_status_sharing_events)
+- **added** `table.f_status_sharing_events` (v1) — added table_doc table.f_status_sharing_events@v1: f_status_sharing_events
+  - auto-documented from the live schema (f_status_sharing_events)
+
+### run `55fab714ceb2` — 2026-08-01 04:55:08.623000
+
+- **added** `gap.data_quality.f_group_family_events.application_id_join` (v1) — added gap gap.data_quality.f_group_family_events.application_id_join@v1: data_quality: f_group_family_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_group_family_events.user_id_join` (v1) — added gap gap.data_quality.f_group_family_events.user_id_join@v1: data_quality: f_group_family_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_group_family_events.segment_join` (v1) — added relationship relationship.f_group_family_events.segment_join@v1: f_group_family_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.group_family.funnel` (v1) — added business_def business_def.group_family.funnel@v1: group_family funnel
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.app_version` (v1) — added column_doc column.f_group_family_events.app_version@v1: f_group_family_events.app_version
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.application_id` (v1) — added column_doc column.f_group_family_events.application_id@v1: f_group_family_events.application_id
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.city` (v1) — added column_doc column.f_group_family_events.city@v1: f_group_family_events.city
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.client_lib` (v1) — added column_doc column.f_group_family_events.client_lib@v1: f_group_family_events.client_lib
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.destination` (v1) — added column_doc column.f_group_family_events.destination@v1: f_group_family_events.destination
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.device_type` (v1) — added column_doc column.f_group_family_events.device_type@v1: f_group_family_events.device_type
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.docs_complete` (v1) — added column_doc column.f_group_family_events.docs_complete@v1: f_group_family_events.docs_complete
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.event` (v1) — added column_doc column.f_group_family_events.event@v1: f_group_family_events.event
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.geoip_country_code` (v1) — added column_doc column.f_group_family_events.geoip_country_code@v1: f_group_family_events.geoip_country_code
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.group_id` (v1) — added column_doc column.f_group_family_events.group_id@v1: f_group_family_events.group_id
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.group_size` (v1) — added column_doc column.f_group_family_events.group_size@v1: f_group_family_events.group_size
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.id` (v1) — added column_doc column.f_group_family_events.id@v1: f_group_family_events.id
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.os` (v1) — added column_doc column.f_group_family_events.os@v1: f_group_family_events.os
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.relation` (v1) — added column_doc column.f_group_family_events.relation@v1: f_group_family_events.relation
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.timestamp` (v1) — added column_doc column.f_group_family_events.timestamp@v1: f_group_family_events.timestamp
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.traveller_index` (v1) — added column_doc column.f_group_family_events.traveller_index@v1: f_group_family_events.traveller_index
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.travellers_submitted` (v1) — added column_doc column.f_group_family_events.travellers_submitted@v1: f_group_family_events.travellers_submitted
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `column.f_group_family_events.user_id` (v1) — added column_doc column.f_group_family_events.user_id@v1: f_group_family_events.user_id
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `entity.group_family.entity_key` (v1) — added entity entity.group_family.entity_key@v1: group_family entity key: group_id
+  - auto-documented from the live schema (f_group_family_events)
+- **added** `table.f_group_family_events` (v1) — added table_doc table.f_group_family_events@v1: f_group_family_events
+  - auto-documented from the live schema (f_group_family_events)
+
+### run `f0ee80560391` — 2026-08-01 04:49:30.448000
+
+- **added** `gap.data_quality.f_express_checkout_events.application_id_join` (v1) — added gap gap.data_quality.f_express_checkout_events.application_id_join@v1: data_quality: f_express_checkout_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_express_checkout_events.user_id_join` (v1) — added gap gap.data_quality.f_express_checkout_events.user_id_join@v1: data_quality: f_express_checkout_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_express_checkout_events.segment_join` (v1) — added relationship relationship.f_express_checkout_events.segment_join@v1: f_express_checkout_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.express_checkout.funnel` (v1) — added business_def business_def.express_checkout.funnel@v1: express_checkout funnel
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.app_version` (v1) — added column_doc column.f_express_checkout_events.app_version@v1: f_express_checkout_events.app_version
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.application_id` (v1) — added column_doc column.f_express_checkout_events.application_id@v1: f_express_checkout_events.application_id
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.city` (v1) — added column_doc column.f_express_checkout_events.city@v1: f_express_checkout_events.city
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.client_lib` (v1) — added column_doc column.f_express_checkout_events.client_lib@v1: f_express_checkout_events.client_lib
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.currency` (v1) — added column_doc column.f_express_checkout_events.currency@v1: f_express_checkout_events.currency
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.destination` (v1) — added column_doc column.f_express_checkout_events.destination@v1: f_express_checkout_events.destination
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.device_type` (v1) — added column_doc column.f_express_checkout_events.device_type@v1: f_express_checkout_events.device_type
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.eligible` (v1) — added column_doc column.f_express_checkout_events.eligible@v1: f_express_checkout_events.eligible
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.event` (v1) — added column_doc column.f_express_checkout_events.event@v1: f_express_checkout_events.event
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.geoip_country_code` (v1) — added column_doc column.f_express_checkout_events.geoip_country_code@v1: f_express_checkout_events.geoip_country_code
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.id` (v1) — added column_doc column.f_express_checkout_events.id@v1: f_express_checkout_events.id
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.os` (v1) — added column_doc column.f_express_checkout_events.os@v1: f_express_checkout_events.os
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.otp_attempts` (v1) — added column_doc column.f_express_checkout_events.otp_attempts@v1: f_express_checkout_events.otp_attempts
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.otp_success` (v1) — added column_doc column.f_express_checkout_events.otp_success@v1: f_express_checkout_events.otp_success
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.payment_amount` (v1) — added column_doc column.f_express_checkout_events.payment_amount@v1: f_express_checkout_events.payment_amount
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.payment_currency` (v1) — added column_doc column.f_express_checkout_events.payment_currency@v1: f_express_checkout_events.payment_currency
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.payment_latency_ms` (v1) — added column_doc column.f_express_checkout_events.payment_latency_ms@v1: f_express_checkout_events.payment_latency_ms
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.saved_method_type` (v1) — added column_doc column.f_express_checkout_events.saved_method_type@v1: f_express_checkout_events.saved_method_type
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.shown_amount` (v1) — added column_doc column.f_express_checkout_events.shown_amount@v1: f_express_checkout_events.shown_amount
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.timestamp` (v1) — added column_doc column.f_express_checkout_events.timestamp@v1: f_express_checkout_events.timestamp
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `column.f_express_checkout_events.user_id` (v1) — added column_doc column.f_express_checkout_events.user_id@v1: f_express_checkout_events.user_id
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `entity.express_checkout.entity_key` (v1) — added entity entity.express_checkout.entity_key@v1: express_checkout entity key: user_id
+  - auto-documented from the live schema (f_express_checkout_events)
+- **added** `table.f_express_checkout_events` (v1) — added table_doc table.f_express_checkout_events@v1: f_express_checkout_events
+  - auto-documented from the live schema (f_express_checkout_events)
+
+### run `t5a_retriage` — 2026-08-01 04:40:39.805000
+
+- **updated** `table.f_instant_forex_events` (v1 → v2) — updated table_doc table.f_instant_forex_events@v2: f_instant_forex_events
+  - auto-documented from the live schema (f_instant_forex_events)
+
+### run `5b5ff2307072` — 2026-08-01 03:57:03.154000
+
+- **updated** `metric.conversion_rate` (v1 → v2) — updated metric metric.conversion_rate@v2: Conversion rate
+  - named by an unresolved uncomputable_metric contradiction
+- **updated** `metric.on_time_delivery_rate` (v1 → v2) — updated metric metric.on_time_delivery_rate@v2: On-time delivery rate
+  - named by an unresolved uncomputable_metric contradiction
+- **added** `gap.data_quality.f_instant_forex_events.application_id_join` (v1) — added gap gap.data_quality.f_instant_forex_events.application_id_join@v1: data_quality: f_instant_forex_events.application_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `gap.data_quality.f_instant_forex_events.user_id_join` (v1) — added gap gap.data_quality.f_instant_forex_events.user_id_join@v1: data_quality: f_instant_forex_events.user_id is not joinable to the existing tables
+  - written by a contradiction check (measured, not assumed)
+- **added** `relationship.f_instant_forex_events.segment_join` (v1) — added relationship relationship.f_instant_forex_events.segment_join@v1: f_instant_forex_events -> existing tables (segment-level only)
+  - written by a contradiction check (measured, not assumed)
+- **added** `business_def.instant_forex.funnel` (v1) — added business_def business_def.instant_forex.funnel@v1: instant_forex funnel
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.addon_value_avg_state` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.addon_value_avg_state@v1: agg_instant_forex_addon_value_daily.addon_value_avg_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.addon_value_median_state` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.addon_value_median_state@v1: agg_instant_forex_addon_value_daily.addon_value_median_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.addon_value_sum_state` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.addon_value_sum_state@v1: agg_instant_forex_addon_value_daily.addon_value_sum_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.attachers_state` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.attachers_state@v1: agg_instant_forex_addon_value_daily.attachers_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.day` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.day@v1: agg_instant_forex_addon_value_daily.day
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.event` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.event@v1: agg_instant_forex_addon_value_daily.event
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.agg_instant_forex_addon_value_daily.events_state` (v1) — added column_doc column.agg_instant_forex_addon_value_daily.events_state@v1: agg_instant_forex_addon_value_daily.events_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.addon_value_inr` (v1) — added column_doc column.f_instant_forex_events.addon_value_inr@v1: f_instant_forex_events.addon_value_inr
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.amount` (v1) — added column_doc column.f_instant_forex_events.amount@v1: f_instant_forex_events.amount
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.app_version` (v1) — added column_doc column.f_instant_forex_events.app_version@v1: f_instant_forex_events.app_version
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.application_id` (v1) — added column_doc column.f_instant_forex_events.application_id@v1: f_instant_forex_events.application_id
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.city` (v1) — added column_doc column.f_instant_forex_events.city@v1: f_instant_forex_events.city
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.client_lib` (v1) — added column_doc column.f_instant_forex_events.client_lib@v1: f_instant_forex_events.client_lib
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.destination` (v1) — added column_doc column.f_instant_forex_events.destination@v1: f_instant_forex_events.destination
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.device_type` (v1) — added column_doc column.f_instant_forex_events.device_type@v1: f_instant_forex_events.device_type
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.event` (v1) — added column_doc column.f_instant_forex_events.event@v1: f_instant_forex_events.event
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.from_currency` (v1) — added column_doc column.f_instant_forex_events.from_currency@v1: f_instant_forex_events.from_currency
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.fx_rate` (v1) — added column_doc column.f_instant_forex_events.fx_rate@v1: f_instant_forex_events.fx_rate
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.geoip_country_code` (v1) — added column_doc column.f_instant_forex_events.geoip_country_code@v1: f_instant_forex_events.geoip_country_code
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.id` (v1) — added column_doc column.f_instant_forex_events.id@v1: f_instant_forex_events.id
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.os` (v1) — added column_doc column.f_instant_forex_events.os@v1: f_instant_forex_events.os
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.timestamp` (v1) — added column_doc column.f_instant_forex_events.timestamp@v1: f_instant_forex_events.timestamp
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.to_currency` (v1) — added column_doc column.f_instant_forex_events.to_currency@v1: f_instant_forex_events.to_currency
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.f_instant_forex_events.user_id` (v1) — added column_doc column.f_instant_forex_events.user_id@v1: f_instant_forex_events.user_id
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.addon_value_avg_state` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.addon_value_avg_state@v1: mv_instant_forex_addon_value_daily.addon_value_avg_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.addon_value_median_state` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.addon_value_median_state@v1: mv_instant_forex_addon_value_daily.addon_value_median_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.addon_value_sum_state` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.addon_value_sum_state@v1: mv_instant_forex_addon_value_daily.addon_value_sum_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.attachers_state` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.attachers_state@v1: mv_instant_forex_addon_value_daily.attachers_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.day` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.day@v1: mv_instant_forex_addon_value_daily.day
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.event` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.event@v1: mv_instant_forex_addon_value_daily.event
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `column.mv_instant_forex_addon_value_daily.events_state` (v1) — added column_doc column.mv_instant_forex_addon_value_daily.events_state@v1: mv_instant_forex_addon_value_daily.events_state
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `entity.instant_forex.entity_key` (v1) — added entity entity.instant_forex.entity_key@v1: instant_forex entity key: user_id
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `table.agg_instant_forex_addon_value_daily` (v1) — added table_doc table.agg_instant_forex_addon_value_daily@v1: agg_instant_forex_addon_value_daily
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `table.f_instant_forex_events` (v1) — added table_doc table.f_instant_forex_events@v1: f_instant_forex_events
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+- **added** `table.mv_instant_forex_addon_value_daily` (v1) — added table_doc table.mv_instant_forex_addon_value_daily@v1: mv_instant_forex_addon_value_daily
+  - auto-documented from the live schema (agg_instant_forex_addon_value_daily, f_instant_forex_events, mv_instant_forex_addon_value_daily)
+
+### run `bootstrap` — 2026-08-01 03:46:20.885000
+
+- **added** `business_def.1_business_overview_diagram` (v1) — added business_def business_def.1_business_overview_diagram@v1: 1. Business overview diagram
+  - bootstrap from base_context.md
+- **added** `business_def.always_cut_least_device` (v1) — added business_def business_def.always_cut_least_device@v1: Always cut by at least device, geo, and destination before concluding
+  - bootstrap from base_context.md
+- **added** `business_def.around_spine_capture_supporting` (v1) — added business_def business_def.around_spine_capture_supporting@v1: Around that spine we also capture supporting engagement events (search, scroll, authentication, pay-now click)
+  - bootstrap from base_context.md
+- **added** `business_def.atlys_digital_visa_platform` (v1) — added business_def business_def.atlys_digital_visa_platform@v1: Atlys is a digital visa platform
+  - bootstrap from base_context.md
+- **added** `business_def.atlys_operates_run_rate` (v1) — added business_def business_def.atlys_operates_run_rate@v1: Atlys operates at a run rate of 700K+ applications annually
+  - bootstrap from base_context.md
+- **added** `business_def.compute_step_counts_uniq` (v1) — added business_def business_def.compute_step_counts_uniq@v1: Compute step counts as `uniq(user_id)` (or `application_id` past application start) per stage, in `timestamp` order, ove
+  - bootstrap from base_context.md
+- **added** `business_def.pre_purchase_journey_instrument` (v1) — added business_def business_def.pre_purchase_journey_instrument@v1: The pre-purchase journey we instrument is a linear funnel:
+  - bootstrap from base_context.md
+- **added** `business_def.push_aggregation_clickhouse_interpret` (v1) — added business_def business_def.push_aggregation_clickhouse_interpret@v1: Push aggregation into ClickHouse; interpret the aggregates, don't read raw rows
+  - bootstrap from base_context.md
+- **added** `business_def.shared_business_data_context` (v1) — added business_def business_def.shared_business_data_context@v1: This is the shared business + data context for the analytics agents
+  - bootstrap from base_context.md
+- **added** `entity.application` (v1) — added entity entity.application@v1: Application
+  - bootstrap from base_context.md
+- **added** `entity.destination` (v1) — added entity entity.destination@v1: Destination
+  - bootstrap from base_context.md
+- **added** `entity.document` (v1) — added entity entity.document@v1: Document
+  - bootstrap from base_context.md
+- **added** `entity.event` (v1) — added entity entity.event@v1: Event
+  - bootstrap from base_context.md
+- **added** `entity.user` (v1) — added entity entity.user@v1: User
+  - bootstrap from base_context.md
+- **added** `known_issue.K1` (v1) — added known_issue known_issue.K1@v1: iOS WebKit OTP autofill regression
+  - bootstrap from base_context.md
+- **added** `known_issue.K2` (v1) — added known_issue known_issue.K2@v1: Passport scan model update (Apr 2026)
+  - bootstrap from base_context.md
+- **added** `known_issue.K3` (v1) — added known_issue known_issue.K3@v1: MRZ OCR weaker on non-Latin passports
+  - bootstrap from base_context.md
+- **added** `known_issue.K4` (v1) — added known_issue known_issue.K4@v1: Schengen summer slot scarcity (Apr–Jun)
+  - bootstrap from base_context.md
+- **added** `known_issue.K5` (v1) — added known_issue known_issue.K5@v1: WhatsApp nudge launch (Feb 2026)
+  - bootstrap from base_context.md
+- **added** `known_issue.K6` (v1) — added known_issue known_issue.K6@v1: SUMMER20 coupon campaign
+  - bootstrap from base_context.md
+- **added** `known_issue.K7` (v1) — added known_issue known_issue.K7@v1: App 7.45 rollout
+  - bootstrap from base_context.md
+- **added** `metric.conversion` (v1) — added metric metric.conversion@v1: conversion (note)
+  - bootstrap from base_context.md
+- **added** `metric.conversion_rate` (v1) — added metric metric.conversion_rate@v1: Conversion rate
+  - bootstrap from base_context.md
+- **added** `metric.drop_off_rate` (v1) — added metric metric.drop_off_rate@v1: Drop-off rate (per funnel stage)
+  - bootstrap from base_context.md
+- **added** `metric.on_time_delivery_rate` (v1) — added metric metric.on_time_delivery_rate@v1: On-time delivery rate
+  - bootstrap from base_context.md
+- **added** `metric.passport_capture_pass_rate` (v1) — added metric metric.passport_capture_pass_rate@v1: Passport-capture pass rate
+  - bootstrap from base_context.md
+- **added** `metric.revenue_per_conversion` (v1) — added metric metric.revenue_per_conversion@v1: Revenue per conversion
+  - bootstrap from base_context.md
+- **added** `metric.step_through_rate` (v1) — added metric metric.step_through_rate@v1: Step-through rate
+  - bootstrap from base_context.md
+- **added** `relationship.application_started_application_id` (v1) — added relationship relationship.application_started_application_id@v1: `application_started.application_id` → `document_uploaded`, `pay_now_clicked`, `purchase_completed` (on `application_id`
+  - bootstrap from base_context.md
+- **added** `relationship.destination_card_clicked_user_id` (v1) — added relationship relationship.destination_card_clicked_user_id@v1: `destination_card_clicked.user_id` → all tables (`user_id`)
+  - bootstrap from base_context.md
+- **added** `relationship.funnel_order_timestamp_ascending` (v1) — added relationship relationship.funnel_order_timestamp_ascending@v1: funnel order is by `timestamp` ascending within a `user_id` / `application_id`
+  - bootstrap from base_context.md
+- **added** `relationship.segment_cuts_device_type` (v1) — added relationship relationship.segment_cuts_device_type@v1: segment cuts: `device_type` / `os`, `geoip_country_code`, `destination`, `citizenship`, `co_travelers`, acquisition (`gc
+  - bootstrap from base_context.md
+- **added** `relationship.supporting_tables_search_typed` (v1) — added relationship relationship.supporting_tables_search_typed@v1: supporting tables (`search_typed`, `landing_page_scrolled`, `auth_completed`) join on `user_id` (they may precede an app
+  - bootstrap from base_context.md
+- **added** `table.application_started` (v1) — added table_doc table.application_started@v1: application_started
+  - bootstrap from base_context.md
+- **added** `table.auth_completed` (v1) — added table_doc table.auth_completed@v1: auth_completed
+  - bootstrap from base_context.md
+- **added** `table.destination_card_clicked` (v1) — added table_doc table.destination_card_clicked@v1: destination_card_clicked
+  - bootstrap from base_context.md
+- **added** `table.document_uploaded` (v1) — added table_doc table.document_uploaded@v1: document_uploaded
+  - bootstrap from base_context.md
+- **added** `table.landing_page_scrolled` (v1) — added table_doc table.landing_page_scrolled@v1: landing_page_scrolled
+  - bootstrap from base_context.md
+- **added** `table.pay_now_clicked` (v1) — added table_doc table.pay_now_clicked@v1: pay_now_clicked
+  - bootstrap from base_context.md
+- **added** `table.purchase_completed` (v1) — added table_doc table.purchase_completed@v1: purchase_completed
+  - bootstrap from base_context.md
+- **added** `table.search_typed` (v1) — added table_doc table.search_typed@v1: search_typed
+  - bootstrap from base_context.md
+- **added** `table_doc.eight_raw_event_streams` (v1) — added table_doc table_doc.eight_raw_event_streams@v1: All eight are raw event streams (one table per event), joined on `user_id` and `application_id`, ordered in time by `tim
+  - bootstrap from base_context.md
+- **added** `table_doc.instrumentation_note` (v1) — added table_doc table_doc.instrumentation_note@v1: Instrumentation note
+  - bootstrap from base_context.md

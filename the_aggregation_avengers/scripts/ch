@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Thin ClickHouse HTTP client. Credentials come from .env.local (gitignored).
+#
+#   scripts/ch 'SELECT 1'                 run a query
+#   scripts/ch < file.sql                 run a query from stdin
+#   scripts/ch -f path/to/file.sql        run each ;-terminated statement in a file
+#   scripts/ch -l TABLE FORMAT < data     load data into TABLE
+#
+# Statements are sent one at a time: the HTTP interface accepts only one
+# statement per request, and a multi-statement body fails on the second one.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+[[ -f .env.local ]] || { echo "missing .env.local (CH_HOST, CH_USER, CH_PASS)" >&2; exit 1; }
+set -a; . ./.env.local; set +a
+
+q() { curl -sS --fail-with-body --user "$CH_USER:$CH_PASS" --data-binary @- "$CH_HOST"; }
+
+case "${1:-}" in
+  -f)  # split on ';' at end of line, skipping comment-only and blank chunks
+    python3 - "$2" <<'PY' | while IFS= read -r -d $'\0' stmt; do
+import re, sys
+sql = open(sys.argv[1]).read()
+# strip -- comments so a ';' inside one can't split a statement
+stripped = "\n".join(re.sub(r'--.*$', '', ln) for ln in sql.splitlines())
+for s in stripped.split(";"):
+    if s.strip():
+        sys.stdout.write(s.strip() + "\0")
+PY
+      printf '\n\033[2m-- %s\033[0m\n' "$(printf '%s' "$stmt" | head -1 | cut -c1-90)"
+      printf '%s' "$stmt" | q || exit 1
+    done
+    ;;
+  -l)  # bulk load: scripts/ch -l table_name FORMAT < file
+    curl -sS --fail-with-body --user "$CH_USER:$CH_PASS" \
+      --data-binary @- "$CH_HOST/?query=INSERT%20INTO%20$2%20FORMAT%20$3"
+    ;;
+  "")  q ;;
+  *)   printf '%s' "$1" | q ;;
+esac

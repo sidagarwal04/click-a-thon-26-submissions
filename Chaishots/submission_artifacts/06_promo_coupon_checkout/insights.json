@@ -1,0 +1,106 @@
+{
+  "insights": [
+    {
+      "title": "Overall coupon funnel conversion is under 50%",
+      "observation": "Only about half of users who see the coupon field complete a checkout with a coupon.",
+      "evidence": [
+        "funnel: coupon_field_shown = 2100 users",
+        "funnel: checkout_with_coupon = 987 users",
+        "Derived checkout rate = 987 / 2100 = 0.47 (47%)"
+      ],
+      "interpretation": "The funnel shows a 40% entry rate (848/2100) and a 68% apply‑to‑enter rate (580/848), but the final checkout conversion from field shown to checkout with coupon is only 47%. This indicates that many users either abandon after seeing the field or proceed without applying a coupon, limiting the lift the feature can provide.",
+      "context_used": [
+        "K6 – SUMMER20 coupon campaign (potentially inflating apply counts)",
+        "Definition of conversion_rate from context (not directly used but relevant to overall conversion goals)"
+      ],
+      "recommendation": "Investigate why 53% of users who see the coupon field do not checkout with a coupon. Consider UI prompts after entry, clearer discount display, or nudges to encourage completion.",
+      "confidence": "high",
+      "caveats": [
+        "The checkout_with_coupon event may include users who skip the coupon step, inflating the denominator for later stages.",
+        "The data covers a 21‑day window; seasonal effects could shift rates."
+      ]
+    },
+    {
+      "title": "Adoption of coupon entry varies widely by device and geography",
+      "observation": "The proportion of users who enter a coupon after the field is shown ranges from 0% to 100% across segments, with most segments between 30%‑60%.",
+      "evidence": [
+        "adoption_by_segment: Desktop US adoption_rate = 0.5 (3 entered / 6 shown)",
+        "adoption_by_segment: ios EG adoption_rate = 0.444 (24 / 54)",
+        "adoption_by_segment: android IN adoption_rate = 0.564 (44 / 78)",
+        "adoption_by_segment: Desktop US (2 shown, 2 entered) adoption_rate = 1.0 (small sample)",
+        "adoption_by_segment: Desktop US (0 entered / 1 shown) adoption_rate = 0.0 (small sample)"
+      ],
+      "interpretation": "Device type and country influence how often users attempt to use a coupon. Android users in India and iOS users in Egypt show relatively higher willingness to enter a code, suggesting cultural or payment‑method factors. Very small sample sizes (e.g., 1‑2 users) produce extreme rates that should not drive decisions.",
+      "context_used": [
+        "K6 – SUMMER20 coupon campaign (may affect entry behavior in certain regions)",
+        "Definition of adoption_rate (selected_entities / shown_entities)"
+      ],
+      "recommendation": "Prioritize A/B tests of entry‑flow improvements in segments with lower adoption (e.g., Desktop US, web‑user‑b2c GB) while monitoring high‑adoption segments for best‑practice patterns.",
+      "confidence": "medium",
+      "caveats": [
+        "Many segment rows have fewer than 10 shown events, making rates noisy.",
+        "The adoption metric does not account for users who see the field but are ineligible to enter a code."
+      ]
+    },
+    {
+      "title": "Checkout completion with coupon is strongest on Android in the US but weak on Desktop",
+      "observation": "Android users in the US complete checkout with a coupon at 64% of field‑shown sessions, whereas Desktop users in the US complete at only 50%.",
+      "evidence": [
+        "completion_by_segment: android US entities=36, completed=23, completion_rate=0.639",
+        "completion_by_segment: Desktop US entities=6, completed=3, completion_rate=0.5",
+        "completion_by_segment: ios US entities=55, completed=28, completion_rate=0.509"
+      ],
+      "interpretation": "Mobile platforms, especially Android, are more effective at converting coupon exposure into a completed checkout. Desktop experiences lag, possibly due to UI friction or lower perceived value of coupons on larger screens.",
+      "context_used": [
+        "K6 – SUMMER20 coupon campaign (could boost US numbers during summer)",
+        "Definition of completion_rate (completed_entities / shown_entities)"
+      ],
+      "recommendation": "Review the desktop checkout flow for coupon visibility and ease of entry. Consider redesigning the coupon UI for desktop or adding contextual hints to match mobile performance.",
+      "confidence": "high",
+      "caveats": [
+        "Desktop US sample size is small (6 shown events), so the 50% rate may not be stable.",
+        "The metric treats any checkout_with_coupon event as success, even if the coupon was not applied."
+      ]
+    },
+    {
+      "title": "Apply‑to‑checkout step‑through rates exceed 100% in many segments",
+      "observation": "Several device‑destination combos show apply_to_checkout_rate > 1, meaning more checkout events than coupon‑apply events.",
+      "evidence": [
+        "coupon_funnel_rates: Desktop FR apply_to_checkout_rate = 2.0 (4 checkout / 2 applied)",
+        "coupon_funnel_rates: ios EG apply_to_checkout_rate = 2.07 (29 checkout / 14 applied)",
+        "coupon_funnel_rates: android TH apply_to_checkout_rate = 1.8 (27 checkout / 15 applied)",
+        "coupon_funnel_rates: web‑user‑b2c AU apply_to_checkout_rate = 0.92 (12 checkout / 13 applied) – an outlier below 1"
+      ],
+      "interpretation": "The inflated rates indicate that many users checkout without a coupon after seeing the field, or that the checkout_with_coupon event is logged even when no discount was applied. This distorts the true effectiveness of the coupon step and suggests a data‑collection issue.",
+      "context_used": [
+        "K6 – SUMMER20 coupon campaign (may cause higher checkout counts)",
+        "Definition of step‑through rates from analysis plan"
+      ],
+      "recommendation": "Clarify event definitions: ensure checkout_with_coupon is only emitted when a coupon discount is actually applied. If the intent is to capture any checkout after the coupon UI, rename the event to avoid confusion.",
+      "confidence": "medium",
+      "caveats": [
+        "The raw event schema may intentionally log checkout_with_coupon regardless of discount, so the >1 rates could be by design.",
+        "Without access to the underlying instrumentation code, we cannot confirm the exact cause."
+      ]
+    },
+    {
+      "title": "Baseline conversion comparison shows no observable lift from the coupon feature",
+      "observation": "The baseline_conversion_lift query reports a 100% conversion rate for non‑exposed users and zero conversion for all exposed steps, suggesting a mismatch between auth_completed data and coupon events.",
+      "evidence": [
+        "baseline_conversion_lift: exposed = 0, entities = 183,790, conversion_rate = 1.0",
+        "feature_step_to_conversion: all steps (including coupon_field_shown, coupon_applied, checkout_with_coupon) have conversion_rate = 0.0"
+      ],
+      "interpretation": "The auth_completed table appears to contain only users who did not interact with the coupon flow, or the join logic is flawed. Consequently, we cannot measure the true conversion lift of the coupon feature from this data set.",
+      "context_used": [
+        "K6 – SUMMER20 coupon campaign (could affect conversion patterns)",
+        "Definition of conversion_rate (from context) – not directly applicable here"
+      ],
+      "recommendation": "Re‑evaluate the join between promo_coupon_checkout_events and auth_completed. Ensure that auth_completed records are captured for users who complete checkout with a coupon, or create a dedicated conversion metric linked to the coupon flow.",
+      "confidence": "low",
+      "caveats": [
+        "The query uses a simplistic IN sub‑query that may exclude matching user_ids due to timing or data partitioning.",
+        "The auth_completed table may represent a different funnel (e.g., login) unrelated to checkout."
+      ]
+    }
+  ]
+}

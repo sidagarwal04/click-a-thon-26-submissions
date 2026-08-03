@@ -1,0 +1,965 @@
+<title>Click Click Boom — Architecture</title>
+<style>
+  :root {
+    --bg: #0a0a09;
+    --bg-edge: #050504;
+    --line: rgba(255, 209, 84, 0.32);
+    --line-soft: rgba(255, 209, 84, 0.16);
+    --yellow: #ffcc01;
+    --ink: #f2f0e6;
+    --muted: #948f7c;
+    --pill-gray: #232219;
+    --pill-gray-line: #3a3826;
+  }
+
+  /* This page is a single deliberate dark scene (glow, low-light diagram) —
+     it stays one theme rather than flipping to a light variant. */
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 38%, #141310 0%, var(--bg) 55%, var(--bg-edge) 100%);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 76px 32px 64px;
+  }
+
+  .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+
+  header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+  .team-tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 12px;
+  }
+  header h1 {
+    margin: 0 0 10px;
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .provider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 18px;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 12.5px;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.012);
+  }
+  .provider-badge b { color: var(--yellow); font-weight: 700; }
+
+  /* ── diagram scaffolding ─────────────────────────────────────────── */
+
+  .diagram {
+    display: grid;
+    grid-template-columns: 300px 64px 1fr 64px 230px;
+    align-items: center;
+  }
+  @media (max-width: 1000px) {
+    .diagram { grid-template-columns: 1fr; row-gap: 40px; }
+    .arrow-h { display: none; }
+  }
+
+  .box {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px 20px 20px;
+    background: rgba(255, 255, 255, 0.012);
+  }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 14px;
+    margin-bottom: 18px;
+  }
+
+  .icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+  .icon-item svg { display: block; flex-shrink: 0; }
+  .icon-item span {
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+
+  .box-label {
+    text-align: center;
+    font-size: 15px;
+    color: var(--ink);
+    padding-top: 16px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* ── horizontal connectors (left/right) ─────────────────────────── */
+
+  .arrow-h {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .arrow-h .label {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .arrow-h .line {
+    position: relative;
+    width: 100%;
+    height: 1px;
+    background: var(--line);
+  }
+  .arrow-h .line::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -1px;
+    transform: translateY(-50%);
+    border-style: solid;
+    border-width: 5px 0 5px 8px;
+    border-color: transparent transparent transparent var(--line);
+  }
+
+  /* ── center column ───────────────────────────────────────────────── */
+
+  .center-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* ── left: LibreChat Agents API (the harness) ───────────────────── */
+
+  .harness-box {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 20px;
+    background: rgba(255, 255, 255, 0.012);
+  }
+  .harness-head { text-align: center; margin-bottom: 20px; }
+  .harness-head .mark { display: inline-flex; align-items: center; gap: 9px; }
+  .harness-head h2 { margin: 6px 0 0; font-size: 19px; font-weight: 700; letter-spacing: -0.005em; line-height: 1.25; }
+  .harness-head .sub {
+    margin-top: 7px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .core-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .core-divider::before, .core-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line-soft);
+  }
+
+  .mcp-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .mcp-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 11px 13px;
+  }
+  .mcp-item svg { flex-shrink: 0; }
+  .mcp-item span { font-size: 13px; font-weight: 600; }
+
+  .chip-row {
+    display: flex;
+    gap: 10px;
+  }
+  .chip {
+    flex: 1;
+    text-align: center;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 10px 6px;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  /* ── center: the agents ──────────────────────────────────────────── */
+
+  .core {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 28px 22px;
+    background: #0d0c0a;
+  }
+  .core::before {
+    content: "";
+    position: absolute;
+    inset: -70px;
+    z-index: -1;
+    background: radial-gradient(ellipse 65% 65% at 50% 40%, rgba(255, 204, 1, 0.18), transparent 70%);
+  }
+  .core-eyebrow {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 16px;
+  }
+
+  .pill-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .pill {
+    flex: 1;
+    text-align: center;
+    background: var(--yellow);
+    color: #1c1500;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 8px;
+    padding: 14px 10px;
+  }
+  .pill-mid {
+    display: flex;
+    align-items: center;
+    color: #7a6a1a;
+    font-size: 18px;
+  }
+
+  .pill-secondary {
+    text-align: center;
+    background: var(--pill-gray);
+    border: 1px solid var(--pill-gray-line);
+    color: var(--ink);
+    font-size: 15px;
+    border-radius: 8px;
+    padding: 12px 10px;
+  }
+
+  .arrow-v { display: flex; justify-content: center; }
+  .arrow-v svg { display: block; }
+
+  /* ── big ClickHouse box ──────────────────────────────────────────── */
+
+  .ch-box {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 30px 32px 26px;
+    background: #0d0c0a;
+  }
+  .ch-box::before {
+    content: "";
+    position: absolute;
+    inset: -70px;
+    z-index: -1;
+    background: radial-gradient(ellipse 65% 65% at 50% 40%, rgba(255, 204, 1, 0.14), transparent 70%);
+  }
+  .ch-head { text-align: center; margin-bottom: 22px; }
+  .ch-head .mark { display: inline-flex; align-items: center; gap: 14px; }
+  .ch-head h2 { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
+  .ch-head .sub {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .stores {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 16px;
+  }
+  .store {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 14px;
+  }
+  .store span.mono { font-size: 14px; color: var(--ink); }
+  .store span.tag { font-size: 11.5px; color: var(--muted); }
+
+  footer {
+    text-align: center;
+    margin-top: 60px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* ── the story: why we built it this way ─────────────────────────── */
+
+  .story-section {
+    margin-top: 128px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .story-head { text-align: center; margin-bottom: 76px; }
+  .story-head .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 10px;
+  }
+  .story-head h2 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .story-head p {
+    margin: 12px auto 0;
+    max-width: 46ch;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .story {
+    position: relative;
+    padding: 0 0 76px 60px;
+    border-left: 1px solid var(--line-soft);
+  }
+  .story:last-child { padding-bottom: 4px; border-left-color: transparent; }
+  .story-num {
+    position: absolute;
+    left: -19px;
+    top: 0;
+    width: 37px;
+    height: 37px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--yellow);
+  }
+
+  .story-q {
+    margin: 2px 0 10px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+  }
+  .story-problem {
+    margin: 0 0 20px;
+    font-size: 14.5px;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 54ch;
+  }
+  .story-problem b { color: var(--ink); font-weight: 600; font-style: normal; }
+
+  .mech-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .mech {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.012);
+  }
+  .mech svg { flex-shrink: 0; margin-top: 1px; }
+  .mech .t { font-size: 13.5px; font-weight: 700; margin-bottom: 3px; }
+  .mech .d { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+  /* ── harness cards: what it does + a mini flow + a use case ─────── */
+
+  .harness-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    background: rgba(255, 255, 255, 0.012);
+    margin-bottom: 16px;
+  }
+  .harness-card:last-child { margin-bottom: 0; }
+
+  .harness-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .harness-card-head svg { flex-shrink: 0; }
+  .harness-card-head .t { font-size: 15.5px; font-weight: 700; }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 9px;
+    margin-left: auto;
+  }
+
+  .harness-does {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 8px 0 16px;
+  }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .flow-step {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .flow-step.accent {
+    border-color: var(--yellow);
+    color: var(--yellow-ink, #1c1500);
+    background: var(--yellow);
+    font-weight: 700;
+  }
+  .flow-step.result {
+    border-color: var(--line);
+    color: var(--muted);
+    background: transparent;
+    font-style: normal;
+  }
+  .flow-arrow {
+    color: var(--muted);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .hub-in {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .use-case {
+    border-top: 1px solid var(--line-soft);
+    padding-top: 14px;
+    display: flex;
+    gap: 10px;
+  }
+  .use-case .label {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 1px;
+  }
+  .use-case p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink-soft, var(--ink));
+    line-height: 1.55;
+  }
+
+  /* ── the context engine: one cohesive box, not four loose cards ──── */
+
+  .engine-box {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px 30px 26px;
+    background: #0d0c0a;
+  }
+  .engine-box::before {
+    content: "";
+    position: absolute;
+    inset: -60px;
+    z-index: -1;
+    background: radial-gradient(ellipse 60% 60% at 30% 30%, rgba(255, 204, 1, 0.12), transparent 70%);
+  }
+  .engine-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .engine-top .mark { display: flex; align-items: center; gap: 11px; }
+  .engine-top h4 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.005em; }
+  .engine-loc { font-size: 12px; color: var(--muted); }
+
+  .engine-section { margin-bottom: 22px; }
+  .engine-section:last-child { margin-bottom: 0; }
+
+  /* ── orchestration: agent in the middle, harness left, subagent right ── */
+
+  .orch-diagram {
+    display: grid;
+    grid-template-columns: 150px 56px 1fr 128px 180px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+  .orch-diagram .arrow-h .label {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+  }
+  @media (max-width: 820px) {
+    .orch-diagram { grid-template-columns: 1fr; row-gap: 18px; }
+    .orch-diagram .arrow-h { display: none; }
+  }
+
+  .orch-side {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 14px;
+    background: rgba(255, 255, 255, 0.012);
+  }
+  .orch-side-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 11px;
+  }
+  .orch-side .chip-row { flex-direction: column; gap: 6px; }
+  .orch-side .chip { flex: none; text-align: left; padding-left: 10px; border-style: solid; }
+  .orch-side .harness-does { margin: 10px 0 0; font-size: 12px; }
+
+  .orch-agent {
+    position: relative;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 20px;
+    background: #0d0c0a;
+    text-align: center;
+  }
+  .orch-agent::before {
+    content: "";
+    position: absolute;
+    inset: -50px;
+    z-index: -1;
+    background: radial-gradient(ellipse 60% 60% at 50% 40%, rgba(255, 204, 1, 0.16), transparent 70%);
+  }
+  .orch-agent .mark { display: inline-flex; align-items: center; gap: 9px; }
+  .orch-agent h4 { margin: 0; font-size: 16px; font-weight: 700; }
+
+  .orch-subagent .mark { justify-content: center; }
+  .orch-subagent h4 { font-size: 14px; }
+
+  .orch-result {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 14px 0;
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="team-tag">Click Click Boom</div>
+    <h1>The Architecture</h1>
+    <p>Feature spec in → schema, context, and insight out — three agents, one shared harness, built for the Atlys dataset.</p>
+    <div class="provider-badge">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><g stroke="#f2f0e6" stroke-width="1.2" stroke-linecap="round"><line x1="10" y1="2" x2="10" y2="18"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="4.2" y1="4.2" x2="15.8" y2="15.8"/><line x1="15.8" y1="4.2" x2="4.2" y2="15.8"/></g><circle cx="10" cy="10" r="2.6" fill="#f2f0e6"/></svg>
+      <span>LLM provider: <b>OpenAI</b> — cheapest tier, GPT-5.6 "Luna" — strong performance for the cost</span>
+    </div>
+  </header>
+
+  <div class="diagram">
+
+    <!-- LEFT: LibreChat Agents API — the harness every agent runs on -->
+    <div class="harness-box">
+      <div class="harness-head">
+        <div class="mark">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M2 5.5C2 3.6 3.6 2 5.5 2h11C18.4 2 20 3.6 20 5.5v7c0 1.9-1.6 3.5-3.5 3.5H9l-4.5 4v-4H5.5C3.6 16 2 14.4 2 12.5v-7Z" stroke="#f2f0e6" stroke-width="1.4"/></svg>
+        </div>
+        <h2>LibreChat Agents API</h2>
+        <div class="sub">hosts all three agents · runs the tool-calling loop</div>
+      </div>
+
+      <div class="core-divider">MCP server</div>
+      <div class="mcp-row">
+        <div class="mcp-item">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="12" width="3.6" height="8" fill="#FFCC01"/><rect x="7" y="7" width="3.6" height="13" fill="#FFCC01"/><rect x="12" y="2" width="3.6" height="18" fill="#FFCC01"/><rect x="17" y="7" width="3.6" height="13" fill="#FFCC01"/></svg>
+          <span>ClickHouse MCP</span>
+        </div>
+        <div class="mcp-item">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="2" width="18" height="18" rx="3" stroke="#1f6e63" stroke-width="1.4"/><path d="M6 8h10M6 12h7" stroke="#1f6e63" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span>Context Engine MCP</span>
+        </div>
+      </div>
+
+      <div class="chip-row">
+        <div class="chip">Agent Skills</div>
+        <div class="chip">Agent Tools</div>
+      </div>
+    </div>
+
+    <!-- connector: harness -> agents -->
+    <div class="arrow-h">
+      <span class="label">tools</span>
+      <div class="line"></div>
+    </div>
+
+    <!-- CENTER: the three agents, then where they land -->
+    <div class="center-col">
+
+      <div class="core">
+        <div class="core-eyebrow">The three agents</div>
+        <div class="pill-row">
+          <div class="pill">Instrumentation</div>
+          <div class="pill-mid">↔</div>
+          <div class="pill">Context</div>
+        </div>
+        <div class="pill-secondary">Analytics</div>
+      </div>
+
+      <div class="arrow-v">
+        <svg width="20" height="16" viewBox="0 0 20 16" fill="none"><path d="M10 15 3 5h14L10 15Z" fill="#948f7c"/></svg>
+      </div>
+
+      <!-- ClickHouse — big, where every agent's output actually lands -->
+      <div class="ch-box">
+        <div class="ch-head">
+          <div class="mark">
+            <svg width="34" height="34" viewBox="0 0 22 22" fill="none"><rect x="2" y="10" width="3.4" height="8" fill="#FFCC01"/><rect x="7.2" y="5" width="3.4" height="13" fill="#FFCC01"/><rect x="12.4" y="1" width="3.4" height="17" fill="#FFCC01"/><rect x="17.6" y="5" width="3.4" height="13" fill="#FFCC01"/></svg>
+            <h2>ClickHouse</h2>
+          </div>
+          <div class="sub">everything the agents know and produce, in one place</div>
+        </div>
+        <div class="stores">
+          <div class="store">
+            <svg width="22" height="22" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2.5" stroke="#1f6e63" stroke-width="1.3"/><path d="M5.5 6.5h7M5.5 9.5h5" stroke="#1f6e63" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span class="mono">context_engine</span>
+            <span class="tag">context_versions</span>
+          </div>
+          <div class="store">
+            <svg width="22" height="22" viewBox="0 0 18 18" fill="none"><rect x="2" y="10" width="2.6" height="6" fill="#FFCC01"/><rect x="6" y="6.5" width="2.6" height="9.5" fill="#FFCC01"/><rect x="10" y="2" width="2.6" height="14" fill="#FFCC01"/><rect x="14" y="6.5" width="2.6" height="9.5" fill="#FFCC01"/></svg>
+            <span class="mono">atlys.&lt;table&gt; / MV</span>
+            <span class="tag">landed schema</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- connector: agents -> observability -->
+    <div class="arrow-h">
+      <span class="label">traces</span>
+      <div class="line"></div>
+    </div>
+
+    <!-- RIGHT: observability -->
+    <div>
+      <div class="box">
+        <div class="icon-grid" style="grid-template-columns: 1fr;">
+          <div class="icon-item">
+            <svg width="28" height="28" viewBox="0 0 22 22" fill="none"><path d="M2 13 6 4.5 9.5 11 13 3 20 13" stroke="#1f6e63" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            <span>Langfuse<br><span style="opacity: 0.6; font-size: 10px;">via LibreChat</span></span>
+          </div>
+          <div class="icon-item">
+            <svg width="28" height="28" viewBox="0 0 22 22" fill="none"><rect x="2" y="2.5" width="18" height="4.2" rx="1.2" fill="#FFCC01"/><rect x="2" y="8.8" width="18" height="4.2" rx="1.2" fill="#FFCC01" opacity="0.65"/><rect x="2" y="15" width="18" height="4.2" rx="1.2" fill="#FFCC01" opacity="0.35"/></svg>
+            <span>ClickStack</span>
+          </div>
+        </div>
+        <div class="box-label">Observability</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── the story ─────────────────────────────────────────────────── -->
+  <div class="story-section">
+    <div class="story-head">
+      <div class="eyebrow">Grounded, not guessed</div>
+      <h2>Why we built it this way</h2>
+    </div>
+
+    <div class="story">
+      <div class="story-num">01</div>
+      <h3 class="story-q">How do we ground schema generation?</h3>
+      <p class="story-problem">An agent reasoning about a schema only from what it wrote down is reasoning about vibes, not the table. Two harnesses, used together.</p>
+
+      <div class="harness-card">
+        <div class="harness-card-head">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2.5" stroke="#FFCC01" stroke-width="1.5"/><path d="M2 8h16" stroke="#FFCC01" stroke-width="1.5"/></svg>
+          <span class="t">Staging Harness</span>
+          <span class="badge">created once</span>
+        </div>
+        <p class="harness-does">A real ClickHouse staging area, provisioned once up front — every proposed schema is actually built and loaded with real data here before anyone trusts it.</p>
+
+        <div class="flow">
+          <div class="hub-in">
+            <span class="flow-step">Proposal v1</span>
+            <span class="flow-step">Proposal v2</span>
+            <span class="flow-step">Proposal v3</span>
+          </div>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step accent">Staging tables</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step result">data quality checked</span>
+        </div>
+
+        <div class="use-case">
+          <span class="label">Use case</span>
+          <p>Every revision is tested for data quality here — not just re-argued in text.</p>
+        </div>
+      </div>
+
+      <div class="harness-card">
+        <div class="harness-card-head">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2 17 5 8 9 13 13 4 18 17" stroke="#1f6e63" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          <span class="t">Perf Harness</span>
+        </div>
+        <p class="harness-does">"This ORDER BY will be faster" is a guess, not evidence — so the winner is measured, never asserted.</p>
+
+        <div class="flow">
+          <span class="flow-step accent">Staging tables</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">time candidates A · B · C</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step result">winner + worst flagged</span>
+        </div>
+
+        <div class="use-case">
+          <span class="label">Use case</span>
+          <p>Times every candidate against staged data, flagging the agent if one is clearly the worst.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="story">
+      <div class="story-num">02</div>
+      <h3 class="story-q">Where does the context engine live, and what does it hold?</h3>
+      <p class="story-problem">If the agents' shared memory can quietly change, nothing built on top of it can be trusted.</p>
+
+      <div class="engine-box">
+        <div class="engine-top">
+          <div class="mark">
+            <svg width="24" height="24" viewBox="0 0 22 22" fill="none"><rect x="2" y="10" width="3" height="7" fill="#FFCC01"/><rect x="6.5" y="6" width="3" height="11" fill="#FFCC01"/><rect x="11" y="1.5" width="3" height="15.5" fill="#FFCC01"/><rect x="15" y="6" width="3" height="11" fill="#FFCC01"/></svg>
+            <h4>Context Engine</h4>
+          </div>
+          <span class="engine-loc mono">ClickHouse · agent_meta</span>
+        </div>
+
+        <div class="engine-section">
+          <div class="core-divider">What it models</div>
+          <div class="chip-row" style="flex-wrap: wrap;">
+            <div class="chip">Entities</div>
+            <div class="chip">Tables</div>
+            <div class="chip">Metrics</div>
+            <div class="chip">Relationships</div>
+            <div class="chip">Base context</div>
+          </div>
+        </div>
+
+        <div class="engine-section">
+          <div class="core-divider">Skill</div>
+          <div class="mech-row">
+            <div class="mech">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2.5" stroke="#1f6e63" stroke-width="1.4"/><path d="M6 7h8M6 10h8M6 13h5" stroke="#1f6e63" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <div><div class="t">Context Engine CRUD</div><div class="d">One consistent way for every agent to read and write context — no hand-rolled SQL per agent.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="engine-section">
+          <div class="core-divider">How we store it</div>
+          <div class="flow" style="margin-bottom: 10px;">
+            <span class="flow-step accent">context_versions</span>
+            <span class="flow-arrow">→ argMax(after, ts) →</span>
+            <span class="flow-step result">current_context (view)</span>
+          </div>
+          <p class="harness-does" style="margin: 0;">Append-only log, and a view over it — the latest write per section always wins, nothing is deleted.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="story">
+      <div class="story-num">03</div>
+      <h3 class="story-q">How does schema creation actually get decided?</h3>
+      <p class="story-problem">One agent in the middle, with Skills, Tools, the Context Layer, and the real data — reasoning it out, not guessing it out.</p>
+
+      <div class="orch-diagram">
+        <!-- LEFT: what the agent can access -->
+        <div class="orch-side">
+          <div class="orch-side-title">Has access to</div>
+          <div class="chip-row">
+            <div class="chip">Skills</div>
+            <div class="chip">Tools</div>
+            <div class="chip">Context layer</div>
+            <div class="chip">Real data</div>
+          </div>
+        </div>
+
+        <div class="arrow-h"><div class="line"></div></div>
+
+        <!-- CENTER: the agent itself -->
+        <div class="orch-agent">
+          <div class="mark">
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#FFCC01" stroke-width="1.5"/><circle cx="10" cy="10" r="2.4" fill="#FFCC01"/></svg>
+            <h4>Instrumentation Agent</h4>
+          </div>
+        </div>
+
+        <div class="arrow-h"><span class="label">feedback ↻ multiple proposals</span><div class="line"></div></div>
+
+        <!-- RIGHT: subagent it triggers -->
+        <div class="orch-side">
+          <div class="orch-side-title">Triggers</div>
+          <div class="orch-agent orch-subagent" style="padding: 14px 12px;">
+            <div class="mark">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M4 10.5 8 14.5 16 5.5" stroke="#1f6e63" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+              <h4>Subagent</h4>
+            </div>
+          </div>
+          <p class="harness-does">Reviews for business context — will this answer the PM's questions?</p>
+        </div>
+      </div>
+
+      <div class="arrow-v"><svg width="20" height="16" viewBox="0 0 20 16" fill="none"><path d="M10 15 3 5h14L10 15Z" fill="#948f7c"/></svg></div>
+
+      <div class="orch-result">
+        <span class="flow-step accent">Approved</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step accent">Executed</span>
+      </div>
+
+      <div class="arrow-v"><svg width="20" height="16" viewBox="0 0 20 16" fill="none"><path d="M10 15 3 5h14L10 15Z" fill="#948f7c"/></svg></div>
+
+      <div class="engine-box" style="padding: 22px 24px;">
+        <div class="engine-top" style="margin-bottom: 12px;">
+          <div class="mark">
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2.5" stroke="#1f6e63" stroke-width="1.4"/><path d="M6 7h8M6 10h8M6 13h5" stroke="#1f6e63" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <h4>Context Agent</h4>
+          </div>
+          <span class="badge">triggered on execute</span>
+        </div>
+        <p class="harness-does" style="margin: 0 0 12px;">Updates the context layer using the Context Engine CRUD skill.</p>
+        <div class="chip-row">
+          <div class="chip">Context Engine CRUD</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="story">
+      <div class="story-num">04</div>
+      <h3 class="story-q">What powers the Analytics Agent?</h3>
+      <p class="story-problem">Same real access as the Instrumentation Agent — explores first, then writes the answer.</p>
+
+      <div class="orch-diagram">
+        <!-- LEFT: what the agent can access -->
+        <div class="orch-side">
+          <div class="orch-side-title">Has access to</div>
+          <div class="chip-row">
+            <div class="chip">ClickHouse MCP Server</div>
+            <div class="chip">Context Engine MCP</div>
+          </div>
+        </div>
+
+        <div class="arrow-h"><div class="line"></div></div>
+
+        <!-- CENTER: the agent itself -->
+        <div class="orch-agent">
+          <div class="mark">
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#FFCC01" stroke-width="1.5"/><circle cx="10" cy="10" r="2.4" fill="#FFCC01"/></svg>
+            <h4>Analytics Agent</h4>
+          </div>
+        </div>
+
+        <div class="arrow-h"><div class="line"></div></div>
+
+        <!-- RIGHT: what it produces -->
+        <div class="orch-side">
+          <div class="orch-side-title">Produces</div>
+          <div class="orch-agent orch-subagent" style="padding: 14px 12px;">
+            <div class="mark">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M4 3h9l3 3v11H4V3Z" stroke="#1f6e63" stroke-width="1.4" stroke-linejoin="round"/><path d="M13 3v3h3" stroke="#1f6e63" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <h4>HTML Artifact</h4>
+            </div>
+          </div>
+          <p class="harness-does">with recommendations</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>ClickHouse Click-a-thon 2026 · Atlys track</footer>
+
+</div>

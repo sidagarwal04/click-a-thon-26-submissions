@@ -1,0 +1,162 @@
+{
+  "name": "SonyLIV — Live concurrency",
+  "tags": [
+    "sonyliv",
+    "concurrency",
+    "live"
+  ],
+  "filters": [
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Title",
+      "expression": "title",
+      "sourceId": "__SOURCE_sonyliv-live-content__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-live-content__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Content type",
+      "expression": "video_type",
+      "sourceId": "__SOURCE_sonyliv-live-content__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-live-content__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Category",
+      "expression": "category",
+      "sourceId": "__SOURCE_sonyliv-live-content__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-live-content__"
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "name": "Concurrent now",
+      "x": 0,
+      "y": 0,
+      "w": 6,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-live-content__",
+        "sqlTemplate": "SELECT sum(ending_concurrency) AS concurrent_now FROM __DATABASE__.serving_live_content WHERE $__filters AND bucket_start = (SELECT max(bucket_start) FROM __DATABASE__.serving_live_content WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime))"
+      }
+    },
+    {
+      "name": "Peak (ungrouped)",
+      "x": 6,
+      "y": 0,
+      "w": 6,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT max(bucket_peak) AS exact_peak FROM __DATABASE__.serving_live_total WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime)"
+      }
+    },
+    {
+      "name": "Viewer-hours",
+      "x": 12,
+      "y": 0,
+      "w": 6,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-live-content__",
+        "sqlTemplate": "SELECT round(sum(active_ms) / 3600000.0, 2) AS viewer_hours FROM __DATABASE__.serving_live_content WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime) AND $__filters"
+      }
+    },
+    {
+      "name": "Layer lag (s)",
+      "x": 18,
+      "y": 0,
+      "w": 6,
+      "h": 3,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT dateDiff('second', max(watermark_ts), now64(3)) AS lag_seconds FROM __DATABASE__.serving_watermark FINAL WHERE layer = 'live'"
+      }
+    },
+    {
+      "name": "Concurrent viewers",
+      "x": 0,
+      "y": 3,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(bucket_start) AS ts, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_live_content WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime) AND $__filters GROUP BY ts ORDER BY ts",
+        "sourceId": "__SOURCE_sonyliv-live-content__"
+      }
+    },
+    {
+      "name": "Peak vs average (ungrouped)",
+      "x": 0,
+      "y": 10,
+      "w": 24,
+      "h": 6,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(bucket_start) AS ts, max(bucket_peak) AS peak, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS time_weighted_average FROM __DATABASE__.serving_live_total WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime) GROUP BY ts ORDER BY ts"
+      }
+    },
+    {
+      "name": "Top titles",
+      "x": 0,
+      "y": 17,
+      "w": 13,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-live-content__",
+        "fillNulls": false,
+        "sqlTemplate": "SELECT $__timeInterval(bucket_start) AS ts, title, round(sum(active_ms) / ($__interval_s * 1000.0), 2) AS avg_concurrent FROM __DATABASE__.serving_live_content WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime) AND $__filters AND content_id IN (SELECT content_id FROM __DATABASE__.serving_live_content WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime) AND $__filters GROUP BY content_id ORDER BY sum(active_ms) DESC LIMIT 8) GROUP BY ts, title ORDER BY ts"
+      }
+    },
+    {
+      "name": "Title leaderboard",
+      "x": 13,
+      "y": 17,
+      "w": 11,
+      "h": 8,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sourceId": "__SOURCE_sonyliv-live-content__",
+        "sqlTemplate": "SELECT title, video_type, category, max(bucket_peak) AS exact_peak, argMax(ending_concurrency, bucket_start) AS now, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours FROM __DATABASE__.serving_live_content WHERE ($__timeFilter(bucket_start) AND bucket_start < $__toTime) AND $__filters GROUP BY title, video_type, category ORDER BY max(bucket_peak) DESC LIMIT 25"
+      }
+    },
+    {
+      "name": "Notes",
+      "x": 0,
+      "y": 25,
+      "w": 24,
+      "h": 6,
+      "config": {
+        "displayType": "markdown",
+        "markdown": "**Live layer** · `serving_concurrency_live` · 10-second grain · rebuilt every 10s over a 30-minute trailing window · 3-day retention.\n\nBest-effort: publishes without waiting for late events, so a late arrival can revise a published bucket. Buckets older than the rebuild window are frozen and slightly optimistic — measured 0.066% high. Corrected figures are on *Concurrency analytics*.\n\n**Active** = started, not ended, foreground, playing, and a liveness signal within 120s. Foreground and playing are independent: 13,382 of 14,256 `AppForegrounded` events leave playback stopped. Policy `sonyliv-active-v1`, half-open `[start, end)`, UTC.\n\nTiles built on `active_ms` or `ending_concurrency` follow the filters and stay exact — both are additive. Tiles marked *ungrouped* read rows that carry no content dimension and cannot be filtered."
+      }
+    }
+  ]
+}

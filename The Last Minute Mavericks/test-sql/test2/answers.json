@@ -1,0 +1,99 @@
+{
+  "name": "test2",
+  "database": "rca_ts2",
+  "rows": 10000,
+  "days": 40,
+  "seed": 29,
+  "baseline_rule": "same weekdays, 3 preceding weeks, window + other incident windows excluded (identical to run_incident.baseline_days)",
+  "quarantine": "engine/agent/UI code must never read this file \u2014 only test-sql/verify.py, after the scan has already produced its bundle.",
+  "incidents": [
+    {
+      "id": "T2-1",
+      "metric": "fill_rate",
+      "dim": "region",
+      "value": "EU",
+      "win": [
+        "2026-06-24",
+        "2026-06-26"
+      ],
+      "drop": 0.5,
+      "why": "Simpson's case: -50% inside a 9.6%-of-traffic cell dilutes to -16.1% at region=EU and -13.2% at os_version=Android 14 (measured). Both 1-D views must be ruled out in favour of the cross-cut, and peeling the cell out must leave each with a ~0% residual.",
+      "co_dim": "os_version",
+      "co_value": "Android 14",
+      "expect": "detected",
+      "window_days": 3,
+      "expected_deviation_pct": -49.95,
+      "segment_volume_per_day": 194169,
+      "segment_request_share": 0.0962
+    },
+    {
+      "id": "T2-2",
+      "metric": "ecpm",
+      "dim": "category",
+      "value": "finance",
+      "win": [
+        "2026-07-01",
+        "2026-07-02"
+      ],
+      "drop": 0.4,
+      "why": "demand-side price drop in one app category; baseline days overlap T2-1's window, so it also exercises contamination exclusion.",
+      "expect": "detected",
+      "window_days": 2,
+      "expected_deviation_pct": -39.98,
+      "segment_volume_per_day": 280102,
+      "segment_request_share": null
+    },
+    {
+      "id": "T2-3",
+      "metric": "fill_rate",
+      "dim": "device_model",
+      "value": "Pixel 8",
+      "win": [
+        "2026-07-07",
+        "2026-07-09"
+      ],
+      "drop": 0.35,
+      "why": "gradual degradation (-11.7% / -23.3% / -35%) rather than a step \u2014 a step-only detector clips the window.",
+      "shape": "ramp",
+      "expect": "detected",
+      "window_days": 3,
+      "expected_deviation_pct": -23.32,
+      "segment_volume_per_day": 446592,
+      "segment_request_share": 0.2214
+    },
+    {
+      "id": "T2-C1",
+      "metric": "ecpm",
+      "dim": "__global__",
+      "value": null,
+      "win": [
+        "2026-06-22",
+        "2026-06-22"
+      ],
+      "drop": 0.02,
+      "why": "-2% everywhere is under the 5% relative floor for ratio metrics. Firing on it is noise, not an incident. Measured cell-level eCPM noise on a clean slice is p99 1.9% / max 4.3%, so -4% sat too close to the floor to be a stable control; -2% leaves real headroom.",
+      "expect": "suppressed",
+      "window_days": 1,
+      "expected_deviation_pct": -1.87,
+      "segment_volume_per_day": 1643996,
+      "segment_request_share": null
+    },
+    {
+      "id": "T2-C2",
+      "metric": "ctr",
+      "dim": "country",
+      "value": "IN",
+      "win": [
+        "2026-07-04",
+        "2026-07-05"
+      ],
+      "drop": 0.4,
+      "why": "CTR halves in the largest APAC market and revenue does not move a cent \u2014 this is a CPM model, clicks buy nothing. Scope is revenue via fill_rate + eCPM, so firing here is fabricating an incident.",
+      "expect": "suppressed",
+      "window_days": 2,
+      "expected_deviation_pct": -40.56,
+      "segment_volume_per_day": 340359,
+      "segment_request_share": 0.1687
+    }
+  ]
+}

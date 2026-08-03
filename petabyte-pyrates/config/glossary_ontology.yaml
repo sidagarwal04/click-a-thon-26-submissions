@@ -1,0 +1,317 @@
+version: "1.3"
+description: >
+  Glossary ontology for the InMobi Click-a-thon root-cause analyst.
+  Primary evidence table: gold.metrics_hourly — a pre-aggregated hourly gold
+  table. Each row is one hour (UTC) × dimension slice with additive counts
+  (requests, fills, impressions, clicks, revenue) already rolled up from silver.
+  Do not re-aggregate from raw events. For RCA, filter rows by region, ad_format,
+  and hour range, then roll up across the matching rows: sum() on additive
+  columns; ratio metrics via sum-over-sum (not stored as columns). For pre-sliced
+  rollups use gold.metric_hourly_by_slice. Do not query raw event tables or
+  gold.ad_events_semantic for RCA.
+
+terms:
+  requests:
+    type: metric
+    description: >
+      Ad request count per hourly row (pre-aggregated). UInt64 column requests.
+      Roll up with sum(requests) across rows in your RCA window. Denominator of
+      fill_rate and rpr.
+    metric_key: requests
+    clickhouse_column: requests
+    clickhouse_view: gold.metrics_hourly
+    synonyms: [request_volume, request_count]
+
+  fills:
+    type: metric
+    description: >
+      Filled requests per hourly row (pre-aggregated). UInt64 column fills.
+      Roll up with sum(fills) across rows in your RCA window. Numerator of
+      fill_rate; denominator of render_rate.
+    metric_key: fills
+    clickhouse_column: fills
+    clickhouse_view: gold.metrics_hourly
+    synonyms: []
+
+  impressions:
+    type: metric
+    description: >
+      Impressions per hourly row (pre-aggregated). UInt64 column impressions.
+      Roll up with sum(impressions) across rows in your RCA window. Denominator
+      of ctr and ecpm.
+    metric_key: impressions
+    clickhouse_column: impressions
+    clickhouse_view: gold.metrics_hourly
+    synonyms: []
+
+  clicks:
+    type: metric
+    description: >
+      Clicks per hourly row (pre-aggregated). UInt64 column clicks. Roll up with
+      sum(clicks) across rows in your RCA window. Numerator of ctr.
+    metric_key: clicks
+    clickhouse_column: clicks
+    clickhouse_view: gold.metrics_hourly
+    synonyms: []
+
+  revenue:
+    type: metric
+    description: >
+      Revenue in USD per hourly row (pre-aggregated). Float64 column revenue.
+      Roll up with sum(revenue) across rows in your RCA window. Numerator of
+      ecpm and rpr.
+    metric_key: revenue
+    clickhouse_column: revenue
+    clickhouse_view: gold.metrics_hourly
+    synonyms: [total_revenue]
+
+  fill_rate:
+    type: metric
+    description: >
+      Not a stored column. After filtering gold.metrics_hourly rows, compute
+      sum(fills)/sum(requests) over the RCA window (sum-over-sum rollup).
+    metric_key: fill_rate
+    clickhouse_view: gold.metrics_hourly
+    aggregation_rule: sum_over_sum
+    synonyms: [fill_rate_pct]
+
+  render_rate:
+    type: metric
+    description: >
+      Not a stored column. Compute sum(impressions)/sum(fills) over the RCA
+      window (sum-over-sum rollup).
+    metric_key: render_rate
+    clickhouse_view: gold.metrics_hourly
+    aggregation_rule: sum_over_sum
+    synonyms: []
+
+  ctr:
+    type: metric
+    description: >
+      Not a stored column. Compute sum(clicks)/sum(impressions) over the RCA
+      window (sum-over-sum rollup).
+    metric_key: ctr
+    clickhouse_view: gold.metrics_hourly
+    aggregation_rule: sum_over_sum
+    synonyms: [click_through_rate]
+    context_only_for: [revenue]
+
+  ecpm:
+    type: metric
+    description: >
+      Not a stored column. Compute sum(revenue)/sum(impressions)*1000 over the
+      RCA window (sum-over-sum rollup).
+    metric_key: ecpm
+    clickhouse_view: gold.metrics_hourly
+    aggregation_rule: sum_over_sum
+    synonyms: [eCPM]
+
+  rpr:
+    type: metric
+    description: >
+      Not a stored column. Compute sum(revenue)/sum(requests) over the RCA
+      window (sum-over-sum rollup).
+    metric_key: rpr
+    clickhouse_view: gold.metrics_hourly
+    aggregation_rule: sum_over_sum
+    synonyms: [revenue_per_request]
+
+relationships:
+  - source: revenue
+    target: requests
+    type: decomposed_by
+    description: Request volume is a revenue decomposition factor.
+
+  - source: revenue
+    target: fill_rate
+    type: decomposed_by
+    description: Fill rate is a primary revenue decomposition factor.
+
+  - source: revenue
+    target: ecpm
+    type: decomposed_by
+    description: eCPM is a primary revenue decomposition factor.
+
+  - source: ctr
+    target: revenue
+    type: context_only
+    description: CTR does not directly drive revenue in the CPM model; use for context only.
+
+  - source: fill_rate
+    target: region
+    type: sliced_by
+
+  - source: fill_rate
+    target: ad_format
+    type: sliced_by
+
+  - source: fill_rate
+    target: category
+    type: sliced_by
+
+  - source: fill_rate
+    target: publisher_tier
+    type: sliced_by
+
+  - source: revenue
+    target: region
+    type: sliced_by
+
+  - source: revenue
+    target: ad_format
+    type: sliced_by
+
+  - source: revenue
+    target: category
+    type: sliced_by
+
+  - source: revenue
+    target: vertical
+    type: sliced_by
+
+  - source: revenue
+    target: device_model
+    type: sliced_by
+
+  - source: revenue
+    target: country
+    type: sliced_by
+
+  - source: revenue
+    target: os_version
+    type: sliced_by
+
+  - source: revenue
+    target: publisher_tier
+    type: sliced_by
+
+dimensions:
+  hour:
+    description: >
+      Hour bucket in UTC (DateTime, truncated to :00:00). Always filter
+      WHERE hour >= ... AND hour < ... for RCA windows around metric_hour.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: hour
+
+  region:
+    description: >
+      Global region. Enum: EU, NAM, APAC, LATAM, MEA. Leading filter for
+      granule pruning — include WHERE region = ... first when possible.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: region
+
+  ad_format:
+    description: >
+      Ad creative format. Enum: banner, native, interstitial, video, rewarded.
+      Second leading filter after region for granule pruning.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: ad_format
+
+  category:
+    description: >
+      App content category (column app_category). Enum: gaming, ecommerce,
+      entertainment, news, finance, social, utility.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: app_category
+
+  publisher_tier:
+    description: >
+      Publisher revenue tier. Enum: tier_1 (highest revenue), tier_2, tier_3.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: publisher_tier
+
+  country:
+    description: >
+      ISO 3166-1 alpha-2 country code (2 letters), e.g. DE, US, IN, BR.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: country
+
+  device_model:
+    description: >
+      Device brand + model string, e.g. Pixel 7, iPhone 15, Galaxy S24.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: device_model
+
+  os_version:
+    description: >
+      OS + major version string, e.g. Android 14, iOS 17, HarmonyOS 4.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: os_version
+
+  vertical:
+    description: >
+      Advertiser industry vertical. Enum: gaming, entertainment, finance,
+      ecommerce, auto, travel, cpg. Empty string for unfilled cells — filter
+      WHERE vertical != '' for filled inventory only.
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: vertical
+
+  campaign_type:
+    description: >
+      Campaign pricing model. Enum: CPM, CPC, CPI. Empty string for unfilled
+      cells (same convention as vertical).
+    clickhouse_view: gold.metrics_hourly
+    dimension_key: campaign_type
+
+decompositions:
+  revenue:
+    identity: "Revenue ≈ Requests × Fill rate × eCPM / 1000"
+    components: [requests, fill_rate, ecpm]
+    clickhouse_target: gold.metrics_hourly
+
+constraints:
+  - id: filter_order
+    description: >
+      gold.metrics_hourly ORDER BY (region, ad_format, hour, ...). For RCA
+      queries lead with WHERE region = ..., then ad_format when known, then
+      hour range for granule pruning.
+
+  - id: funnel_order
+    description: >
+      Funnel rules enforced in silver: no impression without fill,
+      no click without impression, no revenue without impression.
+
+  - id: advertiser_sparse
+    description: >
+      advertiser_ids array is empty for unfilled rows. Advertiser-level
+      dimensions (vertical, campaign_type) apply only to filled events.
+      Filter vertical != '' for filled inventory. Fill-rate RCA typically
+      slices by ad_format, region, app_category.
+
+  - id: array_columns
+    description: >
+      gold.metrics_hourly has union-dedup array columns app_ids, geo_device_ids,
+      and advertiser_ids (SimpleAggregateFunction groupUniqArrayArray).
+      Single row: SELECT app_ids. Cross-row: groupUniqArrayArray(app_ids).
+      Membership: has(app_ids, 'app_00123'). advertiser_ids is [] on unfilled cells.
+
+  - id: hourly_grain
+    description: >
+      gold.metrics_hourly is pre-aggregated at hourly grain (column hour, UTC).
+      Each row is one hour × dimension slice with counts already summed from
+      silver. Filter hour range for RCA; do not query or rebuild from raw events.
+      gold.metric_hourly_by_slice provides further pre-aggregated slices
+      (slice_type, slice_value) aligned with anomaly detection.
+
+  - id: rollup_aggregation
+    description: >
+      Rows in gold.metrics_hourly are already aggregated. sum() applies when
+      rolling up across multiple rows in your filtered window (e.g. baseline
+      vs current hours, or localization across dimension values). Never average
+      pre-computed rates across rows.
+
+  - id: ratio_aggregation
+    description: >
+      Ratio metrics (fill_rate, ecpm, ctr, render_rate, rpr) are not columns.
+      After filtering rows, compute with sum-over-sum across the window — e.g.
+      fill_rate = sum(fills)/nullIf(sum(requests),0),
+      ecpm = sum(revenue)/nullIf(sum(impressions),0)*1000.
+
+  - id: aggregate_alias_naming
+    description: >
+      ClickHouse ILLEGAL_AGGREGATION: never alias sum(column) to the same name
+      as the source column in the same SELECT (e.g. sum(fills) AS fills breaks
+      sum(fills)/sum(requests) in the same query). Use distinct aliases:
+      sum(requests) AS total_requests, sum(fills) AS total_fills,
+      sum(revenue) AS total_revenue, then compute ratios from those aliases or
+      repeat sum(column) only without conflicting aliases.

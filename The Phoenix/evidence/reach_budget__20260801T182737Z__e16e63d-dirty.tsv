@@ -1,0 +1,24 @@
+# evidence: reach_budget
+# what: reach.sql read budget recalibrated to 3x measured after a real TOO_MANY_ROWS breach
+# run_utc: 2026-08-01 18:27:37
+# git: e16e63d-dirty
+# host: ss-cric
+# row_count: 2455714
+# event_watermark: 2026-08-01 17:14:11.301
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 18:27:37   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+breach_observed_rows	330170
+measured_phoenix_rows	366638
+measured_phoenix_bytes	14219708
+measured_phoenix_next_rows	224096
+measured_phoenix_next_bytes	9913988
+new_max_rows_to_read	1099914
+new_max_bytes_to_read	42659124
+cause	retract/assert writes physical sign pairs per incremental derive; reads grow until merges collapse them
+gate	PASS

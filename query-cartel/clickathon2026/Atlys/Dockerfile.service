@@ -1,0 +1,58 @@
+# FastAPI orchestration service — multi-stage Docker image (ENGINEERING.md §6.4, D13).
+# Build context = Atlys/  (docker-compose.yml sets context: . relative to Atlys/)
+#
+# Stage 1: build the React+Vite UI → outputs to /ui/dist
+# Stage 2: Python service — copies the UI build into service/static/ where
+#           FastAPI's StaticFiles middleware serves it at /.
+
+# --------------------------------------------------------------------------- #
+# Stage 1 — React+Vite build                                                  #
+# --------------------------------------------------------------------------- #
+FROM node:20-slim AS ui-build
+
+WORKDIR /ui
+
+# Layer-cache npm install separately from source
+COPY ui/package*.json ./
+RUN npm ci
+
+COPY ui/ .
+# vite.config.js sets outDir: '../service/static' but inside Docker we keep
+# the build local and copy it in stage 2. Override outDir to /ui/dist.
+RUN npm run build -- --outDir /ui/dist
+
+# --------------------------------------------------------------------------- #
+# Stage 2 — Python / FastAPI service                                          #
+# --------------------------------------------------------------------------- #
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Copy the service package + its manifest first (layer caching for deps)
+COPY service/requirements.txt ./service/requirements.txt
+RUN pip install --no-cache-dir -r service/requirements.txt
+
+# Service source + scripts
+COPY service/ ./service/
+COPY scripts/ ./scripts/
+COPY agents/ ./agents/
+
+# Runtime data
+COPY base_context.md .
+COPY specs/ ./specs/
+RUN mkdir -p generated
+
+# React UI built in stage 1 → served by FastAPI StaticFiles at /
+COPY --from=ui-build /ui/dist ./service/static/
+
+# settings.py resolves the repo root from its own path, so /app/service →
+# /app; PYTHONPATH=/app makes `service` importable for uvicorn.
+ENV PYTHONPATH=/app
+ENV ATLYS_ROOT=/app
+
+EXPOSE 8000
+
+# env vars come from docker-compose `env_file: .env`.
+# FastAPI starts uvicorn immediately, and the lifespan hook handles the
+# provisioning script asynchronously in the background.
+CMD ["uvicorn", "service.app:app", "--host", "0.0.0.0", "--port", "8000"]

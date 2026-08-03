@@ -1,0 +1,112 @@
+[project]
+name = "nx-workspace"
+version = "1.0.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "zentra-adapter-clickhouse",
+  "zentra-adapter-cube",
+  "zentra-adapter-langgraph",
+  "zentra-adapter-model-providers",
+  "zentra-adapter-postgres",
+  "zentra-adapter-sequence-execution",
+  "zentra-adapter-telemetry",
+  "zentra-adapter-thesys",
+  "zentra-api",
+  "zentra-application-connector",
+  "zentra-application-investigation",
+  "zentra-domain-agent-execution",
+  "zentra-domain-connector",
+  "zentra-domain-investigation",
+  "zentra-domain-sequence"
+]
+
+[tool.uv.workspace]
+members = [
+  "apps/api",
+  "libs/adapters/clickhouse",
+  "libs/adapters/cube",
+  "libs/adapters/langgraph",
+  "libs/adapters/model-providers",
+  "libs/adapters/postgres",
+  "libs/adapters/sequence-execution",
+  "libs/adapters/telemetry",
+  "libs/adapters/thesys",
+  "libs/application/connector",
+  "libs/application/investigation",
+  "libs/domain/agent-execution",
+  "libs/domain/connector",
+  "libs/domain/investigation",
+  "libs/domain/sequence"
+]
+
+[tool.uv.sources.zentra-adapter-clickhouse]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-cube]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-langgraph]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-model-providers]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-postgres]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-sequence-execution]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-telemetry]
+workspace = true
+
+[tool.uv.sources.zentra-adapter-thesys]
+workspace = true
+
+[tool.uv.sources.zentra-api]
+workspace = true
+
+[tool.uv.sources.zentra-application-connector]
+workspace = true
+
+[tool.uv.sources.zentra-application-investigation]
+workspace = true
+
+[tool.uv.sources.zentra-domain-agent-execution]
+workspace = true
+
+[tool.uv.sources.zentra-domain-connector]
+workspace = true
+
+[tool.uv.sources.zentra-domain-investigation]
+workspace = true
+
+[tool.uv.sources.zentra-domain-sequence]
+workspace = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--cov"
+
+[tool.ruff]
+exclude = [ ".ruff_cache", ".svn", ".tox", ".venv", "dist" ]
+line-length = 100
+indent-width = 4
+
+  [tool.ruff.lint]
+  select = [ "E", "F", "UP", "B", "SIM", "I" ]
+  ignore = [ ]
+  fixable = [ "ALL" ]
+  unfixable = [ ]
+
+[dependency-groups]
+dev = [
+  "autopep8>=2.3.1",
+  "import-linter>=2.9,<3",
+  "pytest-asyncio>=1.2,<2",
+  "ruff>=0.8.2",
+  "pytest>=8.3.4",
+  "pytest-sugar>=1.0.0",
+  "pytest-cov>=6.0.0",
+  "pytest-html>=4.1.1"
+]

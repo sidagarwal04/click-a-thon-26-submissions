@@ -1,0 +1,61 @@
+# LiteLLM proxy config — the Langfuse tracing seam.
+#
+# LibreChat has its own Langfuse instrumentation for the agent run; this proxy adds the
+# token counts and cost per model call, which those spans do not carry. Keys come from the
+# environment (see .env.example), never from this file, so it is safe in git.
+
+# ---------------------------------------------------------------------------
+# reasoning_effort: disable is load-bearing, not tuning. Do not "restore" it.
+#
+# Gemini 2.5 emits its chain of thought as `reasoning_content` deltas. LibreChat's custom
+# OpenAI-compatible endpoint does not consume them: the model answers, the proxy streams it
+# correctly, and LibreChat stores an assistant message whose text is the empty string. The
+# UI renders an empty bubble with no error anywhere -- not in the container logs, not in
+# the trace, which records `content: ""` beside a fully populated `reasoning_content`.
+#
+# Measured against the deployed stack, all 8 MCP tool schemas attached:
+#
+#   through the proxy directly, streamed, thinking on   144 chars of content   fine
+#   the same call through LibreChat's agent path        empty message          BROKEN
+#   the same call, reasoning_effort: disable            full answer            fine
+#
+# There is a second, narrower failure underneath it. With Gemini's DYNAMIC budget (the
+# default) and a vague question -- "can you give me a graph of average concurrent viewers
+# in the past day" -- the model returns a candidate with ZERO output parts: HTTP 200,
+# finish_reason `stop`, completion_tokens 0. Six runs, six empty. Specific questions
+# survive because the model commits to a tool quickly. It is exactly the open-ended
+# opening question a person actually types that dies.
+#
+# Bounding the budget (`low`) fixes that one but not the reasoning_content one, so the
+# budget has to go to zero regardless.
+#
+# WHY THERE IS NO gemini-2.5-pro HERE. It cannot: `Budget 0 is invalid. This model only
+# works in thinking mode.` With thinking on, LibreChat drops its answers. So pro is not a
+# slower-but-better option on this path, it is a broken one, and a broken entry in the
+# model picker is worse than a short picker.
+# ---------------------------------------------------------------------------
+
+model_list:
+  # A tool loop here is many small turns and latency is what the conversation feels;
+  # flash is the right trade for that shape, and the only one that works (see above).
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GEMINI_API_KEY
+      reasoning_effort: disable
+
+litellm_settings:
+  # Token counts and cost per call, which LibreChat's own spans do not carry.
+  success_callback: ['langfuse']
+  # Failures matter more than successes for a demo: a tool loop that dies on a 429 should
+  # be visible in Langfuse rather than only in a container log.
+  failure_callback: ['langfuse']
+  # Must exceed the MCP server's 60s per-request ceiling, or a slow ClickHouse query
+  # surfaces as a proxy timeout and the real cause is hidden.
+  request_timeout: 120
+  # LibreChat sends a few OpenAI-shaped params Gemini does not accept; let them through
+  # rather than failing the call.
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

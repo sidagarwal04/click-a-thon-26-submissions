@@ -1,0 +1,69 @@
+# Sidecar OTel collector: LibreChat file logs → ClickStack collector (OTLP)
+# Tails /var/log/librechat (shared volume with librechat:/app/logs)
+
+receivers:
+  filelog:
+    include:
+      - /var/log/librechat/error-*.log
+      - /var/log/librechat/debug-*.log
+      - /var/log/librechat/console.log
+    exclude:
+      - /var/log/librechat/*.gz
+      - /var/log/librechat/.*
+    start_at: end
+    include_file_name: true
+    include_file_path: false
+    operators:
+      - type: json_parser
+        id: parse_json
+        parse_from: body
+        parse_to: attributes
+        on_error: send_quiet
+        timestamp:
+          parse_from: attributes.timestamp
+          layout: "%Y-%m-%dT%H:%M:%S.%fZ"
+        severity:
+          parse_from: attributes.level
+          mapping:
+            fatal: fatal
+            error: error
+            warn: warn
+            warning: warn
+            info: info
+            debug: debug
+            trace: trace
+      - type: move
+        from: attributes.message
+        to: body
+        if: attributes.message != nil
+
+processors:
+  resource:
+    attributes:
+      - key: service.name
+        value: librechat
+        action: upsert
+      - key: deployment.environment
+        value: clickathon
+        action: upsert
+  batch:
+    timeout: 5s
+    send_batch_size: 256
+
+exporters:
+  otlphttp:
+    endpoint: http://otel-collector:4318
+    headers:
+      authorization: ${env:HYPERDX_API_KEY}
+    tls:
+      insecure: true
+  # Local debug (optional): uncomment debug exporter + add to pipeline
+  # debug:
+  #   verbosity: basic
+
+service:
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [resource, batch]
+      exporters: [otlphttp]

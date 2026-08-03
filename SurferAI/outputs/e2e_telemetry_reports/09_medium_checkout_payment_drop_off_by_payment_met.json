@@ -1,0 +1,127 @@
+{
+  "call_id": "CALL-09-MEDIUM",
+  "category": "Medium",
+  "title": "Checkout Payment Drop-off by Payment Method & Currency",
+  "question": "What is the checkout conversion rate and drop-off rate from pay_now_clicked to purchase_completed across payment methods and currencies with >= 100 payment attempts?",
+  "database": "default",
+  "target_tables": "pay_now_clicked, purchase_completed",
+  "timestamp": "2026-08-02T00:14:32.754923+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 240.56,
+    "row_count": 22,
+    "columns_count": 7,
+    "columns": [
+      "payment_method",
+      "currency",
+      "payment_attempts",
+      "successful_orders",
+      "payment_success_rate_pct",
+      "checkout_dropoff_pct",
+      "avg_attempt_amount"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_medium_09",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/3f9eb83fdc670a6469dcaf52c9c1ad0b",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    pay.payment_method,\n    pay.currency,\n    count() AS payment_attempts,\n    count(pur.application_id) AS successful_orders,\n    round(count(pur.application_id) * 100.0 / count(), 2) AS payment_success_rate_pct,\n    round((1.0 - count(pur.application_id) * 1.0 / count()) * 100.0, 2) AS checkout_dropoff_pct,\n    round(avg(pay.amount), 2) AS avg_attempt_amount\nFROM default.pay_now_clicked pay\nLEFT JOIN default.purchase_completed pur ON pay.application_id = pur.application_id\nGROUP BY pay.payment_method, pay.currency\nHAVING payment_attempts >= 100\nORDER BY payment_attempts DESC",
+  "result_sample": [
+    {
+      "payment_method": "card",
+      "currency": "INR",
+      "payment_attempts": 3847,
+      "successful_orders": 1781,
+      "payment_success_rate_pct": 46.3,
+      "checkout_dropoff_pct": 53.7,
+      "avg_attempt_amount": 4847.75
+    },
+    {
+      "payment_method": "upi",
+      "currency": "INR",
+      "payment_attempts": 2749,
+      "successful_orders": 1280,
+      "payment_success_rate_pct": 46.56,
+      "checkout_dropoff_pct": 53.44,
+      "avg_attempt_amount": 4903.85
+    },
+    {
+      "payment_method": "card",
+      "currency": "USD",
+      "payment_attempts": 973,
+      "successful_orders": 460,
+      "payment_success_rate_pct": 47.28,
+      "checkout_dropoff_pct": 52.72,
+      "avg_attempt_amount": 44.19
+    },
+    {
+      "payment_method": "card",
+      "currency": "AED",
+      "payment_attempts": 946,
+      "successful_orders": 510,
+      "payment_success_rate_pct": 53.91,
+      "checkout_dropoff_pct": 46.09,
+      "avg_attempt_amount": 284.73
+    },
+    {
+      "payment_method": "netbanking",
+      "currency": "INR",
+      "payment_attempts": 817,
+      "successful_orders": 358,
+      "payment_success_rate_pct": 43.82,
+      "checkout_dropoff_pct": 56.18,
+      "avg_attempt_amount": 4952.41
+    },
+    {
+      "payment_method": "upi",
+      "currency": "AED",
+      "payment_attempts": 723,
+      "successful_orders": 429,
+      "payment_success_rate_pct": 59.34,
+      "checkout_dropoff_pct": 40.66,
+      "avg_attempt_amount": 287.51
+    },
+    {
+      "payment_method": "upi",
+      "currency": "USD",
+      "payment_attempts": 696,
+      "successful_orders": 310,
+      "payment_success_rate_pct": 44.54,
+      "checkout_dropoff_pct": 55.46,
+      "avg_attempt_amount": 43.16
+    },
+    {
+      "payment_method": "wallet",
+      "currency": "INR",
+      "payment_attempts": 542,
+      "successful_orders": 252,
+      "payment_success_rate_pct": 46.49,
+      "checkout_dropoff_pct": 53.51,
+      "avg_attempt_amount": 4816.52
+    },
+    {
+      "payment_method": "card",
+      "currency": "AUD",
+      "payment_attempts": 278,
+      "successful_orders": 125,
+      "payment_success_rate_pct": 44.96,
+      "checkout_dropoff_pct": 55.04,
+      "avg_attempt_amount": 60.19
+    },
+    {
+      "payment_method": "card",
+      "currency": "GBP",
+      "payment_attempts": 258,
+      "successful_orders": 128,
+      "payment_success_rate_pct": 49.61,
+      "checkout_dropoff_pct": 50.39,
+      "avg_attempt_amount": 55.91
+    }
+  ],
+  "full_results_count": 22,
+  "summary": "Query executed successfully against ClickHouse default database in 240.56ms, returning 22 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Multi-table LEFT JOIN between pay_now_clicked (14.7k rows) and purchase_completed (7k rows), deriving payment success and friction rates."
+}

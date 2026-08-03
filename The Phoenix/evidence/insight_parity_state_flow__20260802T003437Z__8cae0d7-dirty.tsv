@@ -1,0 +1,25 @@
+# evidence: insight_parity_state_flow
+# what: state_flow: Gate A, sql/insights/validation/state_flow_diff.sql returns zero disagreements against the phoenix_next serving table
+# run_utc: 2026-08-02 00:34:37
+# git: 8cae0d7-dirty
+# host: ss-cric
+# row_count: 6999639
+# event_watermark: 2026-08-02 07:17:58.866
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 6999639   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 00:34:20   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+insight	state_flow
+database	phoenix_next
+reference_kind	server-side diff: sql/insights/validation/state_flow_diff.sql (both sides embedded, one statement)
+window	2026-07-26 00:00:00 -> 2026-07-27 00:00:00 (frozen_before 2026-08-01)
+ground_truth_rows	36	(required greater than 0)
+optimized_rows	36	(required greater than 0)
+differing_rows	0	(required 0)
+missing_keys	0	(the diff reports a missing key as a differing row, with a side column)
+unexpected_keys	0	(same)
+verdict	PASS

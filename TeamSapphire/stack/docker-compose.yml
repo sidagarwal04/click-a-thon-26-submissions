@@ -1,0 +1,314 @@
+name: clickathon-stack
+
+networks:
+  internal:
+
+# ---------------------------------------------------------------------------
+# ClickStack (HyperDX UI + OTel Collector) — ClickHouse itself is external
+# (ClickHouse Cloud), so the bundled ch-server container from upstream
+# ClickStack is intentionally omitted. hyperdx-mongo is HyperDX's own app
+# metadata store (dashboards/alerts config) — unrelated to LibreChat's mongo.
+# ---------------------------------------------------------------------------
+services:
+  hyperdx-mongo:
+    image: mongo:5.0.32-focal
+    volumes:
+      - hyperdx_mongo_data:/data/db
+    networks:
+      - internal
+
+  otel-collector:
+    image: ${CH_IMAGE_REPO}/${NEXT_OTEL_COLLECTOR_IMAGE_NAME_DOCKERHUB}:${IMAGE_VERSION}
+    restart: always
+    environment:
+      # Native protocol (tcp://host:9440?secure=true), not the HTTPS URL — the
+      # clickhouse exporter in this collector build speaks native protocol only;
+      # feeding it an https:// URL causes garbled "read next block" errors.
+      CLICKHOUSE_ENDPOINT: "${CLICKHOUSE_CLOUD_NATIVE_ENDPOINT}"
+      CLICKHOUSE_USER: "${OTEL_WRITER_USER}"
+      CLICKHOUSE_PASSWORD: "${OTEL_WRITER_PASSWORD}"
+      HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE: "${HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE}"
+      HYPERDX_LOG_LEVEL: "${HYPERDX_LOG_LEVEL}"
+      OPAMP_SERVER_URL: "http://hyperdx-app:${HYPERDX_OPAMP_PORT}"
+      HYPERDX_OTEL_EXPORTER_CREATE_LEGACY_SCHEMA: "true"
+    ports:
+      - "13133:13133" # health_check extension
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP http receiver
+    networks:
+      - internal
+    depends_on:
+      - hyperdx-app
+
+  hyperdx-app:
+    image: ${HDX_IMAGE_REPO}/${IMAGE_NAME_DOCKERHUB}:${IMAGE_VERSION}
+    restart: always
+    ports:
+      - "${HYPERDX_API_PORT}:${HYPERDX_API_PORT}"
+      - "${HYPERDX_APP_PORT}:${HYPERDX_APP_PORT}"
+    environment:
+      FRONTEND_URL: "${HYPERDX_APP_URL}:${HYPERDX_APP_PORT}"
+      HYPERDX_API_KEY: "${HYPERDX_API_KEY}"
+      HYPERDX_API_PORT: "${HYPERDX_API_PORT}"
+      HYPERDX_APP_PORT: "${HYPERDX_APP_PORT}"
+      HYPERDX_APP_URL: "${HYPERDX_APP_URL}"
+      HYPERDX_LOG_LEVEL: "${HYPERDX_LOG_LEVEL}"
+      MONGO_URI: "mongodb://hyperdx-mongo:27017/hyperdx"
+      SERVER_URL: "http://127.0.0.1:${HYPERDX_API_PORT}"
+      OPAMP_PORT: "${HYPERDX_OPAMP_PORT}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_SERVICE_NAME: "hdx-oss-app"
+      USAGE_STATS_ENABLED: "${USAGE_STATS_ENABLED}"
+      # dashboard_ro: read-only ClickHouse Cloud user, scoped to otel.* + default.* —
+      # this is the "custom dashboard" credential from the plan. HyperDX's own UI
+      # queries go through this, never through the write-capable otel_writer.
+      DEFAULT_CONNECTIONS: '[{"name":"ClickHouse Cloud","host":"${CLICKHOUSE_CLOUD_HTTPS_ENDPOINT}","username":"${DASHBOARD_RO_USER}","password":"${DASHBOARD_RO_PASSWORD}"}]'
+      DEFAULT_SOURCES: '[{"from":{"databaseName":"otel","tableName":"otel_logs"},"kind":"log","timestampValueExpression":"Timestamp","name":"Logs","displayedTimestampValueExpression":"Timestamp","implicitColumnExpression":"Body","serviceNameExpression":"ServiceName","bodyExpression":"Body","eventAttributesExpression":"LogAttributes","resourceAttributesExpression":"ResourceAttributes","defaultTableSelectExpression":"Timestamp,ServiceName,SeverityText,Body","severityTextExpression":"SeverityText","traceIdExpression":"TraceId","spanIdExpression":"SpanId","connection":"ClickHouse Cloud","traceSourceId":"Traces","sessionSourceId":"Sessions","metricSourceId":"Metrics"},{"from":{"databaseName":"otel","tableName":"otel_traces"},"kind":"trace","timestampValueExpression":"Timestamp","name":"Traces","displayedTimestampValueExpression":"Timestamp","implicitColumnExpression":"SpanName","serviceNameExpression":"ServiceName","eventAttributesExpression":"SpanAttributes","resourceAttributesExpression":"ResourceAttributes","defaultTableSelectExpression":"Timestamp,ServiceName,StatusCode,round(Duration/1e6),SpanName","traceIdExpression":"TraceId","spanIdExpression":"SpanId","durationExpression":"Duration","durationPrecision":9,"parentSpanIdExpression":"ParentSpanId","spanNameExpression":"SpanName","spanKindExpression":"SpanKind","statusCodeExpression":"StatusCode","statusMessageExpression":"StatusMessage","connection":"ClickHouse Cloud","logSourceId":"Logs","sessionSourceId":"Sessions","metricSourceId":"Metrics"},{"from":{"databaseName":"otel","tableName":""},"kind":"metric","timestampValueExpression":"TimeUnix","name":"Metrics","resourceAttributesExpression":"ResourceAttributes","metricTables":{"gauge":"otel_metrics_gauge","histogram":"otel_metrics_histogram","sum":"otel_metrics_sum"},"connection":"ClickHouse Cloud","logSourceId":"Logs","traceSourceId":"Traces","sessionSourceId":"Sessions"}]'
+    networks:
+      - internal
+    depends_on:
+      - hyperdx-mongo
+
+  # ---------------------------------------------------------------------------
+  # ClickHouse MCP servers — agent-facing, read-only users only.
+  # Exposed only on the internal docker network (LibreChat reaches them at
+  # http://mcp-clickhouse-<stage|prod>:8000/sse); not published externally.
+  #
+  # clickhouse-stage: this practice ClickHouse Cloud instance (AWS ap-south-1),
+  #   live now.
+  # clickhouse-prod: the hackathon-day ClickHouse Cloud instance, handed out
+  #   Aug 1. Gated behind the "prod" compose profile so it doesn't crash-loop
+  #   on placeholder credentials in the meantime — see CLICKHOUSE_SWITCH.md.
+  #   Bring it up on the day with:
+  #     docker compose --profile prod up -d mcp-clickhouse-prod
+  # ---------------------------------------------------------------------------
+  mcp-clickhouse-stage:
+    image: mcp/clickhouse
+    restart: always
+    environment:
+      CLICKHOUSE_HOST: "${CLICKHOUSE_CLOUD_HOST}"
+      CLICKHOUSE_PORT: "8443"
+      CLICKHOUSE_SECURE: "true"
+      CLICKHOUSE_USER: "${MCP_AGENT_USER}"
+      CLICKHOUSE_PASSWORD: "${MCP_AGENT_PASSWORD}"
+      CLICKHOUSE_ALLOW_WRITE_ACCESS: "false"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: "sse"
+      CLICKHOUSE_MCP_BIND_HOST: "0.0.0.0"
+    networks:
+      - internal
+
+  mcp-clickhouse-prod:
+    image: mcp/clickhouse
+    restart: always
+    profiles: ["prod"]
+    environment:
+      CLICKHOUSE_HOST: "${CLICKHOUSE_PROD_HOST:-not-configured-yet}"
+      CLICKHOUSE_PORT: "8443"
+      CLICKHOUSE_SECURE: "true"
+      CLICKHOUSE_USER: "${MCP_AGENT_PROD_USER:-mcp_agent}"
+      CLICKHOUSE_PASSWORD: "${MCP_AGENT_PROD_PASSWORD:-not-configured-yet}"
+      CLICKHOUSE_ALLOW_WRITE_ACCESS: "false"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: "sse"
+      CLICKHOUSE_MCP_BIND_HOST: "0.0.0.0"
+    networks:
+      - internal
+
+  # ---------------------------------------------------------------------------
+  # LibreChat — agent chat UI. Own mongo/meilisearch/pgvector, separate from
+  # HyperDX's mongo above. LLM providers: Claude (default) + Gemini (secondary),
+  # both API-based — no local Ollama/vLLM.
+  # ---------------------------------------------------------------------------
+  librechat-api:
+    container_name: LibreChat
+    image: registry.librechat.ai/danny-avila/librechat-dev:latest
+    restart: always
+    ports:
+      - "${LIBRECHAT_PORT}:${LIBRECHAT_PORT}"
+    user: "${LIBRECHAT_UID}:${LIBRECHAT_GID}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://librechat-mongo:27017/LibreChat
+      - MEILI_HOST=http://librechat-meilisearch:7700
+    volumes:
+      - type: bind
+        source: ./librechat.env
+        target: /app/.env
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+      - librechat_images:/app/client/public/images
+      - librechat_uploads:/app/uploads
+      - librechat_logs:/app/logs
+    networks:
+      - internal
+    depends_on:
+      - librechat-mongo
+      - mcp-clickhouse-stage
+
+  librechat-mongo:
+    image: mongo:8.0.20
+    restart: always
+    command: mongod --noauth
+    volumes:
+      - librechat_mongo_data:/data/db
+    networks:
+      - internal
+
+  librechat-meilisearch:
+    image: getmeili/meilisearch:v1.35.1
+    restart: always
+    environment:
+      - MEILI_HOST=http://librechat-meilisearch:7700
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+    volumes:
+      - librechat_meili_data:/meili_data
+    networks:
+      - internal
+
+  # librechat-vectordb + librechat-rag-api (file-upload/RAG support) are
+  # intentionally not deployed yet: LibreChat's rag_api defaults to OpenAI
+  # embeddings, which we haven't decided to add as a provider. Re-add both
+  # services (see git history) plus an OPENAI_API_KEY (or switch
+  # EMBEDDINGS_PROVIDER) if RAG/file-upload becomes a requirement.
+
+  # ---------------------------------------------------------------------------
+  # Langfuse — LLM tracing. ClickHouse database name is hardcoded by Langfuse
+  # to "default" (not configurable) — langfuse_writer is scoped to default.*
+  # on ClickHouse Cloud, not a dedicated "langfuse" database.
+  # ---------------------------------------------------------------------------
+  langfuse-worker:
+    image: docker.io/langfuse/langfuse-worker:3
+    restart: always
+    depends_on: &langfuse-depends-on
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+    environment: &langfuse-env
+      NEXTAUTH_URL: "http://${VM_EXTERNAL_IP}:3000"
+      DATABASE_URL: postgresql://langfuse:${LANGFUSE_POSTGRES_PASSWORD}@langfuse-postgres:5432/langfuse
+      SALT: ${LANGFUSE_SALT}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: "clickhouse://${CLICKHOUSE_CLOUD_HOST}:9440"
+      CLICKHOUSE_MIGRATION_SSL: "true"
+      CLICKHOUSE_URL: "${CLICKHOUSE_CLOUD_HTTPS_ENDPOINT}"
+      CLICKHOUSE_USER: ${LANGFUSE_WRITER_USER}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_WRITER_PASSWORD}
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      # Auto-provision an org/project/admin user + API keys at first startup,
+      # so LibreChat has a fixed public/secret key pair to point at without
+      # anyone needing to click through Langfuse's own signup flow.
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD}
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: ${LANGFUSE_REDIS_AUTH}
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_ROOT_USER}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_ROOT_USER}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: "http://${VM_EXTERNAL_IP}:9090"
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+    networks:
+      - internal
+
+  langfuse-web:
+    image: docker.io/langfuse/langfuse:3
+    restart: always
+    depends_on: *langfuse-depends-on
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+    networks:
+      - internal
+
+  langfuse-minio:
+    image: cgr.dev/chainguard/minio
+    restart: always
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: ${LANGFUSE_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_ROOT_PASSWORD}
+    ports:
+      - "9090:9000"
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+    networks:
+      - internal
+
+  langfuse-redis:
+    image: docker.io/redis:7
+    restart: always
+    command: >
+      --requirepass ${LANGFUSE_REDIS_AUTH}
+      --maxmemory-policy noeviction
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+    networks:
+      - internal
+
+  langfuse-postgres:
+    image: docker.io/postgres:17
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD}
+      POSTGRES_DB: langfuse
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+volumes:
+  hyperdx_mongo_data:
+  librechat_mongo_data:
+  librechat_meili_data:
+  librechat_images:
+  librechat_uploads:
+  librechat_logs:
+  langfuse_postgres_data:
+  langfuse_minio_data:
+  langfuse_redis_data:

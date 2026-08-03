@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metric Forensics — rca_orch</title>
+<meta name="description" content="Automated root-cause analysis: detected anomalies, segment attribution, exclusion proof, full query trace.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<button id="theme-toggle" type="button" aria-label="Toggle colour theme">◐</button>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">rca_orch · automated root-cause analyst</div>
+    <h1 id="h1">Loading incidents…</h1>
+    <p class="dek" id="dek">Connecting to ClickHouse…</p>
+    <div id="notes"></div>
+    <div class="tiles" id="tiles"></div>
+  </header>
+
+  <section>
+    <div class="panel event-strip">
+      <div class="tl-head">
+        <h2>Every metric, every day</h2>
+        <div class="legend">
+          <span class="lg" style="color:var(--normal)"><i></i>within baseline</span>
+          <span class="lg" style="color:var(--anomaly)"><i></i>incident window</span>
+        </div>
+      </div>
+      <div class="scroll-x"><div id="timeline"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom:16px">The investigation</h2>
+    <div class="split">
+      <div class="inc-list" id="list" role="tablist" aria-label="Incidents">
+        <div class="empty-state">Loading…</div>
+      </div>
+      <div class="detail" id="detail">
+        <div class="panel empty-state">Select an incident.</div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">
+    <b>How to read this.</b> Detection asks whether a number is unusual against its own
+    trailing history, so it fires on dozens of segments at once: a broken slice poisons every
+    container that holds it. Attribution weights each slice by the traffic it covers
+    (<span class="num">contribution = share × delta</span>), which separates a cause from a
+    passenger. The exclusion test then removes one candidate at a time and recomputes the
+    global figure. If the anomaly disappears for exactly one slice and persists for every
+    other, nothing else contributed. That asymmetry is the proof.
+    <br><br>
+    <b>Known gaps.</b> Revenue at risk is a counterfactual against baseline, not a booked
+    loss. Composite metrics are not suppressed, so one root cause can open more than one
+    incident (eCPM and revenue-per-request on the same window are the same event).
+  </p>
+
+</div>
+
+<!-- AI briefing widget -->
+<button id="lc-btn" type="button" aria-label="Open AI briefing">
+  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</button>
+
+<div id="lc-panel" aria-hidden="true" aria-label="AI briefing panel">
+  <div class="lc-hdr">
+    <div>
+      <div class="lc-title">Briefing</div>
+      <div class="lc-sub" id="lc-sub">AI Briefing · rca_orch.v_narration</div>
+    </div>
+    <div class="lc-hdr-actions">
+      <button class="lc-hdr-btn" id="lc-settings" aria-label="Connection settings" title="Connection settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="lc-hdr-btn" id="lc-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="lc-chat" style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div id="lc-msgs" class="lc-msgs"></div>
+    <div class="lc-chips" id="lc-chips"></div>
+    <div class="lc-input-row">
+      <textarea id="lc-input" placeholder="Ask about this analysis…" rows="1" autocomplete="off" spellcheck="false"></textarea>
+      <button id="lc-send" type="button" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="lc-cfg" class="lc-setup" style="display:none">
+    <div class="lc-setup-title">Connect AI</div>
+    <div class="lc-setup-desc">Works with OpenRouter, OpenAI, or any OpenAI-compatible endpoint. Credentials stored in <code>localStorage</code> only.</div>
+    <div class="lc-setup-field">
+      <div class="lc-setup-label">API Base URL</div>
+      <input class="lc-setup-input" id="lc-s-url" type="url" placeholder="https://openrouter.ai/api/v1">
+    </div>
+    <div class="lc-setup-field">
+      <div class="lc-setup-label">API Key</div>
+      <input class="lc-setup-input" id="lc-s-tok" type="password" placeholder="sk-or-…">
+    </div>
+    <div class="lc-setup-field">
+      <div class="lc-setup-label">Model</div>
+      <input class="lc-setup-input" id="lc-s-mdl" type="text" placeholder="openai/gpt-4o">
+    </div>
+    <div class="lc-s-err" style="color:var(--anomaly);font-size:12px;min-height:16px"></div>
+    <button class="lc-setup-btn" id="lc-s-save">Save &amp; connect</button>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

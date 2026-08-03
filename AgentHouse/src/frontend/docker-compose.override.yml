@@ -1,0 +1,49 @@
+# Local AgentHouse build — registry librechat-dev has no /api/analytics routes.
+# ClickHouse + MCP power the analytics demo.
+services:
+  mongodb:
+    image: mongo:8.0.20
+
+  api:
+    image: librechat-agenthouse:local
+    pull_policy: never
+    volumes:
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: hackathon
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: hackathon
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse-init:/docker-entrypoint-initdb.d
+    restart: always
+
+  mcp-clickhouse:
+    image: mcp/clickhouse
+    container_name: mcp-clickhouse
+    depends_on:
+      - clickhouse
+    ports:
+      - "8001:8000"
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: hackathon
+      CLICKHOUSE_DATABASE: hackathon
+      CLICKHOUSE_SECURE: "false"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: sse
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+    restart: always
+
+volumes:
+  clickhouse_data:

@@ -1,0 +1,106 @@
+# Atlys local stack — JOINS the already-running atlys-ch container.
+#
+# DO NOT add a clickhouse service here. The running `atlys-ch` holds every table,
+# MV, context entry and contradiction. `make up` attaches it to `atlys-net`
+# with alias `clickhouse` instead of creating a new empty instance.
+#
+#   make up          # network + mcp servers (+ librechat if profile enabled)
+#   make chat        # open LibreChat
+#   make down        # stop mcp/librechat; leaves atlys-ch alone
+
+name: atlys
+
+networks:
+  atlys-net:
+    external: true
+
+services:
+  mcp-clickhouse:
+    image: python:3.12-slim
+    container_name: atlys-mcp-ch
+    networks: [atlys-net]
+    ports: ["8000:8000"]
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USER: atlys
+      CLICKHOUSE_PASSWORD: atlys
+      CLICKHOUSE_DATABASE: atlys
+      CLICKHOUSE_SECURE: "false"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: http
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: "8000"
+      CLICKHOUSE_MCP_AUTH_DISABLED: "true"
+      # Read-only by default — the asymmetric pair with atlys-mcp.
+      CLICKHOUSE_ALLOW_WRITE_ACCESS: "false"
+    command: >
+      sh -c "pip install --no-cache-dir 'mcp-clickhouse' &&
+             python -m mcp_clickhouse.main"
+    restart: unless-stopped
+
+  # Optional containerized MCP (API-key backend only). Default path is host
+  # `make mcp` so tools use the Claude subscription via `claude -p`.
+  atlys-mcp:
+    profiles: ["mcp-docker"]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.mcp
+    container_name: atlys-mcp
+    networks: [atlys-net]
+    ports: ["8100:8100"]
+    env_file:
+      - ../.env
+    environment:
+      CH_HOST: clickhouse
+      CH_PORT: "8123"
+      CH_USER: atlys
+      CH_PASSWORD: atlys
+      CH_DATABASE: atlys
+      CH_SECURE: "false"
+      ATLYS_MCP_HOST: 0.0.0.0
+      ATLYS_MCP_PORT: "8100"
+      ATLYS_LLM_BACKEND: api
+    volumes:
+      - ../../specs:/app/Atlys/specs:ro
+    restart: unless-stopped
+
+  mongodb:
+    profiles: ["librechat"]
+    image: mongo:7
+    container_name: atlys-mongo
+    networks: [atlys-net]
+    volumes: [mongo-data:/data/db]
+    restart: unless-stopped
+
+  librechat:
+    profiles: ["librechat"]
+    image: ghcr.io/danny-avila/librechat-dev:latest
+    container_name: atlys-librechat
+    networks: [atlys-net]
+    # atlys-mcp runs on the HOST (`make mcp`) so it can use the Claude subscription.
+    # LibreChat reaches it via host.docker.internal — do NOT depend_on the atlys-mcp
+    # container (that path has no `claude` CLI and would break tool calls).
+    depends_on: [mongodb, mcp-clickhouse]
+    ports: ["3080:3080"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3080"
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      CONFIG_PATH: /app/librechat.yaml
+      ALLOW_REGISTRATION: "true"
+      # Show the custom Ollama endpoint from librechat.yaml (not Anthropic).
+      ENDPOINTS: custom
+      # Kept for optional cloud fallback; chat uses local Ollama (gemma4:e4b).
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      CREDS_KEY: ${CREDS_KEY}
+      CREDS_IV: ${CREDS_IV}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

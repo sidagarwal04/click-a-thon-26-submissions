@@ -1,0 +1,828 @@
+{
+  "scan_summary": {
+    "database": "rca_ts2",
+    "metrics_scanned": [
+      "requests",
+      "fill_rate",
+      "ecpm"
+    ],
+    "real_incidents": 3,
+    "ruled_out": 110,
+    "wall_clock_s": 8.22
+  },
+  "investigations": [
+    {
+      "id": "inv_fill_rate_2026-06-24_region-eu-os-version-android-14",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-24",
+        "2026-06-26"
+      ],
+      "verdict": "LOCALIZED_2D",
+      "headline": "fill_rate -50.0% at region=EU \u00d7 os_version=Android 14",
+      "culprit": {
+        "dimension": "region\u00d7os_version",
+        "segment": "region=EU \u00d7 os_version=Android 14",
+        "deviation_pct": -50.0
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 194169.3333,
+          "baseline": 186093.5556,
+          "deviation_pct": 4.3,
+          "lmdi_contribution": 11.38097,
+          "shapley_contribution": 11.860579,
+          "pct_effect": -6.54,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.3761,
+          "baseline": 0.7515,
+          "deviation_pct": -50.0,
+          "lmdi_contribution": -185.437378,
+          "shapley_contribution": -185.921531,
+          "pct_effect": 106.61,
+          "verdict": "driver"
+        },
+        {
+          "factor": "render_rate",
+          "window_value": 0.9807,
+          "baseline": 0.9803,
+          "deviation_pct": 0.0,
+          "lmdi_contribution": 0.104335,
+          "shapley_contribution": 0.108494,
+          "pct_effect": -0.06,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.6568,
+          "baseline": 2.6567,
+          "deviation_pct": 0.0,
+          "lmdi_contribution": 0.009675,
+          "shapley_contribution": 0.01006,
+          "pct_effect": -0.01,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0097,
+          "baseline": 0.0101,
+          "deviation_pct": -3.3,
+          "lmdi_contribution": null,
+          "shapley_contribution": null,
+          "pct_effect": null,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "decomposition_meta": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.28,
+        "stable": true,
+        "delta_revenue_per_day": -173.9424,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays preceding 2026-06-24..2026-06-26, window + other incidents excluded"
+      },
+      "ruled_out": [
+        {
+          "segment": "region=EU",
+          "deviation_pct": -16.1,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "os_version=Android 14",
+          "deviation_pct": -13.2,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.1% outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=DE \u00d7 os_version=Android 14",
+          "deviation_pct": -49.9,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "publisher_tier=tier_2",
+          "deviation_pct": -9.3,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "country=DE",
+          "deviation_pct": -18.8,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual -0.0% outside it)"
+        },
+        {
+          "segment": "os_version\u00d7category=os_version=Android 14 \u00d7 category=news",
+          "deviation_pct": -29.7,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.3% outside it)"
+        },
+        {
+          "segment": "region\u00d7device_model=region=EU \u00d7 device_model=Redmi Note 12",
+          "deviation_pct": -29.9,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=DE \u00d7 device_model=Redmi Note 12",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=DE \u00d7 category=news",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "device_model\u00d7category=device_model=Redmi Note 12 \u00d7 category=news",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "device_model=Redmi Note 12",
+          "deviation_pct": -7.7,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.1% outside it)"
+        },
+        {
+          "segment": "category=news",
+          "deviation_pct": -7.4,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=UK \u00d7 device_model=Galaxy S24",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=UK \u00d7 os_version=Android 14",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=UK \u00d7 category=social",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "device_model\u00d7category=device_model=Galaxy S24 \u00d7 category=social",
+          "deviation_pct": -50.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "country=UK",
+          "deviation_pct": -12.2,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.1% outside it)"
+        },
+        {
+          "segment": "os_version\u00d7category=os_version=Android 14 \u00d7 category=social",
+          "deviation_pct": -24.6,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.2% outside it)"
+        },
+        {
+          "segment": "region\u00d7device_model=region=EU \u00d7 device_model=Pixel 8",
+          "deviation_pct": -28.4,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.1% outside it)"
+        },
+        {
+          "segment": "category=social",
+          "deviation_pct": -8.0,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.1% outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=DE \u00d7 device_model=Pixel 8",
+          "deviation_pct": -49.8,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=DE \u00d7 category=finance",
+          "deviation_pct": -49.8,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "device_model\u00d7category=device_model=Pixel 8 \u00d7 category=finance",
+          "deviation_pct": -49.8,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual - outside it)"
+        },
+        {
+          "segment": "category=finance",
+          "deviation_pct": -7.9,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual -0.1% outside it)"
+        },
+        {
+          "segment": "device_model=Galaxy S24",
+          "deviation_pct": -5.3,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual -0.0% outside it)"
+        },
+        {
+          "segment": "region\u00d7category=region=EU \u00d7 category=finance",
+          "deviation_pct": -27.4,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "device_model=Pixel 8",
+          "deviation_pct": -6.7,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "os_version\u00d7category=os_version=Android 14 \u00d7 category=finance",
+          "deviation_pct": -21.2,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "category\u00d7ad_format=category=finance \u00d7 ad_format=rewarded",
+          "deviation_pct": -13.3,
+          "why": "explained by region=EU \u00d7 os_version=Android 14 (residual -0.2% outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ region=EU \u00d7 os_version=Android 14",
+          "value": 194169.3333,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-24' AND '2026-06-26') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-24' AND '2026-06-26') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-24' AND '2026-06-26') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-24' AND '2026-06-26') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-24' AND '2026-06-26') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rb, countDistinctIf(day,day BETWEEN '2026-06-24' AND '2026-06-26') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ndb FROM rca_ts2.cube WHERE region='EU' AND os_version='Android 14'",
+          "query_id": "4cbd6e0f-a7f7-4926-85d2-a22395111a7f",
+          "rows_read": 10000,
+          "bytes_read": 339568,
+          "duration_ms": 9.0
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ region=EU \u00d7 os_version=Android 14",
+          "value": 0.3761,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-24' AND '2026-06-26') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-24' AND '2026-06-26') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-24' AND '2026-06-26') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-24' AND '2026-06-26') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-24' AND '2026-06-26') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rb, countDistinctIf(day,day BETWEEN '2026-06-24' AND '2026-06-26') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ndb FROM rca_ts2.cube WHERE region='EU' AND os_version='Android 14'",
+          "query_id": "4cbd6e0f-a7f7-4926-85d2-a22395111a7f",
+          "rows_read": 10000,
+          "bytes_read": 339568,
+          "duration_ms": 9.0
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ region=EU \u00d7 os_version=Android 14",
+          "value": 0.9807,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-24' AND '2026-06-26') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-24' AND '2026-06-26') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-24' AND '2026-06-26') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-24' AND '2026-06-26') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-24' AND '2026-06-26') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rb, countDistinctIf(day,day BETWEEN '2026-06-24' AND '2026-06-26') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ndb FROM rca_ts2.cube WHERE region='EU' AND os_version='Android 14'",
+          "query_id": "4cbd6e0f-a7f7-4926-85d2-a22395111a7f",
+          "rows_read": 10000,
+          "bytes_read": 339568,
+          "duration_ms": 9.0
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ region=EU \u00d7 os_version=Android 14",
+          "value": 2.6568,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-24' AND '2026-06-26') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-24' AND '2026-06-26') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-24' AND '2026-06-26') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-24' AND '2026-06-26') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-24' AND '2026-06-26') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rb, countDistinctIf(day,day BETWEEN '2026-06-24' AND '2026-06-26') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ndb FROM rca_ts2.cube WHERE region='EU' AND os_version='Android 14'",
+          "query_id": "4cbd6e0f-a7f7-4926-85d2-a22395111a7f",
+          "rows_read": 10000,
+          "bytes_read": 339568,
+          "duration_ms": 9.0
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ region=EU \u00d7 os_version=Android 14",
+          "value": 0.0097,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-24' AND '2026-06-26') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-24' AND '2026-06-26') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-24' AND '2026-06-26') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-24' AND '2026-06-26') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-24' AND '2026-06-26') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) rb, countDistinctIf(day,day BETWEEN '2026-06-24' AND '2026-06-26') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-05','2026-06-10','2026-06-11','2026-06-12','2026-06-17','2026-06-18','2026-06-19')) ndb FROM rca_ts2.cube WHERE region='EU' AND os_version='Android 14'",
+          "query_id": "4cbd6e0f-a7f7-4926-85d2-a22395111a7f",
+          "rows_read": 10000,
+          "bytes_read": 339568,
+          "duration_ms": 9.0
+        }
+      ]
+    },
+    {
+      "id": "inv_ecpm_2026-07-01_finance",
+      "metric": "ecpm",
+      "window": [
+        "2026-07-01",
+        "2026-07-02"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "ecpm -40.0% at category=finance",
+      "culprit": {
+        "dimension": "category",
+        "segment": "finance",
+        "deviation_pct": -40.0
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 373112.0,
+          "baseline": 352677.1667,
+          "deviation_pct": 5.8,
+          "lmdi_contribution": 30.477045,
+          "shapley_contribution": 31.210629,
+          "pct_effect": -12.41,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.768,
+          "baseline": 0.7677,
+          "deviation_pct": 0.0,
+          "lmdi_contribution": 0.258595,
+          "shapley_contribution": 0.264273,
+          "pct_effect": -0.11,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "render_rate",
+          "window_value": 0.9774,
+          "baseline": 0.9774,
+          "deviation_pct": 0.0,
+          "lmdi_contribution": 0.006586,
+          "shapley_contribution": 0.00673,
+          "pct_effect": -0.0,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 1.5265,
+          "baseline": 2.5435,
+          "deviation_pct": -40.0,
+          "lmdi_contribution": -276.262961,
+          "shapley_contribution": -277.002367,
+          "pct_effect": 112.52,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0111,
+          "baseline": 0.0111,
+          "deviation_pct": 0.1,
+          "lmdi_contribution": null,
+          "shapley_contribution": null,
+          "pct_effect": null,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "decomposition_meta": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.3,
+        "stable": true,
+        "delta_revenue_per_day": -245.5207,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays preceding 2026-07-01..2026-07-02, window + other incidents excluded"
+      },
+      "ruled_out": [
+        {
+          "segment": "vertical=travel",
+          "deviation_pct": -16.4,
+          "why": "explained by finance (residual -0.0% outside it)"
+        },
+        {
+          "segment": "publisher_tier=tier_1",
+          "deviation_pct": -12.7,
+          "why": "explained by finance (residual +0.3% outside it)"
+        },
+        {
+          "segment": "campaign_type=CPM",
+          "deviation_pct": -12.8,
+          "why": "explained by finance (residual +0.1% outside it)"
+        },
+        {
+          "segment": "region\u00d7device_model=region=APAC \u00d7 device_model=iPhone 15",
+          "deviation_pct": -39.9,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "region\u00d7os_version=region=APAC \u00d7 os_version=iOS 18.1",
+          "deviation_pct": -39.9,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=IN \u00d7 device_model=iPhone 15",
+          "deviation_pct": -39.9,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=IN \u00d7 os_version=iOS 18.1",
+          "deviation_pct": -39.9,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "os_version=iOS 18.1",
+          "deviation_pct": -19.1,
+          "why": "explained by finance (residual -0.4% outside it)"
+        },
+        {
+          "segment": "device_model=iPhone 15",
+          "deviation_pct": -9.7,
+          "why": "explained by finance (residual -0.1% outside it)"
+        },
+        {
+          "segment": "region=APAC",
+          "deviation_pct": -12.5,
+          "why": "explained by finance (residual +0.3% outside it)"
+        },
+        {
+          "segment": "country=IN",
+          "deviation_pct": -12.5,
+          "why": "explained by finance (residual +0.3% outside it)"
+        },
+        {
+          "segment": "os_version=Android 14",
+          "deviation_pct": -7.9,
+          "why": "explained by finance (residual +0.2% outside it)"
+        },
+        {
+          "segment": "campaign_type=CPI",
+          "deviation_pct": -7.2,
+          "why": "explained by finance (residual -0.1% outside it)"
+        },
+        {
+          "segment": "region=EU",
+          "deviation_pct": -7.9,
+          "why": "explained by finance (residual -0.3% outside it)"
+        },
+        {
+          "segment": "publisher_tier=tier_3",
+          "deviation_pct": -6.7,
+          "why": "explained by finance (residual +0.1% outside it)"
+        },
+        {
+          "segment": "vertical=cpg",
+          "deviation_pct": -10.3,
+          "why": "explained by finance (residual +0.1% outside it)"
+        },
+        {
+          "segment": "ad_format=banner",
+          "deviation_pct": -7.7,
+          "why": "explained by finance (residual +0.1% outside it)"
+        },
+        {
+          "segment": "region=LATAM",
+          "deviation_pct": -5.8,
+          "why": "explained by finance (residual -0.3% outside it)"
+        },
+        {
+          "segment": "country=BR",
+          "deviation_pct": -10.3,
+          "why": "explained by finance (residual -0.7% outside it)"
+        },
+        {
+          "segment": "ad_format=interstitial",
+          "deviation_pct": -7.2,
+          "why": "explained by finance (residual -0.0% outside it)"
+        },
+        {
+          "segment": "device_model\u00d7os_version=device_model=Galaxy S24 \u00d7 os_version=Android 14",
+          "deviation_pct": -12.6,
+          "why": "explained by finance (residual +0.5% outside it)"
+        },
+        {
+          "segment": "device_model=Galaxy S24",
+          "deviation_pct": -5.5,
+          "why": "explained by finance (residual +0.3% outside it)"
+        },
+        {
+          "segment": "region\u00d7device_model=region=LATAM \u00d7 device_model=Galaxy S24",
+          "deviation_pct": -22.1,
+          "why": "explained by finance (residual -0.1% outside it)"
+        },
+        {
+          "segment": "region\u00d7os_version=region=LATAM \u00d7 os_version=Android 14",
+          "deviation_pct": -16.9,
+          "why": "explained by finance (residual +0.6% outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=BR \u00d7 device_model=Galaxy S24",
+          "deviation_pct": -39.8,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=BR \u00d7 os_version=Android 14",
+          "deviation_pct": -39.8,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "ad_format=native",
+          "deviation_pct": -6.6,
+          "why": "explained by finance (residual -0.2% outside it)"
+        },
+        {
+          "segment": "region\u00d7os_version=region=EU \u00d7 os_version=Android 14",
+          "deviation_pct": -14.2,
+          "why": "explained by finance (residual -0.2% outside it)"
+        },
+        {
+          "segment": "country=DE",
+          "deviation_pct": -7.8,
+          "why": "explained by finance (residual -0.2% outside it)"
+        },
+        {
+          "segment": "device_model=Pixel 8",
+          "deviation_pct": -6.0,
+          "why": "explained by finance (residual -0.2% outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=DE \u00d7 os_version=Android 14",
+          "deviation_pct": -19.2,
+          "why": "explained by finance (residual -0.5% outside it)"
+        },
+        {
+          "segment": "ad_format=video",
+          "deviation_pct": -6.7,
+          "why": "explained by finance (residual -0.2% outside it)"
+        },
+        {
+          "segment": "ad_format=rewarded",
+          "deviation_pct": -5.8,
+          "why": "explained by finance (residual +0.1% outside it)"
+        },
+        {
+          "segment": "region\u00d7device_model=region=EU \u00d7 device_model=Pixel 8",
+          "deviation_pct": -23.1,
+          "why": "explained by finance (residual +0.5% outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=DE \u00d7 device_model=Pixel 8",
+          "deviation_pct": -39.6,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "country=UK",
+          "deviation_pct": -8.1,
+          "why": "explained by finance (residual -0.3% outside it)"
+        },
+        {
+          "segment": "device_model\u00d7os_version=device_model=Redmi Note 12 \u00d7 os_version=Android 15",
+          "deviation_pct": -9.2,
+          "why": "explained by finance (residual -0.1% outside it)"
+        },
+        {
+          "segment": "country\u00d7device_model=country=UK \u00d7 device_model=Redmi Note 12",
+          "deviation_pct": -40.1,
+          "why": "explained by finance (residual - outside it)"
+        },
+        {
+          "segment": "region\u00d7device_model=region=EU \u00d7 device_model=Redmi Note 12",
+          "deviation_pct": -16.1,
+          "why": "explained by finance (residual -0.5% outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=UK \u00d7 os_version=Android 15",
+          "deviation_pct": -20.0,
+          "why": "explained by finance (residual +0.5% outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ finance",
+          "value": 373112.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-02') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-02') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-02') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-02') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-02') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-07-01' AND '2026-07-02') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ndb FROM rca_ts2.cube WHERE category='finance'",
+          "query_id": "d64958e8-58ab-476f-928c-a5a01c90ff96",
+          "rows_read": 10000,
+          "bytes_read": 329507,
+          "duration_ms": 7.3
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ finance",
+          "value": 0.768,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-02') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-02') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-02') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-02') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-02') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-07-01' AND '2026-07-02') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ndb FROM rca_ts2.cube WHERE category='finance'",
+          "query_id": "d64958e8-58ab-476f-928c-a5a01c90ff96",
+          "rows_read": 10000,
+          "bytes_read": 329507,
+          "duration_ms": 7.3
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ finance",
+          "value": 0.9774,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-02') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-02') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-02') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-02') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-02') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-07-01' AND '2026-07-02') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ndb FROM rca_ts2.cube WHERE category='finance'",
+          "query_id": "d64958e8-58ab-476f-928c-a5a01c90ff96",
+          "rows_read": 10000,
+          "bytes_read": 329507,
+          "duration_ms": 7.3
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ finance",
+          "value": 1.5265,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-02') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-02') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-02') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-02') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-02') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-07-01' AND '2026-07-02') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ndb FROM rca_ts2.cube WHERE category='finance'",
+          "query_id": "d64958e8-58ab-476f-928c-a5a01c90ff96",
+          "rows_read": 10000,
+          "bytes_read": 329507,
+          "duration_ms": 7.3
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ finance",
+          "value": 0.0111,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-02') rqw,sumIf(requests,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-02') fw,sumIf(fills,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-02') iw,sumIf(impressions,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-02') cw,sumIf(clicks,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-02') rw,sumIf(revenue,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-07-01' AND '2026-07-02') ndw, countDistinctIf(day,day IN ('2026-06-03','2026-06-04','2026-06-10','2026-06-11','2026-06-17','2026-06-18')) ndb FROM rca_ts2.cube WHERE category='finance'",
+          "query_id": "d64958e8-58ab-476f-928c-a5a01c90ff96",
+          "rows_read": 10000,
+          "bytes_read": 329507,
+          "duration_ms": 7.3
+        }
+      ]
+    },
+    {
+      "id": "inv_fill_rate_2026-07-07_pixel-8",
+      "metric": "fill_rate",
+      "window": [
+        "2026-07-07",
+        "2026-07-09"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "fill_rate -23.3% at device_model=Pixel 8",
+      "culprit": {
+        "dimension": "device_model",
+        "segment": "Pixel 8",
+        "deviation_pct": -23.3
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 446592.3333,
+          "baseline": 419027.4444,
+          "deviation_pct": 6.6,
+          "lmdi_contribution": 47.481754,
+          "shapley_contribution": 47.827324,
+          "pct_effect": -31.89,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.5901,
+          "baseline": 0.7697,
+          "deviation_pct": -23.3,
+          "lmdi_contribution": -197.925046,
+          "shapley_contribution": -198.280327,
+          "pct_effect": 132.93,
+          "verdict": "driver"
+        },
+        {
+          "factor": "render_rate",
+          "window_value": 0.9828,
+          "baseline": 0.9828,
+          "deviation_pct": -0.0,
+          "lmdi_contribution": -0.015015,
+          "shapley_contribution": -0.015108,
+          "pct_effect": 0.01,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5995,
+          "baseline": 2.594,
+          "deviation_pct": 0.2,
+          "lmdi_contribution": 1.568071,
+          "shapley_contribution": 1.577875,
+          "pct_effect": -1.05,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0109,
+          "baseline": 0.011,
+          "deviation_pct": -0.9,
+          "lmdi_contribution": null,
+          "shapley_contribution": null,
+          "pct_effect": null,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "decomposition_meta": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.24,
+        "stable": true,
+        "delta_revenue_per_day": -148.8902,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays preceding 2026-07-07..2026-07-09, window + other incidents excluded"
+      },
+      "ruled_out": [
+        {
+          "segment": "region\u00d7category=region=APAC \u00d7 category=gaming",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=IN \u00d7 category=gaming",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "os_version\u00d7category=os_version=Android 14 \u00d7 category=gaming",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "region\u00d7os_version=region=NAM \u00d7 os_version=Android 15",
+          "deviation_pct": -12.7,
+          "why": "explained by Pixel 8 (residual -0.0% outside it)"
+        },
+        {
+          "segment": "country\u00d7os_version=country=US \u00d7 os_version=Android 15",
+          "deviation_pct": -12.7,
+          "why": "explained by Pixel 8 (residual -0.0% outside it)"
+        },
+        {
+          "segment": "region\u00d7category=region=NAM \u00d7 category=news",
+          "deviation_pct": -23.3,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=US \u00d7 category=news",
+          "deviation_pct": -23.3,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=BR \u00d7 category=social",
+          "deviation_pct": -23.2,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "region\u00d7category=region=LATAM \u00d7 category=social",
+          "deviation_pct": -11.4,
+          "why": "explained by Pixel 8 (residual +0.0% outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=DE \u00d7 category=finance",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "region\u00d7category=region=EU \u00d7 category=finance",
+          "deviation_pct": -12.5,
+          "why": "explained by Pixel 8 (residual +0.1% outside it)"
+        },
+        {
+          "segment": "region\u00d7category=region=LATAM \u00d7 category=news",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=MX \u00d7 category=news",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "region\u00d7category=region=EU \u00d7 category=ecommerce",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        },
+        {
+          "segment": "country\u00d7category=country=UK \u00d7 category=ecommerce",
+          "deviation_pct": -23.1,
+          "why": "explained by Pixel 8 (residual - outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ Pixel 8",
+          "value": 446592.3333,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-07' AND '2026-07-09') rqw,sumIf(requests,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rqb, sumIf(fills,day BETWEEN '2026-07-07' AND '2026-07-09') fw,sumIf(fills,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) fb, sumIf(impressions,day BETWEEN '2026-07-07' AND '2026-07-09') iw,sumIf(impressions,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ib, sumIf(clicks,day BETWEEN '2026-07-07' AND '2026-07-09') cw,sumIf(clicks,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) cb, sumIf(revenue,day BETWEEN '2026-07-07' AND '2026-07-09') rw,sumIf(revenue,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rb, countDistinctIf(day,day BETWEEN '2026-07-07' AND '2026-07-09') ndw, countDistinctIf(day,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ndb FROM rca_ts2.cube WHERE device_model='Pixel 8'",
+          "query_id": "aa1cc65c-4d1a-431b-bf25-fa1b8af2e152",
+          "rows_read": 10000,
+          "bytes_read": 329506,
+          "duration_ms": 7.6
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ Pixel 8",
+          "value": 0.5901,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-07' AND '2026-07-09') rqw,sumIf(requests,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rqb, sumIf(fills,day BETWEEN '2026-07-07' AND '2026-07-09') fw,sumIf(fills,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) fb, sumIf(impressions,day BETWEEN '2026-07-07' AND '2026-07-09') iw,sumIf(impressions,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ib, sumIf(clicks,day BETWEEN '2026-07-07' AND '2026-07-09') cw,sumIf(clicks,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) cb, sumIf(revenue,day BETWEEN '2026-07-07' AND '2026-07-09') rw,sumIf(revenue,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rb, countDistinctIf(day,day BETWEEN '2026-07-07' AND '2026-07-09') ndw, countDistinctIf(day,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ndb FROM rca_ts2.cube WHERE device_model='Pixel 8'",
+          "query_id": "aa1cc65c-4d1a-431b-bf25-fa1b8af2e152",
+          "rows_read": 10000,
+          "bytes_read": 329506,
+          "duration_ms": 7.6
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ Pixel 8",
+          "value": 0.9828,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-07' AND '2026-07-09') rqw,sumIf(requests,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rqb, sumIf(fills,day BETWEEN '2026-07-07' AND '2026-07-09') fw,sumIf(fills,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) fb, sumIf(impressions,day BETWEEN '2026-07-07' AND '2026-07-09') iw,sumIf(impressions,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ib, sumIf(clicks,day BETWEEN '2026-07-07' AND '2026-07-09') cw,sumIf(clicks,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) cb, sumIf(revenue,day BETWEEN '2026-07-07' AND '2026-07-09') rw,sumIf(revenue,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rb, countDistinctIf(day,day BETWEEN '2026-07-07' AND '2026-07-09') ndw, countDistinctIf(day,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ndb FROM rca_ts2.cube WHERE device_model='Pixel 8'",
+          "query_id": "aa1cc65c-4d1a-431b-bf25-fa1b8af2e152",
+          "rows_read": 10000,
+          "bytes_read": 329506,
+          "duration_ms": 7.6
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ Pixel 8",
+          "value": 2.5995,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-07' AND '2026-07-09') rqw,sumIf(requests,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rqb, sumIf(fills,day BETWEEN '2026-07-07' AND '2026-07-09') fw,sumIf(fills,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) fb, sumIf(impressions,day BETWEEN '2026-07-07' AND '2026-07-09') iw,sumIf(impressions,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ib, sumIf(clicks,day BETWEEN '2026-07-07' AND '2026-07-09') cw,sumIf(clicks,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) cb, sumIf(revenue,day BETWEEN '2026-07-07' AND '2026-07-09') rw,sumIf(revenue,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rb, countDistinctIf(day,day BETWEEN '2026-07-07' AND '2026-07-09') ndw, countDistinctIf(day,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ndb FROM rca_ts2.cube WHERE device_model='Pixel 8'",
+          "query_id": "aa1cc65c-4d1a-431b-bf25-fa1b8af2e152",
+          "rows_read": 10000,
+          "bytes_read": 329506,
+          "duration_ms": 7.6
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ Pixel 8",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-07' AND '2026-07-09') rqw,sumIf(requests,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rqb, sumIf(fills,day BETWEEN '2026-07-07' AND '2026-07-09') fw,sumIf(fills,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) fb, sumIf(impressions,day BETWEEN '2026-07-07' AND '2026-07-09') iw,sumIf(impressions,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ib, sumIf(clicks,day BETWEEN '2026-07-07' AND '2026-07-09') cw,sumIf(clicks,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) cb, sumIf(revenue,day BETWEEN '2026-07-07' AND '2026-07-09') rw,sumIf(revenue,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) rb, countDistinctIf(day,day BETWEEN '2026-07-07' AND '2026-07-09') ndw, countDistinctIf(day,day IN ('2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18','2026-06-23','2026-06-30')) ndb FROM rca_ts2.cube WHERE device_model='Pixel 8'",
+          "query_id": "aa1cc65c-4d1a-431b-bf25-fa1b8af2e152",
+          "rows_read": 10000,
+          "bytes_read": 329506,
+          "duration_ms": 7.6
+        }
+      ]
+    }
+  ]
+}

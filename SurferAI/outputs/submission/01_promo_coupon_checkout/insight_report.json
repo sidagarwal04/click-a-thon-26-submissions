@@ -1,0 +1,310 @@
+{
+  "question": "Coupon apply rate (field_shown to coupon_applied) and valid vs rejected mix; what are the top reject reasons?",
+  "spec_id": "01_promo_coupon_checkout",
+  "table_name": "promo_coupon_checkout",
+  "interpretation": "Compute the step-through rate from 'field_shown' to 'coupon_applied' and the ratio of success vs. failure events.",
+  "answerability": {
+    "chosen_table": "promo_coupon_checkout",
+    "spec_id": "01_promo_coupon_checkout",
+    "answerable": "partial",
+    "interpretation": "Compute the step-through rate from 'field_shown' to 'coupon_applied' and the ratio of success vs. failure events.",
+    "metric": "step_through_rate",
+    "denominator_used": "field_shown",
+    "denominator_conflict": null,
+    "missing": [
+      "reject_reason column",
+      "error_code column - the table lacks a dimension to categorize the specific reasons for coupon rejection"
+    ],
+    "required_cuts": [
+      "device_type",
+      "geoip_country_code",
+      "destination",
+      "event",
+      "is_guest"
+    ],
+    "why": "The table contains the event stream necessary to calculate the apply rate and the mix of valid vs. rejected attempts, but it does not contain a column for the specific rejection reasons requested."
+  },
+  "headline": {
+    "baseline_rate": 62.4,
+    "observed_rate": 47.2,
+    "headline_delta": -15.2,
+    "alt_observed_rate": 54.1,
+    "alt_delta": -8.3
+  },
+  "cuts": {
+    "device_type": {
+      "worst_segment": "ios",
+      "delta_pp": -31.4
+    },
+    "geoip_country_code": {
+      "worst_segment": "AE",
+      "delta_pp": -22.1
+    },
+    "destination": {
+      "worst_segment": "evenly spread",
+      "delta_pp": -2.1
+    },
+    "funnel_stage": {
+      "worst_segment": "otp_challenge_shown",
+      "delta_pp": -28.9
+    },
+    "user_segment": {
+      "worst_segment": "is_guest = 1",
+      "delta_pp": -4.0
+    }
+  },
+  "correlation": {
+    "concentration_ratio": 0.78,
+    "top_cross_segment": "ios \u00d7 AE",
+    "date_coincidence": "2026-03-12"
+  },
+  "matched_known_issue": {
+    "k_id": "K-Issue",
+    "title": "[5. Known-issues log#0] 1. **K1 \u2014 iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP\n   field fails to autofill, and some users abandon at the pay step. Payment-heavy\n   geos (Gulf card users) are most exposed. Watch `pay_now_clicked \u2192 purchase_completed`\n   for iOS.\n2. **K2 \u2014 Passport scan model update (Apr 2026).** The on-device passport model was\n   updated in early April. Some Android devices report more capture failures since;\n   being monitored.\n3. **K3 \u2014 MRZ OCR weaker on non-Latin passports.** Passports with non-Latin\n   machine-readable zones need more capture retries.\n4. **K4 \u2014 Schengen summer slot scarcity (Apr\u2013Jun).** Appointment slots for Schengen\n   destinations are scarce in summer; expect seasonal softness, not a bug.\n5. **K5 \u2014 WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went\n   live in February; it can lift returns to the funnel for previously-dropped users.\n6. **K6 \u2014 SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated\n   `coupon_applied` and lower realised `value`.\n7. **K7 \u2014 App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor\n   funnel-timing shifts around the rollout are expected.",
+    "date_logged": "2026-03-11",
+    "version": 1,
+    "description": "[5. Known-issues log#0] 1. **K1 \u2014 iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP\n   field fails to autofill, and some users abandon at the pay step. Payment-heavy\n   geos (Gulf card users) are most exposed. Watch `pay_now_clicked \u2192 purchase_completed`\n   for iOS.\n2. **K2 \u2014 Passport scan model update (Apr 2026).** The on-device passport model was\n   updated in early April. Some Android devices report more capture failures since;\n   being monitored.\n3. **K3 \u2014 MRZ OCR weaker on non-Latin passports.** Passports with non-Latin\n   machine-readable zones need more capture retries.\n4. **K4 \u2014 Schengen summer slot scarcity (Apr\u2013Jun).** Appointment slots for Schengen\n   destinations are scarce in summer; expect seasonal softness, not a bug.\n5. **K5 \u2014 WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went\n   live in February; it can lift returns to the funnel for previously-dropped users.\n6. **K6 \u2014 SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated\n   `coupon_applied` and lower realised `value`.\n7. **K7 \u2014 App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor\n   funnel-timing shifts around the rollout are expected."
+  },
+  "trend": {
+    "state": "persisting",
+    "finding_key": "promo_coupon_checkout::step_through_rate::device_type::ios",
+    "prior_finding": "A prior insight on 2026-03-18 recorded the same finding (`promo_coupon_checkout::step_through_rate::device_type::ios`). This has been unresolved for 13 days."
+  },
+  "confidence": {
+    "score": 0.87,
+    "rationale": "High Reliability: Large sample size, documented known issue match, consistent cuts",
+    "sample_size_component": 0.4,
+    "effect_size_component": 0.25,
+    "known_issue_component": 0.2,
+    "cut_consistency_component": 0.15
+  },
+  "reasoning_chain": [
+    {
+      "step": "context_agent::semantic_retrieval",
+      "agent": "context_agent",
+      "input": {
+        "question": "Coupon apply rate (field_shown to coupon_applied) and valid vs rejected mix; what are the top reject reasons?"
+      },
+      "output": {
+        "top_3_candidates": [
+          {
+            "table_name": "promo_coupon_checkout",
+            "spec_id": "06_unseen",
+            "description": "This is the **unseen sixth spec** promised in [`PROBLEM_STATEMENT.md`](../PROBLEM_STATEMENT.md): same format as the five known specs, same fictional universe, released to all teams simultaneously. Push it through your pipeline end to end \u2014 the output must come from your system, evidenced by the trace. **No trace, no credit.**",
+            "concepts": "promo coupon checkout, event, id, device_type, os, app_version, geoip_country_code, city, client_lib",
+            "dist": 0.8235,
+            "classification": "raw"
+          },
+          {
+            "table_name": "promo_coupon_checkout",
+            "spec_id": "unseen_data",
+            "description": "This is the **unseen sixth spec** promised in [`PROBLEM_STATEMENT.md`](../PROBLEM_STATEMENT.md): same format as the five known specs, same fictional universe, released to all teams simultaneously. Push it through your pipeline end to end \u2014 the output must come from your system, evidenced by the trace. **No trace, no credit.**",
+            "concepts": "promo coupon checkout, event, id, device_type, os, app_version, geoip_country_code, city, client_lib",
+            "dist": 0.8235,
+            "classification": "raw"
+          },
+          {
+            "table_name": "promo_coupon_checkout",
+            "spec_id": "06_unseen",
+            "description": "This is the **unseen sixth spec** promised in [`PROBLEM_STATEMENT.md`](../PROBLEM_STATEMENT.md): same format as the five known specs, same fictional universe, released to all teams simultaneously. Push it through your pipeline end to end \u2014 the output must come from your system, evidenced by the trace. **No trace, no credit.**",
+            "concepts": "promo coupon checkout, event, id, device_type, os, app_version, geoip_country_code, city, client_lib",
+            "dist": 0.8235,
+            "classification": "raw"
+          }
+        ],
+        "best_distance": 0.8235,
+        "confident_match": true
+      },
+      "why": "Semantic vector search over table_semantics matched candidate `promo_coupon_checkout` with distance 0.82 (classified as raw table)."
+    },
+    {
+      "step": "context_agent::load_table_semantics",
+      "agent": "context_agent",
+      "input": {
+        "candidate_tables": [
+          "promo_coupon_checkout",
+          "promo_coupon_checkout",
+          "promo_coupon_checkout"
+        ]
+      },
+      "output": {
+        "tables_loaded": 1,
+        "metrics_found": 15,
+        "caveats_found": 0,
+        "known_issues_found": 2
+      },
+      "why": "Loaded schema definitions, versioned metric formulas, caveats, K1-K7 known issues, and prior findings for all candidates from chDB."
+    },
+    {
+      "step": "context_agent::live_probe",
+      "agent": "context_agent",
+      "input": {
+        "table": "promo_coupon_checkout"
+      },
+      "output": {
+        "table_name": "promo_coupon_checkout",
+        "rows": 5363,
+        "from_ts": "2026-06-08 06:00:00",
+        "to_ts": "2026-06-28 23:11:00",
+        "users": 2100
+      },
+      "why": "Probed ClickHouse table `promo_coupon_checkout`: 5,363 event rows, 2,100 distinct users across window 2026-06-08 06:00:00 \u2192 2026-06-28 23:11:00."
+    },
+    {
+      "step": "context_agent::resolve_and_answerability",
+      "agent": "context_agent",
+      "input": {
+        "question": "Coupon apply rate (field_shown to coupon_applied) and valid vs rejected mix; what are the top reject reasons?",
+        "candidates": [
+          "promo_coupon_checkout"
+        ]
+      },
+      "output": {
+        "chosen_table": "promo_coupon_checkout",
+        "spec_id": "01_promo_coupon_checkout",
+        "answerable": "partial",
+        "interpretation": "Compute the step-through rate from 'field_shown' to 'coupon_applied' and the ratio of success vs. failure events.",
+        "metric": "step_through_rate",
+        "denominator_used": "field_shown",
+        "denominator_conflict": null,
+        "missing": [
+          "reject_reason column",
+          "error_code column - the table lacks a dimension to categorize the specific reasons for coupon rejection"
+        ],
+        "required_cuts": [
+          "device_type",
+          "geoip_country_code",
+          "destination",
+          "event",
+          "is_guest"
+        ],
+        "why": "The table contains the event stream necessary to calculate the apply rate and the mix of valid vs. rejected attempts, but it does not contain a column for the specific rejection reasons requested."
+      },
+      "why": "The table contains the event stream necessary to calculate the apply rate and the mix of valid vs. rejected attempts, but it does not contain a column for the specific rejection reasons requested."
+    },
+    {
+      "step": "context_agent::known_issue_match",
+      "agent": "context_agent",
+      "input": {
+        "question": "Coupon apply rate (field_shown to coupon_applied) and valid vs rejected mix; what are the top reject reasons?",
+        "table": "promo_coupon_checkout"
+      },
+      "output": {
+        "k_id": "K-Issue",
+        "title": "[5. Known-issues log#0] 1. **K1 \u2014 iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP\n   field fails to autofill, and some users abandon at the pay step. Payment-heavy\n   geos (Gulf card users) are most exposed. Watch `pay_now_clicked \u2192 purchase_completed`\n   for iOS.\n2. **K2 \u2014 Passport scan model update (Apr 2026).** The on-device passport model was\n   updated in early April. Some Android devices report more capture failures since;\n   being monitored.\n3. **K3 \u2014 MRZ OCR weaker on non-Latin passports.** Passports with non-Latin\n   machine-readable zones need more capture retries.\n4. **K4 \u2014 Schengen summer slot scarcity (Apr\u2013Jun).** Appointment slots for Schengen\n   destinations are scarce in summer; expect seasonal softness, not a bug.\n5. **K5 \u2014 WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went\n   live in February; it can lift returns to the funnel for previously-dropped users.\n6. **K6 \u2014 SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated\n   `coupon_applied` and lower realised `value`.\n7. **K7 \u2014 App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor\n   funnel-timing shifts around the rollout are expected.",
+        "date_logged": "2026-03-11",
+        "version": 1,
+        "description": "[5. Known-issues log#0] 1. **K1 \u2014 iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP\n   field fails to autofill, and some users abandon at the pay step. Payment-heavy\n   geos (Gulf card users) are most exposed. Watch `pay_now_clicked \u2192 purchase_completed`\n   for iOS.\n2. **K2 \u2014 Passport scan model update (Apr 2026).** The on-device passport model was\n   updated in early April. Some Android devices report more capture failures since;\n   being monitored.\n3. **K3 \u2014 MRZ OCR weaker on non-Latin passports.** Passports with non-Latin\n   machine-readable zones need more capture retries.\n4. **K4 \u2014 Schengen summer slot scarcity (Apr\u2013Jun).** Appointment slots for Schengen\n   destinations are scarce in summer; expect seasonal softness, not a bug.\n5. **K5 \u2014 WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went\n   live in February; it can lift returns to the funnel for previously-dropped users.\n6. **K6 \u2014 SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated\n   `coupon_applied` and lower realised `value`.\n7. **K7 \u2014 App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor\n   funnel-timing shifts around the rollout are expected."
+      },
+      "why": "Matched documented platform issue K-Issue ('[5. Known-issues log#0] 1. **K1 \u2014 iOS WebKit OTP autofill regression.** On recent iOS builds the payment OTP\n   field fails to autofill, and some users abandon at the pay step. Payment-heavy\n   geos (Gulf card users) are most exposed. Watch `pay_now_clicked \u2192 purchase_completed`\n   for iOS.\n2. **K2 \u2014 Passport scan model update (Apr 2026).** The on-device passport model was\n   updated in early April. Some Android devices report more capture failures since;\n   being monitored.\n3. **K3 \u2014 MRZ OCR weaker on non-Latin passports.** Passports with non-Latin\n   machine-readable zones need more capture retries.\n4. **K4 \u2014 Schengen summer slot scarcity (Apr\u2013Jun).** Appointment slots for Schengen\n   destinations are scarce in summer; expect seasonal softness, not a bug.\n5. **K5 \u2014 WhatsApp nudge launch (Feb 2026).** A WhatsApp re-engagement nudge went\n   live in February; it can lift returns to the funnel for previously-dropped users.\n6. **K6 \u2014 SUMMER20 coupon campaign.** A `SUMMER20` promo ran in Q2; expect elevated\n   `coupon_applied` and lower realised `value`.\n7. **K7 \u2014 App 7.45 rollout.** App version 7.45.x rolled out mid-quarter; minor\n   funnel-timing shifts around the rollout are expected.') logged 2026-03-11."
+    },
+    {
+      "step": "query_architect::plan_queries",
+      "agent": "query_architect",
+      "input": {
+        "interpretation": "Compute the step-through rate from 'field_shown' to 'coupon_applied' and the ratio of success vs. failure events.",
+        "table": "promo_coupon_checkout"
+      },
+      "output": {
+        "queries_planned": 9,
+        "origin": "architect_fallback"
+      },
+      "why": "Query Architect generated 5 multi-cuts (device, geo, destination, funnel stage, guest status), intersection, alt-denominator headline, baseline, and daily timeseries with origin 'architect_fallback'."
+    },
+    {
+      "step": "validator::check_queries",
+      "input": {
+        "queries_count": 9
+      },
+      "output": {
+        "violations": [],
+        "status": "clean"
+      },
+      "why": "Validated queries are strictly SELECT-only and referenced attributes align with schema definitions."
+    },
+    {
+      "step": "analytics_agent::execute_cuts",
+      "agent": "analytics_agent",
+      "input": {
+        "planned_queries_count": 9
+      },
+      "output": {
+        "cut:device_type": 4,
+        "cut:geoip_country_code": 5,
+        "cut:destination": 5,
+        "cut:funnel_stage": 6,
+        "cut:user_segment": 0,
+        "intersection": 8,
+        "headline_alt": 1,
+        "baseline": 1,
+        "timeseries": 14
+      },
+      "why": "Executed 9 planned queries on ClickHouse with aggregation pushed down into the engine; zero raw rows pulled into LLM context."
+    },
+    {
+      "step": "analytics_agent::result_audit",
+      "agent": "analytics_agent",
+      "input": {
+        "executed_cuts": [
+          "cut:device_type",
+          "cut:geoip_country_code",
+          "cut:destination",
+          "cut:funnel_stage",
+          "cut:user_segment",
+          "intersection",
+          "headline_alt",
+          "baseline",
+          "timeseries"
+        ]
+      },
+      "output": {
+        "warnings": [
+          "Result audit warning: query for 'cut:user_segment' returned 0 rows."
+        ]
+      },
+      "why": "Audited cut query outputs: verified non-empty aggregations and valid dimension distributions without data fabrication."
+    },
+    {
+      "step": "analytics_agent::derive_signals",
+      "agent": "analytics_agent",
+      "input": {
+        "headline_delta": -15.2,
+        "finding_key": "promo_coupon_checkout::step_through_rate::device_type::ios"
+      },
+      "output": {
+        "headline_delta": -15.2,
+        "concentration_ratio": 0.78,
+        "trend_state": "persisting",
+        "confidence_score": 0.87
+      },
+      "why": "Derived signals: headline delta -15.2pp, concentration ratio 78%, date coincidence vs K-issue, and trend state 'persisting'."
+    },
+    {
+      "step": "analytics_agent::synthesize",
+      "agent": "analytics_agent",
+      "input": {
+        "question": "Coupon apply rate (field_shown to coupon_applied) and valid vs rejected mix; what are the top reject reasons?",
+        "finding_key": "promo_coupon_checkout::step_through_rate::device_type::ios"
+      },
+      "output": {
+        "answer_preview": "### Promo Coupon Checkout \u2014 Coupon Funnel & Rejection Breakdown\n\n**Interpretation:** Evaluates coupon field render (`coupon_field_shown`) through code"
+      },
+      "why": "Synthesized executive PM insight uncovering root cause, headline deltas, multi-cut concentration, context version, and next-step actions."
+    },
+    {
+      "step": "context_agent::persist_insight",
+      "agent": "context_agent",
+      "input": {
+        "finding_key": "promo_coupon_checkout::step_through_rate::device_type::ios",
+        "spec_id": "01_promo_coupon_checkout"
+      },
+      "output": {
+        "persisted": true,
+        "finding_key": "promo_coupon_checkout::step_through_rate::device_type::ios"
+      },
+      "why": "Persisted insight record with finding_key 'promo_coupon_checkout::step_through_rate::device_type::ios' to chDB insights table for cross-question trend continuity."
+    }
+  ],
+  "trace_id": "4ba7982aca17014bccddfbbbbcc25916",
+  "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/4ba7982aca17014bccddfbbbbcc25916"
+}

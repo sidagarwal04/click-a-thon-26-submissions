@@ -1,0 +1,17 @@
+# REBINDS THE VENDORED LIBRECHAT PORTS TO LOOPBACK.
+#
+# librechat/docker-compose.yml publishes "${PORT}:${PORT}" and "${ADMIN_PANEL_PORT:-3000}:3000",
+# and a bare port mapping binds 0.0.0.0. So including that file quietly published the chat app AND
+# its admin panel on every interface, straight past our proxy, while the header comments in
+# docker-compose.yml and deploy/nginx.conf both claimed port 80 was the only thing exposed.
+#
+# Editing the vendored file would work and would be lost on the next upstream pull. An override is
+# the durable place for it. scripts/check_published_ports.sh now asserts the result, so the claim
+# is a test rather than a comment.
+services:
+  api:
+    ports: !override
+      - "127.0.0.1:3080:3080"
+  admin-panel:
+    ports: !override
+      - "127.0.0.1:3000:3000"

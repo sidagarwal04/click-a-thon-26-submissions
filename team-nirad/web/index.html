@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23161616'/%3E%3Crect x='6' y='17' width='4' height='9' rx='1.5' fill='%23faff69'/%3E%3Crect x='12.5' y='11' width='4' height='15' rx='1.5' fill='%23faff69'/%3E%3Crect x='19' y='6' width='4' height='20' rx='1.5' fill='%232a78d6'/%3E%3C/svg%3E">
+<title>Watchhouse — concurrency you can defend</title>
+<style>
+:root{
+  --ink:#0d0f12; --ink2:#4b5058; --ink3:#858b95;
+  --bg:#ffffff; --soft:#f6f6f3; --line:#e6e6e1;
+  --brand:#faff69; --dark:#101215; --dark2:#181b20;
+  --s1:#2a78d6; --s2:#eb6834; --good:#0ca30c;
+  --r:12px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+.wrap{max-width:1140px;margin:0 auto;padding:0 28px}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.88em}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:16px;height:62px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-weight:700;
+  letter-spacing:-.02em;text-decoration:none;font-size:17px}
+.grow{flex:1}
+.nav a.lnk{color:var(--ink2);text-decoration:none;font-size:14.5px;margin-left:22px}
+.nav a.lnk:hover{color:var(--ink)}
+@media(max-width:820px){.nav a.lnk{display:none}}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--dark);color:#fff;
+  border-radius:9px;padding:9px 17px;text-decoration:none;font-weight:600;font-size:14.5px;
+  border:1px solid var(--dark);transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn.y{background:var(--brand);color:var(--dark);border-color:rgba(0,0,0,.15)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;background:var(--dark);color:#fff;overflow:hidden;padding:86px 0 0}
+.hero:before{content:"";position:absolute;inset:-40% -10% auto -10%;height:70%;
+  background:radial-gradient(60% 60% at 30% 40%,rgba(250,255,105,.16),transparent 70%),
+             radial-gradient(50% 50% at 75% 30%,rgba(42,120,214,.22),transparent 70%);
+  filter:blur(20px);pointer-events:none}
+.hero .wrap{position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:#b9bec7;
+  border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:6px 14px;margin-bottom:26px}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--good);
+  box-shadow:0 0 0 0 rgba(12,163,12,.6);animation:pulse 2.2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(12,163,12,0)}100%{box-shadow:0 0 0 0 rgba(12,163,12,0)}}
+h1{font-size:clamp(38px,6vw,68px);line-height:1.02;letter-spacing:-.04em;margin:0 0 20px;
+  max-width:15ch;font-weight:700}
+h1 .hl{background:linear-gradient(180deg,transparent 62%,rgba(250,255,105,.35) 62%);padding:0 .06em}
+.sub{font-size:19px;color:#c3c8d0;max-width:56ch;margin:0 0 32px}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:52px}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.12);border-radius:var(--r);overflow:hidden;margin-bottom:-46px;
+  box-shadow:0 24px 60px rgba(0,0,0,.35)}
+@media(max-width:840px){.strip{grid-template-columns:repeat(2,1fr)}}
+.sc{background:var(--dark2);padding:20px 22px;min-width:0}
+.sc .l{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:#8a919b;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc .v{font-size:34px;font-weight:720;letter-spacing:-.03em;margin-top:5px;
+  font-variant-numeric:tabular-nums;color:#fff}
+.sc .n{font-size:12.5px;color:#8a919b;margin-top:3px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.sc .v.s2{color:#ff8b5c}.sc .v.s1{color:#66a9ee}.sc .v.g{color:#57d957}
+
+
+.badges{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.badges .eyebrow{margin-bottom:0}
+.trackbadge{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:#c3c8d0;
+  border:1px solid rgba(250,255,105,.4);border-radius:999px;padding:6px 14px}
+.trackbadge b{color:#fff;font-weight:750;letter-spacing:-.01em;text-transform:none;
+  font-size:14px}
+.trackbadge .sep{width:1px;height:14px;background:rgba(255,255,255,.22)}
+/* The real mark when the asset is present; the wordmark disappears so the two
+   never sit side by side. onerror removes the img if the file is absent. */
+.tblogo{height:22px;width:auto;border-radius:4px;display:block}
+.trackbadge:has(.tblogo) .tbtext{display:none}
+
+/* ---------- sections ---------- */
+section{padding:92px 0}
+.tag{display:inline-block;font-size:12px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--s1);font-weight:700;margin-bottom:14px}
+h2{font-size:clamp(28px,3.6vw,40px);line-height:1.12;letter-spacing:-.032em;margin:0 0 14px}
+.lead{font-size:18px;color:var(--ink2);max-width:64ch;margin:0 0 30px}
+.soft{background:var(--soft)}
+.chartcard{background:#fff;border:1px solid var(--line);border-radius:var(--r);
+  padding:22px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.chartcard svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:22px;flex-wrap:wrap;font-size:13.5px;color:var(--ink2);margin-top:12px}
+.sw{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:3px;margin-right:7px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr}}
+.f{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px;min-width:0}
+.f .ic{width:38px;height:38px;border-radius:10px;background:var(--soft);
+  display:grid;place-items:center;margin-bottom:14px;font-size:18px}
+.f h3{margin:0 0 7px;font-size:17px;letter-spacing:-.01em}
+.f p{margin:0;color:var(--ink2);font-size:14.5px;overflow-wrap:anywhere}
+.band{background:var(--dark);color:#fff;border-radius:var(--r);padding:44px 40px}
+.bandgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:32px}
+@media(max-width:840px){.bandgrid{grid-template-columns:repeat(2,1fr)}}
+.bandgrid .v{font-size:38px;font-weight:720;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.bandgrid .l{font-size:13px;color:#9aa1ab;margin-top:5px}
+.fail{background:#fff;border:1px solid var(--line);border-left:3px solid var(--s2);
+  border-radius:var(--r);padding:22px 24px;margin-bottom:14px;min-width:0}
+.fail h3{margin:0 0 8px;font-size:17px;letter-spacing:-.01em}
+.fail p{margin:0;color:var(--ink2);font-size:14.5px;overflow-wrap:anywhere}
+.pill{display:inline-block;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--s2);font-weight:700;margin-bottom:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+ul.ticks{list-style:none;padding:0;margin:0}
+ul.ticks li{padding:7px 0 7px 28px;position:relative;color:var(--ink2);font-size:15px}
+ul.ticks li:before{content:"\2192";position:absolute;left:0;color:var(--s1);font-weight:700}
+ul.ticks li b{color:var(--ink)}
+footer{background:var(--dark);color:#8a919b;padding:54px 0;font-size:14px}
+footer a{color:#c3c8d0}
+.cta-final{text-align:center;padding:96px 0}
+.cta-final h2{max-width:20ch;margin:0 auto 16px}
+.cta-final .lead{margin:0 auto 28px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="nav"><div class="wrap">
+  <a class="brand" href="/">
+    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
+      <rect width="32" height="32" rx="7" fill="#1d1f22"/>
+      <rect x="6" y="17" width="4" height="9" rx="1.5" fill="#faff69"/>
+      <rect x="12.5" y="11" width="4" height="15" rx="1.5" fill="#faff69"/>
+      <rect x="19" y="6" width="4" height="20" rx="1.5" fill="#3987e5"/>
+    </svg>Watchhouse</a>
+  <span class="grow"></span>
+  <a class="lnk" href="#how">How it works</a>
+  <a class="lnk" href="#log">Engineering log</a>
+  <a class="lnk" href="/deck">Deck</a>
+  <a class="lnk" href="https://github.com/preethamresearch/nirad-sonyliv-concurrency">GitHub</a>
+  <a class="btn y" href="/app#overview" style="margin-left:18px">Get started &rarr;</a>
+</div></div>
+
+<div class="hero"><div class="wrap">
+  <div class="badges">
+    <span class="eyebrow"><span class="dot"></span>Live on ClickHouse Cloud</span>
+    <span class="trackbadge">
+      <img class="tblogo" src="/shots/sonyliv.png" alt="SonyLIV"
+           onerror="this.remove()">
+      <b class="tbtext">SonyLIV</b><span class="sep"></span>Track submission</span>
+  </div>
+  <h1>An open app is <span class="hl">not a viewer</span>.</h1>
+  <p class="sub">Peak concurrency sets ad inventory, CDN capacity and the price of the next
+    rights package. Counting a session start-to-end also counts paused players, backgrounded
+    apps and clients that quietly died.</p>
+  <div class="ctas">
+    <a class="btn y" href="/app#overview">Open the dashboards &rarr;</a>
+    <a class="btn ghost" href="/app#liveops"
+       style="color:#fff;border-color:rgba(255,255,255,.22)">Live Operations</a>
+  </div>
+
+  <div class="strip">
+    <div class="sc"><div class="l">Reported peak</div><div class="v s2" id="f-naive">3,743</div>
+      <div class="n">session start &rarr; end</div></div>
+    <div class="sc"><div class="l">Actually watching</div><div class="v s1" id="f-fg">3,090</div>
+      <div class="n">intent &and; alive</div></div>
+    <div class="sc"><div class="l">Phantom audience</div><div class="v" id="f-over">653</div>
+      <div class="n" id="f-over-n">17.4% over-reported</div></div>
+    <div class="sc"><div class="l">Oracle parity</div><div class="v g">exact</div>
+      <div class="n">35,902 intervals, 0 divergent</div></div>
+  </div>
+</div></div>
+
+<section style="padding-top:104px">
+  <div class="wrap">
+    <span class="tag">The gap, live</span>
+    <h2>Two curves. One of them is a lie.</h2>
+    <p class="lead">Both computed on ClickHouse Cloud the moment you loaded this page.
+      The shaded area is audience an &ldquo;open app = viewer&rdquo; model would have invoiced
+      against.</p>
+    <div class="chartcard">
+      <svg viewBox="0 0 1000 230" id="gapchart" aria-label="reported versus actual concurrency"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--s2)"></span>Reported (session overlap)</span>
+        <span><span class="sw" style="background:var(--s1)"></span>Actually watching</span>
+        <span id="gap-note" style="color:var(--ink);font-weight:600"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="soft" id="how">
+  <div class="wrap">
+    <span class="tag">How it works</span>
+    <h2>Heartbeats prove a client is alive.<br>They do not prove anyone is watching.</h2>
+    <p class="lead">82% of foreground pauses keep emitting heartbeats. Any model that treats a
+      heartbeat as activity counts paused-but-open time as viewing &mdash; exactly the over-count
+      this exists to remove.</p>
+    <div class="grid3">
+      <div class="f"><div class="ic">&#9703;</div><h3>Intent, not presence</h3>
+        <p>Activity opens only on an explicit transition &mdash; play, resume, foreground &mdash;
+          and closes on pause, background or session end. Transitions collapse, never pair.</p></div>
+      <div class="f"><div class="ic">&#9684;</div><h3>Liveness as a failure detector</h3>
+        <p>Silence beyond 120s means the client died without telling us. That threshold is
+          3&times; the <b>measured</b> 40s cadence &mdash; the data dictionary says 60s and is
+          wrong.</p></div>
+      <div class="f"><div class="ic">&#9638;</div><h3>Deltas, not a minute grid</h3>
+        <p>Two rows per interval regardless of duration: 31,521 against the 145,821 a per-minute
+          explosion needs, and the gap widens as sessions lengthen.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap"><div class="band"><div class="bandgrid">
+    <div><div class="v">905,558</div><div class="l">events modelled</div></div>
+    <div><div class="v">2,028<span style="font-size:18px">/s</span></div>
+      <div class="l">streaming throughput</div></div>
+    <div><div class="v">4.79<span style="font-size:18px"> MiB</span></div>
+      <div class="l">from a 222 MB CSV</div></div>
+    <div><div class="v">77<span style="font-size:18px">s</span></div>
+      <div class="l">full pipeline, end to end</div></div>
+  </div></div></div>
+</section>
+
+<section class="soft">
+  <div class="wrap">
+    <span class="tag">Built for operators</span>
+    <h2>Ten views. Every number is a live query.</h2>
+    <p class="lead">Nothing precomputed, nothing cached, nothing baked into the page. The latency
+      and rows-read figures in the header belong to the query that drew what you are looking at.</p>
+    <div class="two">
+      <ul class="ticks">
+        <li><b>Live Operations</b> &mdash; churn, rebuffering, playback errors, ingest lag</li>
+        <li><b>Concurrency</b> &mdash; the gap, filterable across four dimensions at once</li>
+        <li><b>Session Health</b> &mdash; what stopped sessions counting, observed vs inferred</li>
+        <li><b>Content &amp; Audience</b> &mdash; peak simultaneous viewers per title and platform</li>
+        <li><b>Languages</b> &mdash; audio mix, and an honest account of its limits</li>
+      </ul>
+      <ul class="ticks">
+        <li><b>Ingestion</b> &mdash; lane flow, insert batches, alerts and paginated logs</li>
+        <li><b>Storage</b> &mdash; what the serving layer costs to keep and query</li>
+        <li><b>Configuration</b> &mdash; point it at a file, see what would load, before it loads</li>
+        <li><b>Architecture</b> &mdash; component topology plus a read-only SQL console</li>
+        <li><b>No CDN, no npm, no chart library</b> &mdash; venue wi-fi cannot break it</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="log">
+  <div class="wrap">
+    <span class="tag">Engineering log</span>
+    <h2>Seven bugs we shipped, caught, and wrote down.</h2>
+    <p class="lead">Most were caught by building something adversarial rather than by reading the
+      code again. The full account is in the README.</p>
+
+    <div class="fail"><span class="pill">Silent corruption</span>
+      <h3>The sealed-day loader bound CSV columns by position</h3>
+      <p>A wider file does not fail &mdash; it shifts every value one column left and loads
+        <code>platform</code> into <code>country</code>. Worse, <code>run_sealed.py</code> had its
+        own copy of the insert, so hardening the shared loader did nothing for the command that
+        actually runs on judging day.</p></div>
+
+    <div class="fail"><span class="pill">The verifier was the fragile part</span>
+      <h3>Our correctness gate only worked on the sample file</h3>
+      <p>It hardcoded a header name, so a renamed column made it crash &mdash; the loader would
+        ingest a drifted schema correctly and the thing meant to prove it right would die.</p></div>
+
+    <div class="fail"><span class="pill">Off by 24%, in our favour</span>
+      <h3>The obvious concurrency query is wrong</h3>
+      <p>The natural interval-overlap query returns <b>2,353</b> where the truth is <b>3,090</b>.
+        An interval opening and closing inside one minute cancels itself out. The wrong number is
+        plausible, and it errs in the direction that flatters you.</p></div>
+
+    <div class="fail"><span class="pill">A filter that lies</span>
+      <h3>Two of four dashboard filters were silently ignored</h3>
+      <p>Selecting a category narrowed nothing and the headline did not move. A reader would have
+        trusted it. Each view now declares which filters it can honour &mdash; an ignored filter is
+        worse than an absent one.</p></div>
+
+    <div class="fail"><span class="pill">Confidently wrong</span>
+      <h3>Three of four compression hypotheses were wrong</h3>
+      <p>DoubleDelta looks obviously right for 40-second heartbeats. It is wrong here &mdash; rows
+        are ordered by session, not time. Plain Delta is <b>17.1% smaller</b>. ZSTD(6) everywhere
+        bought 0.4% for ~20% more insert CPU.</p></div>
+
+    <p style="margin-top:26px">
+      <a class="btn ghost"
+         href="https://github.com/preethamresearch/nirad-sonyliv-concurrency#what-went-wrong-and-what-it-taught-us">
+        Read all seven &rarr;</a></p>
+  </div>
+</section>
+
+<section class="soft">
+  <div class="wrap">
+    <span class="tag">What we would tell SonyLIV</span>
+    <h2>The most valuable findings point upstream.</h2>
+    <div class="two" style="margin-top:26px">
+      <div class="f"><h3>Emit an explicit playback state</h3>
+        <p><code>pause</code> and <code>resume</code> hide inside heartbeat events, so every
+          consumer reconstructs intent differently. One authoritative field removes a whole class
+          of disagreement between teams reporting the same metric.</p></div>
+      <div class="f"><h3>Add a device instance id</h3>
+        <p>82 sessions genuinely stream on two devices at once and the schema cannot express it, so
+          any model must double-count or under-count. That matters directly for concurrency-based
+          licensing.</p></div>
+      <div class="f"><h3>Fix the documented cadence</h3>
+        <p>The dictionary says 60s; measured is <b>40.0s at p90 on all ten platforms</b>. Any gap
+          threshold derived from the docs is calibrated 50% too loose.</p></div>
+      <div class="f"><h3>Normalise language at the producer</h3>
+        <p>Naive attribution reports 80% of sessions as unknown. The true figure is <b>0.5%</b>
+          &mdash; the difference between &ldquo;we have no language data&rdquo; and &ldquo;we have
+          it for 99.5%&rdquo;.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="cta-final wrap">
+  <h2>See it running.</h2>
+  <p class="lead">Every figure recomputed live against ClickHouse Cloud.</p>
+  <a class="btn y" href="/app#overview" style="font-size:16px;padding:13px 26px">
+    Open Watchhouse &rarr;</a>
+</div>
+
+<footer><div class="wrap">
+  <b style="color:#fff">Watchhouse</b> &mdash; foreground-only concurrency at streaming scale<br>
+  Team Nirad &middot; Click-a-thon 2026 &middot; SonyLIV track &middot; MIT licensed &middot;
+  <a href="https://github.com/preethamresearch/nirad-sonyliv-concurrency">GitHub</a>
+</div></footer>
+
+<script>
+/* Headline figures and the hero chart are live. If Cloud is unreachable the printed
+   numbers still stand -- they are the ones we measured and published. */
+(function () {
+  var fmt = function (n) { return n.toLocaleString(); };
+  function set(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+
+  function countUp(el, to) {
+    if (!el || !isFinite(to)) return;
+    var t0 = performance.now(), dur = 900;
+    function step(now) {
+      var p = Math.min(1, (now - t0) / dur);
+      el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function drawChart(s) {
+    var fg = s.foreground, nv = s.naive;
+    if (!fg || !fg.length) return;
+    var W = 1000, H = 230, mt = 10, mr = 8, mb = 12, ml = 8;
+    var n = fg.length, iw = W - ml - mr, ih = H - mt - mb;
+    var maxY = 1;
+    nv.forEach(function (p) { if (p[1] > maxY) maxY = p[1]; });
+    var X = function (i) { return ml + (n < 2 ? iw / 2 : i / (n - 1) * iw); };
+    var Y = function (v) { return mt + ih - (v / maxY) * ih; };
+    var path = function (pts) {
+      return pts.map(function (p, i) {
+        return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(p[1]).toFixed(1);
+      }).join(" ");
+    };
+    var back = fg.map(function (p, i) {
+      return "L" + X(n - 1 - i).toFixed(1) + " " + Y(fg[n - 1 - i][1]).toFixed(1);
+    }).join(" ");
+    document.getElementById("gapchart").innerHTML =
+      '<defs><linearGradient id="gp" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#eb6834" stop-opacity=".28"/>' +
+        '<stop offset="100%" stop-color="#eb6834" stop-opacity=".04"/></linearGradient></defs>' +
+      '<path d="' + path(nv) + " " + back + ' Z" fill="url(#gp)"/>' +
+      '<path d="' + path(nv) + '" fill="none" stroke="#eb6834" stroke-width="2.2" ' +
+        'stroke-linejoin="round" pathLength="1" ' +
+        'style="stroke-dasharray:1;stroke-dashoffset:1">' +
+        '<animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.3s" fill="freeze"/>' +
+      '</path>' +
+      '<path d="' + path(fg) + '" fill="none" stroke="#2a78d6" stroke-width="2.2" ' +
+        'stroke-linejoin="round" pathLength="1" ' +
+        'style="stroke-dasharray:1;stroke-dashoffset:1">' +
+        '<animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.3s" begin=".18s" ' +
+        'fill="freeze"/></path>';
+  }
+
+  Promise.all([
+    fetch("/api/overview").then(function (r) { return r.json(); }),
+    fetch("/api/series").then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    var ov = res[0], s = res[1];
+    countUp(document.getElementById("f-naive"), s.nv.peak);
+    countUp(document.getElementById("f-fg"), s.fg.peak);
+    countUp(document.getElementById("f-over"), s.overcount);
+    set("f-over-n", s.overcount_pct + "% over-reported");
+    set("gap-note", fmt(s.overcount) + " phantom viewers at peak · " +
+        s.latency_ms.toFixed(0) + " ms on " + ov.endpoint);
+    drawChart(s);
+  }).catch(function () {
+    set("gap-note", "Cloud unreachable — figures shown are from the last verified run.");
+  });
+})();
+</script>
+</body>
+</html>

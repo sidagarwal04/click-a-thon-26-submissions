@@ -1,0 +1,95 @@
+# LibreChat + LiteLLM on the EC2 box.
+#
+#   cd /opt/sonyliv/librechat && docker compose up -d
+#
+# Secrets come from /etc/sonyliv/librechat.env (mode 0600), the same convention the systemd
+# units use, so nothing sensitive is in this directory or in git.
+#
+# Nothing here publishes to 0.0.0.0. nginx terminates TLS on the host and proxies to
+# 127.0.0.1:3080; see ../nginx/sonyliv.conf.
+
+services:
+  api:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: librechat-api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - litellm
+    env_file:
+      - /etc/sonyliv/librechat.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      CONFIG_PATH: /app/librechat.yaml
+      # Meilisearch is not deployed (see below), and LibreChat retries the connection
+      # noisily on every request unless told it is absent.
+      SEARCH: 'false'
+      MEILI_NO_ANALYTICS: 'true'
+      # No provider keys here: every model call goes through LiteLLM, which holds the
+      # Gemini key. LibreChat never sees it.
+    ports:
+      # Loopback only. The single reason this is not 0.0.0.0 is that nginx is the TLS
+      # boundary and there must be no way around it.
+      - '127.0.0.1:3080:3080'
+    extra_hosts:
+      # Resolves to the Docker bridge gateway on the host, which is where sonyliv-mcp
+      # binds (MCP_ADDR in /etc/sonyliv/mcp.env). Linux does not provide this name by
+      # default -- without it the MCP server is simply unreachable from this container.
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+        read_only: true
+      - ./images:/app/client/public/images
+      - ./uploads:/app/uploads
+      - ./logs:/app/api/logs
+
+  mongodb:
+    image: mongo:7
+    container_name: librechat-mongo
+    restart: unless-stopped
+    # No ports: only the api container talks to it, and publishing an unauthenticated
+    # MongoDB -- even on loopback -- is a bad habit to build.
+    volumes:
+      - ./data-node:/data/db
+    command: mongod --noauth --bind_ip_all --quiet
+    logging:
+      driver: json-file
+      options: {max-size: '10m', max-file: '3'}
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: librechat-litellm
+    restart: unless-stopped
+    env_file:
+      - /etc/sonyliv/librechat.env
+    # LANGFUSE_HOST/PUBLIC_KEY/SECRET_KEY and GEMINI_API_KEY arrive via env_file; the
+    # callback in the config picks them up by name.
+    volumes:
+      - type: bind
+        source: ./litellm-config.yaml
+        target: /app/config.yaml
+        read_only: true
+    command: ['--config', '/app/config.yaml', '--port', '4000']
+    # No ports: reached as http://litellm:4000 on the compose network. It holds the Gemini
+    # key and has a master key, and neither belongs on a listening host port.
+    healthcheck:
+      # python3, not curl: neither this image nor LibreChat's ships curl, and a healthcheck
+      # that shells out to a missing binary reports `unhealthy` for a service that is
+      # serving perfectly well -- which sends you debugging the proxy instead of the check.
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+# Meilisearch is deliberately absent. LibreChat's compose ships it for conversation search,
+# it wants ~500 MB, and this box is also running sonyliv-api, sonyliv-mock and sonyliv-mcp
+# against a live demo. Searching one's own chat history is not part of what is being shown.

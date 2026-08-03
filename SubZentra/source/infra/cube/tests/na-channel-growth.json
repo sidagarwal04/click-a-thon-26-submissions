@@ -1,0 +1,30 @@
+{
+  "query": {
+    "measures": ["Commerce.orderCount", "Commerce.grossRevenue"],
+    "dimensions": ["Commerce.channel"],
+    "timeDimensions": [
+      {
+        "dimension": "Commerce.orderedAt",
+        "granularity": "month",
+        "dateRange": ["2026-10-01", "2026-11-30"]
+      }
+    ],
+    "filters": [
+      {
+        "member": "Commerce.region",
+        "operator": "equals",
+        "values": ["NA"]
+      }
+    ]
+  },
+  "expected": {
+    "2026-10": {
+      "web": { "orderCount": 100, "grossRevenue": 10000 },
+      "partner": { "orderCount": 20, "grossRevenue": 3000 }
+    },
+    "2026-11": {
+      "web": { "orderCount": 100, "grossRevenue": 10000 },
+      "partner": { "orderCount": 80, "grossRevenue": 12000 }
+    }
+  }
+}

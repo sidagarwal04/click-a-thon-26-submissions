@@ -1,0 +1,26 @@
+Expression ((Project names + (Before ORDER BY + (Projection + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection))))))))) [lifted up part]))
+  Sorting (Sorting for ORDER BY)
+    Expression ((Before ORDER BY + (Projection + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection))))))))))
+      Aggregating
+        Expression (Before GROUP BY)
+          Filter ((WHERE + Change column names to column identifiers))
+            ReadFromMergeTree (sonyliv.cc_hour_agg)
+            Indexes:
+              MinMax
+                Condition: true
+                Parts: 1/1
+                Granules: 4/4
+              Partition
+                Condition: true
+                Parts: 1/1
+                Granules: 4/4
+              PrimaryKey
+                Keys:
+                  platform
+                  country
+                  content_id
+                Condition: and((content_id in [-1, -1]), and((country in ['*', '*']), (platform in ['*', '*'])))
+                Parts: 1/1
+                Granules: 1/4
+                Search Algorithm: binary search
+              Ranges: 1

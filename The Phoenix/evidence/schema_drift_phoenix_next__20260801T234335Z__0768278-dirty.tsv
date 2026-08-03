@@ -1,0 +1,211 @@
+# evidence: schema_drift_phoenix_next
+# what: live structure of phoenix_next against sql/schema/, via an empty reference database
+# run_utc: 2026-08-01 23:43:35
+# git: 0768278-dirty
+# host: ss-cric
+# row_count: 1758104
+# event_watermark: 2026-08-01 23:43:33.119
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 23:43:33   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+target_database	phoenix_next
+reference_database	phoenix_schema_ref	(empty, built from sql/schema/)
+drift_allow	<none>
+differences	190	(required 0)
+allowed_differences	0
+verdict	FAIL
+difference	> column	audience_minute_snapshot	app_version	LowCardinality(String)			
+difference	> column	audience_minute_snapshot	background_entries	UInt32			
+difference	> column	audience_minute_snapshot	category	LowCardinality(String)			
+difference	> column	audience_minute_snapshot	concurrent_sessions	UInt32			
+difference	> column	audience_minute_snapshot	concurrent_users	UInt32			
+difference	> column	audience_minute_snapshot	content_id	Int64			
+difference	> column	audience_minute_snapshot	country	LowCardinality(String)			
+difference	> column	audience_minute_snapshot	first_plays	UInt32			
+difference	> column	audience_minute_snapshot	foreground_entries	UInt32			
+difference	> column	audience_minute_snapshot	minute	DateTime			
+difference	> column	audience_minute_snapshot	platform	LowCardinality(String)			
+difference	> column	audience_minute_snapshot	session_ends	UInt32			
+difference	> column	audience_minute_snapshot	session_starts	UInt32			
+difference	> column	audience_minute_snapshot	title	String			
+difference	> column	audience_minute_snapshot	updated_at	DateTime	DEFAULT	now()	
+difference	> column	audience_minute_snapshot	version	UInt64			
+difference	> column	audience_minute_snapshot	video_errors	UInt32			
+difference	> column	audience_minute_snapshot	video_type	LowCardinality(String)			
+difference	> column	concurrency_spike_events	absolute_growth	Int64			
+difference	> column	concurrency_spike_events	background_rate_after_peak	Float32			
+difference	> column	concurrency_spike_events	baseline_concurrency	UInt32			
+difference	> column	concurrency_spike_events	concurrency_after_10m	UInt32			
+difference	> column	concurrency_spike_events	concurrency_after_15m	UInt32			
+difference	> column	concurrency_spike_events	concurrency_after_5m	UInt32			
+difference	> column	concurrency_spike_events	confidence	Float32			
+difference	> column	concurrency_spike_events	content_id	Int64			
+difference	> column	concurrency_spike_events	entered_sessions	UInt32			
+difference	> column	concurrency_spike_events	error_rate_after_peak	Float32			
+difference	> column	concurrency_spike_events	growth_percent	Float32			
+difference	> column	concurrency_spike_events	minutes_above_80pct_peak	UInt16			
+difference	> column	concurrency_spike_events	minutes_to_peak	UInt16			
+difference	> column	concurrency_spike_events	peak_concurrency	UInt32			
+difference	> column	concurrency_spike_events	peak_minute	DateTime			
+difference	> column	concurrency_spike_events	retention_10m_percent	Float32			
+difference	> column	concurrency_spike_events	retention_15m_percent	Float32			
+difference	> column	concurrency_spike_events	retention_5m_percent	Float32			
+difference	> column	concurrency_spike_events	spike_type	LowCardinality(String)			
+difference	> column	concurrency_spike_events	timeout_rate_after_peak	Float32			
+difference	> column	concurrency_spike_events	updated_at	DateTime	DEFAULT	now()	
+difference	> column	concurrency_spike_events	version	UInt64			
+difference	> column	concurrency_spike_events	window_start	DateTime			
+difference	> column	content_entry_cohorts	active_after_10m	UInt32			
+difference	> column	content_entry_cohorts	active_after_15m	UInt32			
+difference	> column	content_entry_cohorts	active_after_1m	UInt32			
+difference	> column	content_entry_cohorts	active_after_5m	UInt32			
+difference	> column	content_entry_cohorts	app_version	LowCardinality(String)			
+difference	> column	content_entry_cohorts	avg_active_seconds	Float32			
+difference	> column	content_entry_cohorts	category	LowCardinality(String)			
+difference	> column	content_entry_cohorts	cohort_minute	DateTime			
+difference	> column	content_entry_cohorts	content_id	Int64			
+difference	> column	content_entry_cohorts	country	LowCardinality(String)			
+difference	> column	content_entry_cohorts	entered_sessions	UInt32			
+difference	> column	content_entry_cohorts	median_active_seconds	Float32			
+difference	> column	content_entry_cohorts	p90_active_seconds	Float32			
+difference	> column	content_entry_cohorts	platform	LowCardinality(String)			
+difference	> column	content_entry_cohorts	retention_10m	Float32			
+difference	> column	content_entry_cohorts	retention_15m	Float32			
+difference	> column	content_entry_cohorts	retention_1m	Float32			
+difference	> column	content_entry_cohorts	retention_5m	Float32			
+difference	> column	content_entry_cohorts	title	String			
+difference	> column	content_entry_cohorts	updated_at	DateTime	DEFAULT	now()	
+difference	> column	content_entry_cohorts	version	UInt64			
+difference	> column	content_entry_cohorts	video_type	LowCardinality(String)			
+difference	> column	late_event_audit	arrival_timestamp	DateTime64(3)			
+difference	> column	late_event_audit	event	LowCardinality(String)			
+difference	> column	late_event_audit	event_date	Date			
+difference	> column	late_event_audit	event_timestamp	DateTime64(3)			
+difference	> column	late_event_audit	event_type	LowCardinality(String)			
+difference	> column	late_event_audit	lateness_class	Enum8('on_time' = 1, 'late_acceptable' = 2, 'late_after_finalization' = 3, 'invalid_future_event' = 4)			
+difference	> column	late_event_audit	lateness_seconds	Int64			
+difference	> column	late_event_audit	recorded_at	DateTime	DEFAULT	now()	
+difference	> column	late_event_audit	video_session_id	String			
+difference	> column	late_event_audit_mv	arrival_timestamp	DateTime64(3)			
+difference	> column	late_event_audit_mv	event	LowCardinality(String)			
+difference	> column	late_event_audit_mv	event_date	Date			
+difference	> column	late_event_audit_mv	event_timestamp	DateTime64(3)			
+difference	> column	late_event_audit_mv	event_type	LowCardinality(String)			
+difference	> column	late_event_audit_mv	lateness_class	String			
+difference	> column	late_event_audit_mv	lateness_seconds	Int64			
+difference	> column	late_event_audit_mv	video_session_id	String			
+difference	> column	playback_health_minute	abandoned_sessions	UInt32			
+difference	> column	playback_health_minute	abandonment_rate	Float32			
+difference	> column	playback_health_minute	active_sessions	UInt32			
+difference	> column	playback_health_minute	app_version	LowCardinality(String)			
+difference	> column	playback_health_minute	content_id	Int64			
+difference	> column	playback_health_minute	country	LowCardinality(String)			
+difference	> column	playback_health_minute	heartbeat_timeout_rate	Float32			
+difference	> column	playback_health_minute	heartbeat_timeout_sessions	UInt32			
+difference	> column	playback_health_minute	minute	DateTime			
+difference	> column	playback_health_minute	platform	LowCardinality(String)			
+difference	> column	playback_health_minute	updated_at	DateTime	DEFAULT	now()	
+difference	> column	playback_health_minute	version	UInt64			
+difference	> column	playback_health_minute	video_error_rate	Float32			
+difference	> column	playback_health_minute	video_error_sessions	UInt32			
+difference	> column	playback_health_minute	video_type	LowCardinality(String)			
+difference	> column	session_insight_facts	abandoned	UInt8			
+difference	> column	session_insight_facts	active_after_10m	UInt8			
+difference	> column	session_insight_facts	active_after_15m	UInt8			
+difference	> column	session_insight_facts	active_after_1m	UInt8			
+difference	> column	session_insight_facts	active_after_5m	UInt8			
+difference	> column	session_insight_facts	active_interval_count	UInt16			
+difference	> column	session_insight_facts	active_seconds	UInt32			
+difference	> column	session_insight_facts	app_version	LowCardinality(String)			
+difference	> column	session_insight_facts	background_count	UInt16			
+difference	> column	session_insight_facts	category	LowCardinality(String)			
+difference	> column	session_insight_facts	content_id	Int64			
+difference	> column	session_insight_facts	country	LowCardinality(String)			
+difference	> column	session_insight_facts	ended_normally	UInt8			
+difference	> column	session_insight_facts	first_active_at	DateTime			
+difference	> column	session_insight_facts	first_event_at	DateTime64(3)			
+difference	> column	session_insight_facts	first_play_at	DateTime64(3)			
+difference	> column	session_insight_facts	foreground_return_count	UInt16			
+difference	> column	session_insight_facts	heartbeat_count	UInt32			
+difference	> column	session_insight_facts	last_active_at	DateTime			
+difference	> column	session_insight_facts	last_event_at	DateTime64(3)			
+difference	> column	session_insight_facts	pause_count	UInt16			
+difference	> column	session_insight_facts	platform	LowCardinality(String)			
+difference	> column	session_insight_facts	reached_first_heartbeat	UInt8			
+difference	> column	session_insight_facts	reopened_after_end	UInt8			
+difference	> column	session_insight_facts	resume_count	UInt16			
+difference	> column	session_insight_facts	session_end_at	DateTime64(3)			
+difference	> column	session_insight_facts	session_start	DateTime64(3)			
+difference	> column	session_insight_facts	timed_out	UInt8			
+difference	> column	session_insight_facts	title	String			
+difference	> column	session_insight_facts	updated_at	DateTime	DEFAULT	now()	
+difference	> column	session_insight_facts	user_id	String			
+difference	> column	session_insight_facts	version	UInt64			
+difference	> column	session_insight_facts	video_error_count	UInt16			
+difference	> column	session_insight_facts	video_session_id	String			
+difference	> column	session_insight_facts	video_type	LowCardinality(String)			
+difference	> column	session_state_transitions	app_version	LowCardinality(String)			
+difference	> column	session_state_transitions	content_id	Int64			
+difference	> column	session_state_transitions	country	LowCardinality(String)			
+difference	> column	session_state_transitions	from_state	LowCardinality(String)			
+difference	> column	session_state_transitions	platform	LowCardinality(String)			
+difference	> column	session_state_transitions	playback_instance_no	UInt16			
+difference	> column	session_state_transitions	seconds_in_previous_state	UInt32			
+difference	> column	session_state_transitions	sign	Int8			
+difference	> column	session_state_transitions	to_state	LowCardinality(String)			
+difference	> column	session_state_transitions	transition_at	DateTime64(3)			
+difference	> column	session_state_transitions	transition_sequence	UInt32			
+difference	> column	session_state_transitions	trigger_event	LowCardinality(String)			
+difference	> column	session_state_transitions	trigger_event_type	LowCardinality(String)			
+difference	> column	session_state_transitions	user_id	String			
+difference	> column	session_state_transitions	version	UInt64			
+difference	> column	session_state_transitions	video_session_id	String			
+difference	> column	session_state_transitions	video_type	LowCardinality(String)			
+difference	> column	user_content_transitions	from_category	LowCardinality(String)			
+difference	> column	user_content_transitions	from_content_id	Int64			
+difference	> column	user_content_transitions	from_platform	LowCardinality(String)			
+difference	> column	user_content_transitions	from_session_id	String			
+difference	> column	user_content_transitions	from_title	String			
+difference	> column	user_content_transitions	from_video_type	LowCardinality(String)			
+difference	> column	user_content_transitions	gap_seconds	Int32			
+difference	> column	user_content_transitions	overlap_seconds	Int32			
+difference	> column	user_content_transitions	to_category	LowCardinality(String)			
+difference	> column	user_content_transitions	to_content_id	Int64			
+difference	> column	user_content_transitions	to_platform	LowCardinality(String)			
+difference	> column	user_content_transitions	to_session_id	String			
+difference	> column	user_content_transitions	to_title	String			
+difference	> column	user_content_transitions	to_video_type	LowCardinality(String)			
+difference	> column	user_content_transitions	transition_at	DateTime64(3)			
+difference	> column	user_content_transitions	transition_type	LowCardinality(String)			
+difference	> column	user_content_transitions	updated_at	DateTime	DEFAULT	now()	
+difference	> column	user_content_transitions	user_id	String			
+difference	> column	user_content_transitions	version	UInt64			
+difference	> column	user_platform_transitions	content_id	Int64			
+difference	> column	user_platform_transitions	from_platform	LowCardinality(String)			
+difference	> column	user_platform_transitions	from_session_id	String			
+difference	> column	user_platform_transitions	gap_seconds	Int32			
+difference	> column	user_platform_transitions	overlap_seconds	Int32			
+difference	> column	user_platform_transitions	title	String			
+difference	> column	user_platform_transitions	to_platform	LowCardinality(String)			
+difference	> column	user_platform_transitions	to_session_id	String			
+difference	> column	user_platform_transitions	transition_at	DateTime64(3)			
+difference	> column	user_platform_transitions	transition_type	LowCardinality(String)			
+difference	> column	user_platform_transitions	updated_at	DateTime	DEFAULT	now()	
+difference	> column	user_platform_transitions	user_id	String			
+difference	> column	user_platform_transitions	version	UInt64			
+difference	> mv_body	late_event_audit_mv	CREATE MATERIALIZED VIEW DB.late_event_audit_mv TO DB.late_event_audit (`event_date` Date, `video_session_id` String, `event_timestamp` DateTime64(3), `arrival_timestamp` DateTime64(3), `lateness_seconds` Int64, `lateness_class` String, `event_type` LowCardinality(String), `event` LowCardinality(String)) AS SELECT toDate(event_timestamp) AS event_date, video_session_id, event_timestamp, arrival_timestamp, dateDiff('second', event_timestamp, arrival_timestamp) AS lateness_seconds, multiIf(lateness_seconds < 0, 'invalid_future_event', lateness_seconds <= 90, 'on_time', lateness_seconds <= 3600, 'late_acceptable', 'late_after_finalization') AS lateness_class, event_type, event FROM DB.raw_events WHERE (arrival_timestamp > toDateTime64(0, 3)) AND ((dateDiff('second', event_timestamp, arrival_timestamp) > 90) OR (dateDiff('second', event_timestamp, arrival_timestamp) < 0))
+difference	> table	audience_minute_snapshot	SharedReplacingMergeTree	minute, content_id, platform, country, video_type, app_version	toYYYYMMDD(minute)	minute, content_id, platform, country, video_type, app_version	
+difference	> table	concurrency_spike_events	SharedReplacingMergeTree	content_id, window_start		content_id, window_start	
+difference	> table	content_entry_cohorts	SharedReplacingMergeTree	video_type, country, platform, app_version, content_id, cohort_minute	toYYYYMMDD(cohort_minute)	video_type, country, platform, app_version	
+difference	> table	late_event_audit	SharedMergeTree	lateness_class, event_date, video_session_id, event_timestamp	event_date	lateness_class, event_date, video_session_id, event_timestamp	
+difference	> table	late_event_audit_mv	MaterializedView				
+difference	> table	playback_health_minute	SharedReplacingMergeTree	minute, content_id, platform, country, app_version, video_type	toYYYYMMDD(minute)	minute, content_id, platform, country, app_version, video_type	
+difference	> table	session_insight_facts	SharedReplacingMergeTree	toDate(session_start), country, platform, content_id, session_start, video_session_id	toYYYYMM(session_start)	toDate(session_start), country, platform, content_id	
+difference	> table	session_state_transitions	SharedCollapsingMergeTree	video_session_id, playback_instance_no, transition_at, transition_sequence	toYYYYMM(transition_at)	video_session_id, playback_instance_no, transition_at, transition_sequence	
+difference	> table	user_content_transitions	SharedReplacingMergeTree	toDate(transition_at), transition_type, from_content_id, to_content_id, transition_at, user_id, to_session_id	toYYYYMM(transition_at)	toDate(transition_at), transition_type, from_content_id, to_content_id	
+difference	> table	user_platform_transitions	SharedReplacingMergeTree	toDate(transition_at), transition_type, from_platform, to_platform, content_id, transition_at, user_id, to_session_id	toYYYYMM(transition_at)	toDate(transition_at), transition_type, from_platform, to_platform	

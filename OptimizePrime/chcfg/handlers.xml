@@ -1,0 +1,22 @@
+<!-- No-backend API: the UI talks to ClickHouse directly. Typed parameters reject
+     injection ({m:UInt32} cannot parse "1;DROP TABLE"), and no credential reaches
+     the browser. Verified: &query= cannot smuggle SQL past a predefined handler. -->
+<clickhouse><http_handlers>
+  <rule>
+    <url>/api/concurrency</url><methods>GET</methods>
+    <handler>
+      <type>predefined_query_handler</type>
+      <user>web_ro</user>
+      <query>
+        SELECT toUnixTimestamp(minute) AS t, cc
+        FROM default.v_concurrency_minute
+        WHERE minute BETWEEN fromUnixTimestamp({from:UInt32}) AND fromUnixTimestamp({to:UInt32})
+        ORDER BY minute FORMAT JSONEachRow
+      </query>
+      <http_response_headers><Access-Control-Allow-Origin>*</Access-Control-Allow-Origin></http_response_headers>
+    </handler>
+  </rule>
+  <rule><url>/api/health</url><handler><type>static</type><status>200</status>
+    <content_type>text/plain</content_type><response_content>OK</response_content></handler></rule>
+  <defaults/>
+</http_handlers></clickhouse>

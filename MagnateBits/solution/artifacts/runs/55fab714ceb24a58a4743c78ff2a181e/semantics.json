@@ -1,0 +1,99 @@
+{
+  "feature_slug": "group_family",
+  "table_fqn": "atlys.f_group_family_events",
+  "event_column": "event",
+  "event_types": [
+    "group_started",
+    "traveller_added",
+    "traveller_removed",
+    "group_submitted"
+  ],
+  "entity_key": "group_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "user_id",
+    "application_id"
+  ],
+  "ordered_steps": [
+    "group_started",
+    "traveller_added",
+    "traveller_removed",
+    "group_submitted"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "group_size",
+    "destination",
+    "device_type",
+    "os",
+    "geoip_country_code",
+    "city",
+    "app_version",
+    "client_lib",
+    "relation"
+  ],
+  "measures": [
+    {
+      "column": "group_size",
+      "kind": "count",
+      "scoped_to_events": [
+        "group_started",
+        "traveller_added",
+        "traveller_removed",
+        "group_submitted"
+      ],
+      "unit": "travellers"
+    },
+    {
+      "column": "traveller_index",
+      "kind": "count",
+      "scoped_to_events": [
+        "traveller_added",
+        "traveller_removed"
+      ],
+      "unit": "index"
+    },
+    {
+      "column": "docs_complete",
+      "kind": "rate",
+      "scoped_to_events": [
+        "traveller_added"
+      ],
+      "unit": "bool"
+    },
+    {
+      "column": "travellers_submitted",
+      "kind": "count",
+      "scoped_to_events": [
+        "group_submitted"
+      ],
+      "unit": "travellers"
+    }
+  ],
+  "flags": [
+    "docs_complete"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked",
+        "application_started"
+      ],
+      "join_key": "destination",
+      "evidence": "destination is ISO-2 (14 distinct values here) matching the vocabulary used by application_started.destination -- segment-level join only, no shared identity column measured against the 8 legacy tables"
+    },
+    {
+      "from_column": "app_version",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked"
+      ],
+      "join_key": "app_version,city,client_lib",
+      "evidence": "same segment-vocabulary join pattern already established for f_express_checkout_events and f_instant_forex_events (app_version 3 shared values, city 7 shared values, client_lib 2 shared values) -- no identity overlap with legacy tables was measured for this feature either, so this supersedes any user_id join assumption"
+    }
+  ]
+}

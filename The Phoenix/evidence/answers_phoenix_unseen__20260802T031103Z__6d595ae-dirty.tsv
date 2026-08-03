@@ -1,0 +1,43 @@
+# evidence: answers_phoenix_unseen
+# what: peak and average concurrency at minute, hour and day grain across filter shapes, with per-query latency from system.query_log
+# run_utc: 2026-08-02 03:11:03
+# git: 6d595ae-dirty
+# host: ss-cric
+# row_count: 7000000
+# event_watermark: 2026-08-03 11:26:15.032
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 7000000   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 02:35:57   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+shape	grain	peak_concurrency	peak_minute	avg_all_minutes	avg_active_minutes	minutes_with_audience	minutes_total	buckets	query_ms	read_rows	read_bytes	query_id_prefix
+unfiltered	minute	22416	2026-07-31 11:16:00	914.65	1667.21	790	1440	1440	24	120377	963016	answers_unfiltered_60
+unfiltered	hour	22416	2026-07-31 11:16:00	914.65	1667.2	790	1440	24	26	120377	963016	answers_unfiltered_3600
+unfiltered	day	22416	2026-07-31 11:16:00	914.65	1667.21	790	1440	1	29	120377	963016	answers_unfiltered_86400
+platform	minute	6569	2026-07-31 11:16:00	253.24	529.27	689	1440	1440	39	35120	317793	answers_platform_60
+platform	hour	6569	2026-07-31 11:16:00	253.24	529.27	689	1440	24	18	35120	317793	answers_platform_3600
+platform	day	6569	2026-07-31 11:16:00	253.24	529.27	689	1440	1	17	35120	317793	answers_platform_86400
+country	minute	22416	2026-07-31 11:16:00	914.65	1667.21	790	1440	1440	35	120377	1085388	answers_country_60
+country	hour	22416	2026-07-31 11:16:00	914.65	1667.2	790	1440	24	36	120377	1085388	answers_country_3600
+country	day	22416	2026-07-31 11:16:00	914.65	1667.21	790	1440	1	34	120377	1085388	answers_country_86400
+content	minute	8880	2026-07-31 11:16:00	326.7	2250.93	209	1440	1440	46	79287	1267032	answers_content_60
+content	hour	8880	2026-07-31 11:16:00	326.7	2250.93	209	1440	24	21	79287	1267032	answers_content_3600
+content	day	8880	2026-07-31 11:16:00	326.7	2250.93	209	1440	1	17	79092	1265472	answers_content_86400
+platform+country	minute	6569	2026-07-31 11:16:00	253.24	529.27	689	1440	1440	19	35120	353249	answers_platform+country_60
+platform+country	hour	6569	2026-07-31 11:16:00	253.24	529.27	689	1440	24	17	35120	353249	answers_platform+country_3600
+platform+country	day	6569	2026-07-31 11:16:00	253.24	529.27	689	1440	1	19	35120	353249	answers_platform+country_86400
+platform+content	minute	3550	2026-07-31 11:16:00	124.63	1435.74	125	1440	1440	23	18732	318187	answers_platform+content_60
+platform+content	hour	3550	2026-07-31 11:16:00	124.63	1435.73	125	1440	24	18	18732	318187	answers_platform+content_3600
+platform+content	day	3550	2026-07-31 11:16:00	124.63	1435.74	125	1440	1	15	18493	249611	answers_platform+content_86400
+#
+# database	phoenix_unseen
+# window	2026-07-31 00:00:00 -> 2026-08-01 00:00:00
+# query	sql/queries/serving/peak_average.sql
+# grains	minute (60s), hour (3600s), day (86400s)
+# top_platform	ANDROID_PHONE
+# top_country	india
+# top_content_id	2078157818
+# latency_source	system.query_log query_duration_ms, NOT a client-side stopwatch
+# service	26.2.1.525

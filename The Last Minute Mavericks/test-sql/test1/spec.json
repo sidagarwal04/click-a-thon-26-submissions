@@ -1,0 +1,67 @@
+{
+  "name": "test1",
+  "database": "rca_ts1",
+  "seed": 11,
+  "day0": "2026-06-01",
+  "days": 40,
+  "bases": 25,
+  "daily_requests": 2000000,
+  "growth_per_day": 0.003,
+  "weekend_factor": 0.8,
+  "note": "single-dimension incidents \u2014 one per scanned metric (fill_rate / ecpm / requests), plus a below-volume-floor control that must stay silent.",
+  "incidents": [
+    {
+      "id": "T1-1",
+      "metric": "fill_rate",
+      "dim": "region",
+      "value": "LATAM",
+      "win": [
+        "2026-06-23",
+        "2026-06-25"
+      ],
+      "drop": 0.45,
+      "expect": "detected",
+      "why": "classic supply-side fill collapse in one region; 1-D, should localize exactly."
+    },
+    {
+      "id": "T1-2",
+      "metric": "ecpm",
+      "dim": "ad_format",
+      "value": "video",
+      "win": [
+        "2026-06-29",
+        "2026-06-30"
+      ],
+      "drop": 0.38,
+      "expect": "detected",
+      "why": "price-side move on the highest-CPM format; fill and requests stay flat, so LMDI must credit ecpm alone."
+    },
+    {
+      "id": "T1-3",
+      "metric": "requests",
+      "dim": "__global__",
+      "value": null,
+      "win": [
+        "2026-07-06",
+        "2026-07-06"
+      ],
+      "drop": 0.3,
+      "expect": "detected",
+      "why": "uniform one-day traffic loss with NO responsible segment \u2014 must come back GLOBAL_UNLOCALIZED, not a scapegoat segment."
+    },
+    {
+      "id": "T1-C1",
+      "metric": "fill_rate",
+      "dim": "country",
+      "value": "AE",
+      "win": [
+        "2026-06-17",
+        "2026-06-19"
+      ],
+      "drop": 0.6,
+      "expect": "suppressed",
+      "control_volume_per_day": 900,
+      "why": "huge drop in a ~900 req/day segment \u2014 under the 1500/day volume floor. Reporting it is crying wolf."
+    }
+  ]
+}

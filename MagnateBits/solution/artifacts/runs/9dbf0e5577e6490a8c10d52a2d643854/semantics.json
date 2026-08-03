@@ -1,0 +1,87 @@
+{
+  "feature_slug": "unseen",
+  "table_fqn": "atlys.f_unseen_events",
+  "event_column": "event",
+  "event_types": [
+    "coupon_field_shown",
+    "coupon_entered",
+    "coupon_applied",
+    "coupon_rejected",
+    "discount_shown",
+    "checkout_with_coupon"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "coupon_field_shown",
+    "coupon_entered",
+    "coupon_applied",
+    "discount_shown",
+    "checkout_with_coupon"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "device_type",
+    "os",
+    "geoip_country_code",
+    "city",
+    "destination",
+    "client_lib",
+    "app_version",
+    "coupon_code"
+  ],
+  "measures": [
+    {
+      "column": "cart_value",
+      "kind": "money",
+      "scoped_to_events": [],
+      "unit": "currency"
+    },
+    {
+      "column": "discount_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "coupon_applied",
+        "discount_shown",
+        "checkout_with_coupon"
+      ],
+      "unit": "currency"
+    },
+    {
+      "column": "final_value",
+      "kind": "money",
+      "scoped_to_events": [
+        "checkout_with_coupon"
+      ],
+      "unit": "currency"
+    }
+  ],
+  "flags": [],
+  "disconnected_event_types": [
+    "coupon_rejected"
+  ],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "user_id",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked"
+      ],
+      "join_key": "user_id",
+      "evidence": "destination_card_clicked.user_id -> all tables (documented relationship); user_id is 100% covered on all 6 unseen event types."
+    },
+    {
+      "from_column": "app_version",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked"
+      ],
+      "join_key": "app_version,toDate(timestamp)",
+      "evidence": "Segment-vocabulary overlap pattern documented for other feature tables (e.g. f_abandoned_checkout_recovery_events shares app_version/city/client_lib with destination_card_clicked); same join style applies here."
+    }
+  ]
+}

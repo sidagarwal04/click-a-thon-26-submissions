@@ -1,0 +1,168 @@
+{
+  "clickhouse": {
+    "events_table": "ad_events",
+    "enriched_table": "events_full",
+    "hourly_table": "hourly_summary"
+  },
+  "datasets": {
+    "dev": {
+      "events": "ad_events",
+      "enriched": "events_full",
+      "hourly": "hourly_summary",
+      "apps": "apps_dim",
+      "advertisers": "advertisers_dim",
+      "geo_device": "geo_device_dim"
+    },
+    "unseen": {
+      "events": "ad_events_unseen",
+      "enriched": "events_full_unseen",
+      "hourly": "hourly_summary_unseen",
+      "apps": "apps_dim_unseen",
+      "advertisers": "advertisers_dim_unseen",
+      "geo_device": "geo_device_dim_unseen"
+    }
+  },
+  "active_dataset": "dev",
+  "history_dataset": "dev",
+  "stream": {
+    "source_dir": "InMobi/unseen_data",
+    "batch_hours": 1,
+    "tick_seconds": 2,
+    "detect_metrics": [
+      "revenue",
+      "fill_rate",
+      "ecpm",
+      "requests",
+      "ctr",
+      "rpr",
+      "render_rate"
+    ],
+    "detect_method": "isolation_forest",
+    "deep_scan_every": 24
+  },
+  "metrics": {
+    "base_events": {
+      "requests": "count(*)",
+      "fills": "sum(is_filled)",
+      "impressions": "sum(is_impression)",
+      "clicks": "sum(is_click)",
+      "revenue": "sum(revenue)"
+    },
+    "base_rollup": {
+      "requests": "sum(requests)",
+      "fills": "sum(fills)",
+      "impressions": "sum(impressions)",
+      "clicks": "sum(clicks)",
+      "revenue": "sum(revenue)"
+    },
+    "ratios": {
+      "fill_rate": [
+        "fills",
+        "requests"
+      ],
+      "render_rate": [
+        "impressions",
+        "fills"
+      ],
+      "ctr": [
+        "clicks",
+        "impressions"
+      ],
+      "rpr": [
+        "revenue",
+        "requests"
+      ]
+    },
+    "ecpm_multiplier": 1000
+  },
+  "detection": {
+    "grain": "hour",
+    "method": "isolation_forest",
+    "mad_scale": 1.4826,
+    "baseline_method": "same_weekday_trailing_weeks",
+    "baseline_weeks": 3,
+    "mad_z_threshold": 3.5,
+    "min_pct_delta": 0.1,
+    "effect_multiplier": 8,
+    "effect_multiplier_overrides": {
+      "ctr": 15
+    },
+    "min_effect_pct": {
+      "fill_rate": 0.03,
+      "render_rate": 0.03,
+      "requests": 0.1,
+      "revenue": 0.15,
+      "rpr": 0.15,
+      "impressions": 0.1,
+      "ecpm": 0.15,
+      "ctr": 0.4,
+      "_default": 0.1
+    },
+    "seasonal_ml": {
+      "season_keys": [
+        "weekday",
+        "hour"
+      ],
+      "residual_z_threshold": 3.5,
+      "min_pct_delta": 0.05
+    },
+    "isolation_forest": {
+      "features": "univariate",
+      "feature_columns": [
+        "fill_rate",
+        "render_rate",
+        "ctr",
+        "ecpm",
+        "rpr",
+        "requests"
+      ],
+      "n_estimators": 200,
+      "contamination": "auto",
+      "random_state": 42,
+      "min_pct_delta": 0.05
+    }
+  },
+  "rca": {
+    "revenue_identity_factors": [
+      "requests",
+      "fill_rate",
+      "ecpm"
+    ],
+    "drilldown_dimensions": [
+      "region",
+      "country",
+      "os_version",
+      "device_model",
+      "ad_format",
+      "category",
+      "publisher_tier",
+      "vertical",
+      "campaign_type",
+      "app_id",
+      "advertiser_id"
+    ],
+    "stop_contribution_threshold": 0.5,
+    "min_lift": 1.5,
+    "min_gap_noise_multiple": 2.0,
+    "max_depth": 4,
+    "baseline_weeks": 2
+  },
+  "ruled_out_hypotheses": [
+    "request_volume",
+    "ctr_quality",
+    "ecpm_price",
+    "device_mix",
+    "seasonality"
+  ],
+  "narrator": {
+    "max_sentences": 5,
+    "temperature": 0.1
+  },
+  "bedrock": {
+    "region": "ap-southeast-2",
+    "model_id": "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
+  },
+  "tracing": {
+    "live_flush": true
+  }
+}

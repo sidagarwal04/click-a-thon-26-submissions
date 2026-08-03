@@ -1,0 +1,116 @@
+{
+  "call_id": "CALL-06-MEDIUM",
+  "category": "Medium",
+  "title": "Funnel Conversion Rate by Device & Geo Cohort (HAVING >= 500 Apps)",
+  "question": "What is the stage conversion rate from application_started to purchase_completed across device types and country codes for high-volume cohorts (>= 500 applications)?",
+  "database": "default",
+  "target_tables": "application_started, purchase_completed",
+  "timestamp": "2026-08-02T00:14:31.305856+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 268.01,
+    "row_count": 12,
+    "columns_count": 6,
+    "columns": [
+      "device_type",
+      "geoip_country_code",
+      "started_applications",
+      "converted_purchases",
+      "stage_conversion_rate_pct",
+      "realized_cohort_revenue"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_medium_06",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/5d9dfb2d3c669de964bd46fc7bb35575",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    a.device_type,\n    a.geoip_country_code,\n    count(DISTINCT a.application_id) AS started_applications,\n    count(DISTINCT p.application_id) AS converted_purchases,\n    round(count(DISTINCT p.application_id) * 100.0 / count(DISTINCT a.application_id), 2) AS stage_conversion_rate_pct,\n    round(sum(p.value), 2) AS realized_cohort_revenue\nFROM default.application_started a\nLEFT JOIN default.purchase_completed p ON a.application_id = p.application_id\nGROUP BY a.device_type, a.geoip_country_code\nHAVING started_applications >= 500\nORDER BY stage_conversion_rate_pct DESC, started_applications DESC\nLIMIT 12",
+  "result_sample": [
+    {
+      "device_type": "ios",
+      "geoip_country_code": "AE",
+      "started_applications": 8906,
+      "converted_purchases": 637,
+      "stage_conversion_rate_pct": 7.15,
+      "realized_cohort_revenue": 192706.6
+    },
+    {
+      "device_type": "web-user-b2c",
+      "geoip_country_code": "QA",
+      "started_applications": 629,
+      "converted_purchases": 35,
+      "stage_conversion_rate_pct": 5.56,
+      "realized_cohort_revenue": 6695.5
+    },
+    {
+      "device_type": "ios",
+      "geoip_country_code": "OM",
+      "started_applications": 1084,
+      "converted_purchases": 60,
+      "stage_conversion_rate_pct": 5.54,
+      "realized_cohort_revenue": 4391.7
+    },
+    {
+      "device_type": "web-user-b2c",
+      "geoip_country_code": "OM",
+      "started_applications": 516,
+      "converted_purchases": 28,
+      "stage_conversion_rate_pct": 5.43,
+      "realized_cohort_revenue": 1993.4
+    },
+    {
+      "device_type": "Desktop",
+      "geoip_country_code": "OTHER",
+      "started_applications": 924,
+      "converted_purchases": 50,
+      "stage_conversion_rate_pct": 5.41,
+      "realized_cohort_revenue": 2192.4
+    },
+    {
+      "device_type": "ios",
+      "geoip_country_code": "SA",
+      "started_applications": 1910,
+      "converted_purchases": 99,
+      "stage_conversion_rate_pct": 5.18,
+      "realized_cohort_revenue": 28609.4
+    },
+    {
+      "device_type": "android",
+      "geoip_country_code": "QA",
+      "started_applications": 1031,
+      "converted_purchases": 52,
+      "stage_conversion_rate_pct": 5.04,
+      "realized_cohort_revenue": 10857.6
+    },
+    {
+      "device_type": "ios",
+      "geoip_country_code": "OTHER",
+      "started_applications": 5577,
+      "converted_purchases": 273,
+      "stage_conversion_rate_pct": 4.9,
+      "realized_cohort_revenue": 12434.5
+    },
+    {
+      "device_type": "ios",
+      "geoip_country_code": "GB",
+      "started_applications": 2569,
+      "converted_purchases": 126,
+      "stage_conversion_rate_pct": 4.9,
+      "realized_cohort_revenue": 7508.6
+    },
+    {
+      "device_type": "android",
+      "geoip_country_code": "GB",
+      "started_applications": 1942,
+      "converted_purchases": 94,
+      "stage_conversion_rate_pct": 4.84,
+      "realized_cohort_revenue": 5642.9
+    }
+  ],
+  "full_results_count": 12,
+  "summary": "Query executed successfully against ClickHouse default database in 268.01ms, returning 12 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Multi-table LEFT JOIN on application_id, combining 154k applications with 7k purchases, grouped by device and geo, filtered via HAVING clause."
+}

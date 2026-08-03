@@ -1,0 +1,350 @@
+{
+  "kind": "langfuse_trace",
+  "trace_id": "bd4d027186aabc34f4740375732ab370",
+  "name": "explain_anomaly",
+  "session_id": null,
+  "timestamp": "2026-08-02 01:31:02.286000+00:00",
+  "latency": 30.624,
+  "tags": [],
+  "user_question": null,
+  "tools_and_steps": [],
+  "final_answer": null,
+  "observations": [
+    {
+      "id": "1f2d0f0e30b66e00",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.084,
+      "start_time": "2026-08-02 01:31:03.289000+00:00"
+    },
+    {
+      "id": "2ebb37ada348631f",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.168,
+      "start_time": "2026-08-02 01:31:03.835000+00:00"
+    },
+    {
+      "id": "31d34ecbbd01a3e6",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.132,
+      "start_time": "2026-08-02 01:31:03.374000+00:00"
+    },
+    {
+      "id": "376aeb074b655861",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.065,
+      "start_time": "2026-08-02 01:31:02.935000+00:00"
+    },
+    {
+      "id": "51c6af44209e9ded",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.146,
+      "start_time": "2026-08-02 01:31:04.180000+00:00"
+    },
+    {
+      "id": "57e34e218635bf62",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.077,
+      "start_time": "2026-08-02 01:31:03.659000+00:00"
+    },
+    {
+      "id": "699e08362bf239fd",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.099,
+      "start_time": "2026-08-02 01:31:03.736000+00:00"
+    },
+    {
+      "id": "7a6f11fc1a749117",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.069,
+      "start_time": "2026-08-02 01:31:03.589000+00:00"
+    },
+    {
+      "id": "8acd591d739f1383",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.11,
+      "start_time": "2026-08-02 01:31:03.178000+00:00"
+    },
+    {
+      "id": "8e1421db5e2282b9",
+      "name": "narrate.detailed",
+      "type": "SPAN",
+      "latency": 28.297,
+      "start_time": "2026-08-02 01:31:04.328000+00:00"
+    },
+    {
+      "id": "b5949a7862b1edc7",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.082,
+      "start_time": "2026-08-02 01:31:03.507000+00:00"
+    },
+    {
+      "id": "d0eab44e8b1ac103",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.068,
+      "start_time": "2026-08-02 01:31:03.001000+00:00"
+    },
+    {
+      "id": "e10f63cad3e00520",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.109,
+      "start_time": "2026-08-02 01:31:03.069000+00:00"
+    },
+    {
+      "id": "faa476a596981416",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.106,
+      "start_time": "2026-08-02 01:31:02.828000+00:00"
+    },
+    {
+      "id": "fbcbb61f5fce99af",
+      "name": "clickhouse.query",
+      "type": "SPAN",
+      "latency": 0.176,
+      "start_time": "2026-08-02 01:31:04.003000+00:00"
+    },
+    {
+      "id": "209790dae1c00d5c",
+      "name": "explain_anomaly",
+      "type": "TOOL",
+      "latency": 30.624,
+      "start_time": "2026-08-02 01:31:02.286000+00:00"
+    }
+  ],
+  "clickhouse_queries": [
+    {
+      "observation_id": "1f2d0f0e30b66e00",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.289000+00:00",
+      "latency": 0.084,
+      "sql": "\n        SELECT * FROM rca_segment_day\n        WHERE event_date = {d:Date} AND dimension = {dim:String}\n        ORDER BY greatest(fill_impact, abs(d_rev) * 100) DESC\n        LIMIT {lim:UInt32}\n        ",
+      "parameters": {
+        "d": "2026-07-10",
+        "dim": "os_version",
+        "lim": "5"
+      },
+      "n_rows": 5,
+      "duration_ms": 83.78,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "2ebb37ada348631f",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.835000+00:00",
+      "latency": 0.168,
+      "sql": "\n        SELECT\n          event_date, baseline_day,\n          requests, base_requests, fill_rate, base_fill_rate,\n          ecpm, base_ecpm, revenue, base_revenue,\n          req_chg, fill_chg, ecpm_chg, rev_chg,\n          is_anomaly, flag_volume, flag_fill, flag_ecpm, flag_revenue\n        FROM rca_daily_wow\n        WHERE event_date BETWEEN {ws:Date} AND {we:Date}\n        ORDER BY event_date\n        ",
+      "parameters": {
+        "ws": "2026-07-10",
+        "we": "2026-07-10"
+      },
+      "n_rows": 1,
+      "duration_ms": 167.21,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "31d34ecbbd01a3e6",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.374000+00:00",
+      "latency": 0.132,
+      "sql": "\n        SELECT * FROM rca_segment_day\n        WHERE event_date = {d:Date} AND dimension = {dim:String}\n        ORDER BY greatest(fill_impact, abs(d_rev) * 100) DESC\n        LIMIT {lim:UInt32}\n        ",
+      "parameters": {
+        "d": "2026-07-10",
+        "dim": "region",
+        "lim": "5"
+      },
+      "n_rows": 5,
+      "duration_ms": 132.73,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "376aeb074b655861",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:02.935000+00:00",
+      "latency": 0.065,
+      "sql": "SELECT * FROM rca_incidents ORDER BY window_start, id",
+      "parameters": {},
+      "n_rows": 3,
+      "duration_ms": 65.11,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "51c6af44209e9ded",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:04.180000+00:00",
+      "latency": 0.146,
+      "sql": "SELECT * FROM rca_ml_expected WHERE event_date = {d:Date}",
+      "parameters": {
+        "d": "2026-07-10"
+      },
+      "n_rows": 1,
+      "duration_ms": 146.74,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "57e34e218635bf62",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.659000+00:00",
+      "latency": 0.077,
+      "sql": "\n        SELECT * FROM rca_combo_day\n        WHERE event_date = {d:Date} AND combo_kind = {k:String}\n        ORDER BY greatest(fill_impact, abs(d_rev) * 50) DESC\n        LIMIT {lim:UInt32}\n        ",
+      "parameters": {
+        "d": "2026-07-10",
+        "k": "os_region",
+        "lim": "5"
+      },
+      "n_rows": 5,
+      "duration_ms": 77.01,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "699e08362bf239fd",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.736000+00:00",
+      "latency": 0.099,
+      "sql": "\n        SELECT * FROM rca_combo_day\n        WHERE event_date = {d:Date} AND combo_kind = {k:String}\n        ORDER BY greatest(fill_impact, abs(d_rev) * 50) DESC\n        LIMIT {lim:UInt32}\n        ",
+      "parameters": {
+        "d": "2026-07-10",
+        "k": "format_region",
+        "lim": "5"
+      },
+      "n_rows": 5,
+      "duration_ms": 98.78,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "7a6f11fc1a749117",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.589000+00:00",
+      "latency": 0.069,
+      "sql": "\n        SELECT * FROM rca_segment_day\n        WHERE event_date = {d:Date} AND dimension = {dim:String}\n        ORDER BY greatest(fill_impact, abs(d_rev) * 100) DESC\n        LIMIT {lim:UInt32}\n        ",
+      "parameters": {
+        "d": "2026-07-10",
+        "dim": "category",
+        "lim": "5"
+      },
+      "n_rows": 5,
+      "duration_ms": 69.03,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "8acd591d739f1383",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.178000+00:00",
+      "latency": 0.11,
+      "sql": "SELECT * FROM rca_factor_day WHERE event_date = {d:Date}",
+      "parameters": {
+        "d": "2026-07-10"
+      },
+      "n_rows": 1,
+      "duration_ms": 110.01,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "b5949a7862b1edc7",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.507000+00:00",
+      "latency": 0.082,
+      "sql": "\n        SELECT * FROM rca_segment_day\n        WHERE event_date = {d:Date} AND dimension = {dim:String}\n        ORDER BY greatest(fill_impact, abs(d_rev) * 100) DESC\n        LIMIT {lim:UInt32}\n        ",
+      "parameters": {
+        "d": "2026-07-10",
+        "dim": "ad_format",
+        "lim": "5"
+      },
+      "n_rows": 5,
+      "duration_ms": 81.51,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "d0eab44e8b1ac103",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.001000+00:00",
+      "latency": 0.068,
+      "sql": "SELECT * FROM rca_daily_wow WHERE event_date = {d:Date}",
+      "parameters": {
+        "d": "2026-07-10"
+      },
+      "n_rows": 1,
+      "duration_ms": 67.98,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "e10f63cad3e00520",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:03.069000+00:00",
+      "latency": 0.109,
+      "sql": "SELECT * FROM rca_ml_expected WHERE event_date = {d:Date}",
+      "parameters": {
+        "d": "2026-07-10"
+      },
+      "n_rows": 1,
+      "duration_ms": 108.44,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "faa476a596981416",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:02.828000+00:00",
+      "latency": 0.106,
+      "sql": "\n        SELECT min(event_date) AS start, max(event_date) AS end,\n               count() AS n_days\n        FROM rca_daily_wow\n        ",
+      "parameters": {},
+      "n_rows": 1,
+      "duration_ms": 106.3,
+      "database": "eda",
+      "error": null
+    },
+    {
+      "observation_id": "fbcbb61f5fce99af",
+      "trace_id": "bd4d027186aabc34f4740375732ab370",
+      "name": "clickhouse.query",
+      "start_time": "2026-08-02 01:31:04.003000+00:00",
+      "latency": 0.176,
+      "sql": "SELECT * FROM rca_counterfactual WHERE incident_id = {id:String} LIMIT 1",
+      "parameters": {
+        "id": "C"
+      },
+      "n_rows": 1,
+      "duration_ms": 176.14,
+      "database": "eda",
+      "error": null
+    }
+  ],
+  "langfuse_url": "https://cloud.langfuse.com/project/cmsa43v7s02uoad0dhpcr2e4s/traces/bd4d027186aabc34f4740375732ab370",
+  "session_url": null,
+  "how_to_read": "Langfuse trace for the agent run. tools_and_steps = tools called; clickhouse_queries = SQL from RCA; open langfuse_url for the UI."
+}

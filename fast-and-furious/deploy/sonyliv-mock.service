@@ -1,0 +1,68 @@
+# systemd unit for the mock-ingest dashboard, which is also the load generator.
+#
+# Install once, as root:
+#   sudo cp deploy/sonyliv-mock.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable sonyliv-mock
+#
+# This is the externally reachable service. sonyliv-api sits on loopback behind
+# it: with SONYLIV_API_URL set, a load run POSTs generated events through the
+# real ingest API rather than writing to events_raw itself, so the dashboard is a
+# producer and not a second writer racing the API into the same table. Only one
+# inbound port is open on this box, and this is the one that needs it.
+
+[Unit]
+Description=SonyLIV mock-ingest dashboard and load generator
+Documentation=https://github.com/ishantd/sonyliv-clickathon-2026
+Wants=network-online.target
+After=network-online.target
+# Ordering only, not a hard dependency: the dashboard's stepper and curve views
+# read ClickHouse directly and stay useful if the API is down. Requires= would
+# take the UI down with it, losing the view you would use to diagnose the outage.
+After=sonyliv-api.service
+Wants=sonyliv-api.service
+
+[Service]
+Type=simple
+User=sonyliv
+Group=sonyliv
+
+EnvironmentFile=/etc/sonyliv/sonyliv.env
+
+# MOCK_LISTEN, MOCK_TLS_* and SONYLIV_API_URL come from the environment file, so
+# retargeting the sink or the port is a restart rather than a redeploy.
+# MOCK_TLS_ARGS carries the whole flag pair, or is empty. Unquoted $VAR so an
+# empty value vanishes rather than becoming an empty argument.
+ExecStart=/usr/local/bin/sonyliv-mock --listen ${MOCK_LISTEN} $MOCK_TLS_ARGS $MOCK_AUTH_ARGS --api-url ${SONYLIV_API_URL} --api-insecure
+
+Restart=always
+RestartSec=2
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Port 443 is privileged and this runs unprivileged, so grant exactly the one
+# capability that permits binding it rather than running as root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# --- hardening -------------------------------------------------------------
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

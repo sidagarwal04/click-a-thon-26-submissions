@@ -1,0 +1,31 @@
+# Pinned to what this was built and measured against.
+#
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+# --- core: the engine needs only these two -------------------------------
+# The [async] extra is NOT optional. Plain clickhouse-connect installs and
+# imports fine, then throws at startup inside the async API:
+#   ImportError: Async support requires aiohttp
+clickhouse-connect[async]==1.6.0
+python-dotenv==1.2.2
+
+# --- narration (step 6 only; the diagnosis is complete without it) --------
+anthropic==0.120.2
+
+# --- API -----------------------------------------------------------------
+fastapi==0.141.1
+uvicorn[standard]==0.52.0
+pydantic==2.13.4
+
+# --- tracing -------------------------------------------------------------
+# Langfuse traces the investigation stages; OTel traces the API itself.
+# Both degrade to no-ops if their env vars are absent, so the harness runs
+# without either.
+langfuse==4.14.2
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0
+opentelemetry-instrumentation-fastapi==0.65b0
+
+# --- tests ---------------------------------------------------------------
+pytest==9.1.1

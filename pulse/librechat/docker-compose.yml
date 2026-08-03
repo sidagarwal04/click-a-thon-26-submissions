@@ -1,0 +1,52 @@
+# LibreChat + ClickHouse MCP — use root docker-compose instead.
+#
+# Preferred: from repo root
+#   clickhouse/scripts/setup_integrations.sh
+#   docker compose --profile chat up -d
+#
+# This sidecar compose still works if you cd into librechat/ and maintain .env here.
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  clickhouse-mcp:
+    image: mcp/clickhouse:latest
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_HOST: ${CH_HOST}
+      CLICKHOUSE_PORT: ${CH_PORT:-8443}
+      CLICKHOUSE_USER: ${CH_USER}
+      CLICKHOUSE_PASSWORD: ${CH_PASSWORD}
+      CLICKHOUSE_SECURE: ${CH_SECURE:-true}
+      CLICKHOUSE_DATABASE: ${CH_DATABASE:-sony_liv}
+      # Read-only guardrail — the MCP user should also be a readonly CH user.
+      CLICKHOUSE_READONLY: "1"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: sse
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: "8001"
+    ports:
+      - "8001:8001"
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - clickhouse-mcp
+    ports:
+      - "3080:3080"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      # Provide at least one of these in .env:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+
+volumes:
+  mongo-data:

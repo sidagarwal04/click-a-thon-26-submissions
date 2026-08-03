@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  main:
+    # Blacksmith rather than `ubuntu-latest`: this repository is private, so
+    # every minute is billed, and the job now brings up four Docker services and
+    # runs 69 browser tests across three engines on top of 33 Nx projects.
+    #
+    # 2 vCPU deliberately, not larger. The free allowance is denominated in
+    # 2 vCPU-minutes and a bigger runner consumes it proportionally faster,
+    # while the slowest parts here — `npm ci`, `uv sync`, the Playwright browser
+    # download, four image pulls — are network-bound and finish no sooner on
+    # more cores. Paying a multiplier for wall-clock time that does not shrink
+    # is the one way to actively waste the free tier.
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    # A hang is billed for its full duration. This job hung twice for over two
+    # hours on the e2e step before the cause was found, which on a metered
+    # runner is the most expensive failure mode there is. 25 minutes is roughly
+    # double the observed green run.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      # This enables task distribution via Nx Cloud
+      # Run this command as early as possible, before dependencies are installed
+      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
+      # Uncomment this line to enable task distribution, and replace "e2e" with "e2e-ci" in the command below
+      # - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e-ci"
+
+      # Cache node_modules
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: npm ci
+      - run: uv sync --all-packages --frozen
+      - run: npx playwright install --with-deps
+      - run: docker compose up -d --wait control-postgres warehouse-postgres clickhouse cube
+      - run: npm exec -- nx run postgres:migrate
+        env:
+          DATABASE_OWNER_URL: postgresql+psycopg://zentra_owner:zentra_owner@localhost:5432/zentra_control
+      - run: uv run python tools/architecture/verify_known_bad_boundary.py
+      - run: npm exec -- nx run docs:check
+      # The Agent registration gate. It decides which Agents may reach a
+      # Tenant, and until now nothing in CI ran it — a suite could be deleted,
+      # or an Agent added without one, and the build stayed green.
+      - run: npm exec -- nx run evals:check
+      - run: terraform -chdir=infra/terraform fmt -check -recursive
+      - run: terraform -chdir=infra/terraform init -backend=false -input=false
+      - run: terraform -chdir=infra/terraform validate
+      - run: >-
+          terraform -chdir=infra/terraform plan
+          -refresh=false
+          -input=false
+          -lock=false
+          -var clickhouse_allowed_cidr=203.0.113.10/32
+          -var clickhouse_owner_password=phase0-validation-placeholder
+        env:
+          NEON_API_KEY: phase0-validation-placeholder
+          CLICKHOUSE_TOKEN_KEY: phase0-validation-placeholder
+          CLICKHOUSE_TOKEN_SECRET: phase0-validation-placeholder
+          CLICKHOUSE_ORG_ID: 00000000-0000-0000-0000-000000000000
+
+      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
+      # - run: npx nx-cloud record -- echo Hello World
+      # The browser journeys run against the real API, so they need signing
+      # keys, bound identities and seeded Investigations before Playwright
+      # starts. Without these the JWKS server has no directory to serve and
+      # every webServer times out.
+      - run: uv run python tools/e2e/prepare.py
+        env:
+          DATABASE_OWNER_URL: postgresql+psycopg://zentra_owner:zentra_owner@localhost:5432/zentra_control
+      - run: uv run python tools/e2e/fixtures.py
+        env:
+          DATABASE_OWNER_URL: postgresql+psycopg://zentra_owner:zentra_owner@localhost:5432/zentra_control
+      # Built here rather than as a Playwright webServer dependency: that would
+      # nest an nx invocation inside `nx run-many` below and deadlock on the
+      # daemon.
+      - run: npm exec -- nx run zentra-os:build-e2e
+      - run: npm exec -- nx run-many -t lint test build typecheck e2e
+        env:
+          TEST_DATABASE_OWNER_URL: postgresql+psycopg://zentra_owner:zentra_owner@localhost:5432/zentra_control
+          TEST_DATABASE_RUNTIME_URL: postgresql+psycopg://zentra_app:zentra_app@localhost:5432/zentra_control
+          TEST_CLICKHOUSE_HOST: localhost
+          TEST_CLICKHOUSE_PORT: '8123'
+          TEST_CUBE_URL: http://localhost:4000
+      # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
+      - run: npm exec -- nx fix-ci
+        if: always()
+      - run: docker compose logs --no-color
+        if: failure()

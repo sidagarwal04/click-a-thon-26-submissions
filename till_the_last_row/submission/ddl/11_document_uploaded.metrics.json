@@ -1,0 +1,78 @@
+{
+  "spec_name": "11_document_uploaded",
+  "database": "atlys",
+  "base_table": "document_uploaded",
+  "event_types": ["document_uploaded"],
+  "materialized_views": [
+    {
+      "name": "document_uploaded_daily_mv",
+      "target_table": "document_uploaded_daily_agg",
+      "engine": "AggregatingMergeTree",
+      "grain": "day x doc_type x capture_mode x scan_mode x device_type x os x destination",
+      "watermark_column": "agg_insert_time",
+      "ttl": "agg_insert_time + 90 DAY"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "avg_retry_count_by_doc_type_capture_mode",
+      "pm_question": "What is the retry_count distribution by doc_type and capture_mode? Which combination has the worst friction?",
+      "formula": "avg(retry_count) and quantiles of retry_count grouped by doc_type, capture_mode",
+      "numerator_paths": ["payload.retry_count"],
+      "denominator_paths": [],
+      "dimensions": ["doc_type", "capture_mode"],
+      "served_by_mv": "document_uploaded_daily_agg",
+      "serving_columns": ["retry_avg_state", "retry_sum_state", "uploads_state"],
+      "confirmed_by_user": false,
+      "notes": "avg via avgMerge(retry_avg_state); MV keeps sum+count for weighted rollups. Quantile of retry_count not in MV (needs raw table)."
+    },
+    {
+      "name": "threshold_crossed_share",
+      "pm_question": "What share of uploads have is_crossed_failed_attempt_threshold = 1? Does it predict abandonment?",
+      "formula": "sum(is_crossed_failed_attempt_threshold) / count(*)",
+      "numerator_paths": ["payload.is_crossed_failed_attempt_threshold"],
+      "denominator_paths": ["payload.event"],
+      "dimensions": ["doc_type", "capture_mode", "scan_mode", "device_type", "os", "destination"],
+      "served_by_mv": "document_uploaded_daily_agg",
+      "serving_columns": ["threshold_crossed_state", "uploads_state"],
+      "confirmed_by_user": false,
+      "notes": "rate = sumMerge(threshold_crossed_state)/countMerge(uploads_state). Abandonment prediction is cross-table (out of MV scope)."
+    },
+    {
+      "name": "avg_retry_by_scan_mode_passport",
+      "pm_question": "Do scan_mode=auto vs manual differ in retries for passport documents?",
+      "formula": "avg(retry_count) grouped by scan_mode, filtered to passport doc_types",
+      "numerator_paths": ["payload.retry_count"],
+      "denominator_paths": [],
+      "dimensions": ["scan_mode", "doc_type"],
+      "served_by_mv": "document_uploaded_daily_agg",
+      "serving_columns": ["retry_avg_state", "retry_sum_state", "uploads_state"],
+      "confirmed_by_user": false,
+      "notes": "Filter doc_type IN ('passport_front','passport_back') at query time; scan_mode + doc_type both in MV grain."
+    },
+    {
+      "name": "upload_failures_by_platform",
+      "pm_question": "Which platform (iOS vs Android) has more upload failures?",
+      "formula": "count(*) and avg(retry_count) and sum(is_crossed_failed_attempt_threshold) grouped by os / device_type",
+      "numerator_paths": ["payload.retry_count", "payload.is_crossed_failed_attempt_threshold"],
+      "denominator_paths": ["payload.event"],
+      "dimensions": ["os", "device_type"],
+      "served_by_mv": "document_uploaded_daily_agg",
+      "serving_columns": ["uploads_state", "retry_avg_state", "threshold_crossed_state"],
+      "confirmed_by_user": false,
+      "notes": "os and device_type both in MV grain; 'failure' proxied by retries + threshold-crossings."
+    },
+    {
+      "name": "doc_volume_vs_payment_conversion_by_destination",
+      "pm_question": "Which destinations need the most doc types? How does doc volume compare to payment conversion?",
+      "formula": "count(*) by destination (doc volume); conversion = payment events / upload cohort by destination (cross-table)",
+      "numerator_paths": ["payload.event"],
+      "denominator_paths": [],
+      "dimensions": ["destination", "doc_type"],
+      "served_by_mv": null,
+      "serving_columns": ["uploads_state"],
+      "confirmed_by_user": false,
+      "notes": "Doc-volume-by-destination is served by uploads_state in the MV; the payment-conversion comparison requires a join to a payment/pay_now spec table and is OUT of scope for this MV."
+    }
+  ]
+}

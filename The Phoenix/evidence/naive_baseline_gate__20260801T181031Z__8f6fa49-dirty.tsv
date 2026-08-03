@@ -1,0 +1,22 @@
+# evidence: naive_baseline_gate
+# what: range/balance gate before the naive-vs-corrected comparison
+# run_utc: 2026-08-01 18:10:31
+# git: 8f6fa49-dirty
+# host: ss-cric
+# row_count: 2274714
+# event_watermark: 2026-08-01 17:09:57.183
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 18:10:32   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+gate	PASS
+naive_sum_delta	0
+naive_min_minute	2026-07-14 15:43:00
+naive_max_minute	2026-07-26 11:31:00
+corrected_min_minute	2026-07-14 15:43:00
+corrected_max_minute	2026-07-26 11:31:00
+minutes_excluded_by_clip	0

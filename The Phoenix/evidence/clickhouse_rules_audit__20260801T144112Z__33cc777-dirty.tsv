@@ -1,0 +1,39 @@
+# evidence: clickhouse_rules_audit
+# what: phoenix schema and serving design audited against the 31 ClickHouse best-practice rules, with the key-order deviation measured rather than assumed
+# run_utc: 2026-08-01 14:41:12
+# git: 33cc777-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 14:41:13   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+rule	status	measured
+schema-pk-cardinality-order	DEVIATION (measured harmless)	key is platform(10),country(1),video_type(3),content_id(3357),app_version(65),minute(1532); not low-to-high
+schema-pk-prioritize-filters	COMPLIANT	platform leads and is the only single-dimension filter that prunes (2/4 granules)
+schema-pk-filter-on-orderby	COMPLIANT (and measured)	platform-containing shapes 16384 rows; all others 26904
+schema-types-lowcardinality	COMPLIANT	all string dimensions LowCardinality; max cardinality 65 (app_version), well under 10K
+schema-types-avoid-nullable	COMPLIANT	0 Nullable columns across all of phoenix
+schema-types-native-types	COMPLIANT	epoch millis converted to DateTime64(3) at ingest, not stored as Int64
+schema-partition-low-cardinality	COMPLIANT	raw_events has 8 active partitions (guideline 100-1000 max)
+schema-partition-lifecycle	COMPLIANT	PARTITION BY day on raw_events exists to drop/replace a day, not to speed queries
+insert-mutation-avoid-update	COMPLIANT	CollapsingMergeTree retraction; zero ALTER TABLE UPDATE in the repo
+insert-optimize-avoid-final	COMPLIANT	no OPTIMIZE FINAL anywhere; no FINAL modifier in any serving query
+query-mv-incremental	COMPLIANT	3 incremental MVs, 0 exceptions in query_views_log
+insert-batch-size	VIOLATION (ingest owner)	avg 66 rows per insert, min 34, max 500, across 834 inserts; guideline is 10K-100K
+#
+# KEY ORDER, measured rather than argued. Three candidate keys built on identical data:
+#   A shipped              platform, country, video_type, content_id, app_version, minute
+#   B cardinality-ordered  country, video_type, platform, app_version, minute, content_id
+#   C dead column dropped  video_type, platform, app_version, content_id, minute
+# Granules read were IDENTICAL for all three on all 8 filter shapes.
+# On-disk: A 55.09 KiB, B 75.08 KiB, C 54.84 KiB.
+# So the rule-compliant order B buys nothing here and costs 36 percent more disk,
+#   because moving content_id (highest cardinality) last breaks compression locality.
+# The rule is about granule skipping, and this table has 3 granules. There is almost
+#   nothing to skip. The deviation is harmless AT THIS SCALE and is documented as such.
+verdict	RECORDED

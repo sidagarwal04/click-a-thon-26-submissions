@@ -1,0 +1,84 @@
+A product manager asked a question about Atlys (a digital visa platform) whose event data lives in ClickHouse. Your job in this step only: decide the smallest set of aggregate queries that answers it. You do not write SQL here.
+
+<knowledge>
+Definitions and conventions from the versioned context store. Metric definitions here
+are authoritative — a denominator you invent is a wrong answer.
+{{knowledge}}
+</knowledge>
+
+<tables>
+{{schemas}}
+</tables>
+
+<conversation>
+Earlier turns, with the figures they already put in front of the user. Those figures
+are COMMITMENTS: the user has seen them and will compare whatever you produce next
+against them.
+{{history}}
+</conversation>
+
+<question>
+{{question}}
+</question>
+{{feedback}}
+<rules>
+1. One to four tasks. Each is exactly one aggregate query's worth of work — if a task
+   needs two GROUP BYs to answer, it is two tasks.
+2. Name the tables each task reads, from the list above only.
+3. Apply the store's metric definitions verbatim, including denominators.
+4. Cut by the dimensions the question implies (platform, geo, destination, time) and
+   nothing more. Breadth costs accuracy: three focused tasks beat four vague ones.
+5. Every task returns sample sizes alongside rates.
+6. If the question is comparative ("vs", "lift", "which is worst", "how much faster"),
+   one task must compute that comparison as a column — a delta the SQL does not produce
+   can never be reported.
+6b. For funnel or multi-step questions ("conversion from X to Y to Z", "where is the
+   biggest drop-off"), plan tasks so a later task can `depends_on` an earlier one.
+   The dependent task will receive the earlier task's result summary, letting it
+   reference concrete counts for drop-off computations.
+6c. For GLOBAL questions with no dimension specified ("what's our conversion rate?",
+   "how many users paid?"), always include at least one task that breaks the metric
+   by the most likely explanatory dimension (typically os or geoip_country_code).
+   A global number that hides a 4× gap between platforms is a bad answer. State in
+   `approach` that you are proactively segmenting.
+7. A follow-up that recomputes a quantity already reported above must recompute it the
+   SAME way — same denominator, same population, same filters. Say which denominator in
+   the task's `question` so the SQL step cannot drift ("conversion over pay_now_clicked
+   applications, as already reported"). The `n` beside each figure identifies its
+   population: plan for the same n. If the new question genuinely needs a different
+   basis, plan for it AND say in `approach` that it differs, so the answer can explain
+   the change rather than silently contradicting the earlier number.
+8. If the question cannot be answered from these tables, return zero tasks and explain
+   why in `approach` — naming what data would be needed. That is a valid, useful
+   answer, and far better than tasks that compute an approximate stand-in for it.
+   If the question is ambiguous in a way that changes the answer, say so in `approach`
+   and plan for the most defensible reading rather than silently picking one.
+</rules>
+
+<avoid>
+- Tasks that restate the same cut at different granularity.
+- Planning for a table or column not listed above.
+- A task whose only output is a raw row listing.
+</avoid>
+
+Output STRICT JSON, no fences:
+{
+  "approach": "two sentences: how you answer it, and which stored definitions you apply",
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "3-6 word label",
+      "question": "precisely what this computes, including the denominator",
+      "tables": ["otp_entered"],
+      "dimensions": ["os", "geoip_country_code"]
+    },
+    {
+      "id": "t2",
+      "title": "drop-off vs prior stage",
+      "question": "compute the drop between t1's count and this stage",
+      "tables": ["pay_now_clicked"],
+      "depends_on": "t1"
+    }
+  ]
+}
+`depends_on` is optional — use it only when a task genuinely needs another task's result (funnels, comparisons across stages). Independent tasks run in parallel and are faster.

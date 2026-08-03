@@ -1,0 +1,221 @@
+{
+  "name": "SonyLIV — Benchmark answers",
+  "tags": [
+    "sonyliv",
+    "benchmark",
+    "evidence"
+  ],
+  "filters": [
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Grouping",
+      "expression": "grouping",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Platform",
+      "expression": "platform",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    },
+    {
+      "type": "QUERY_EXPRESSION",
+      "name": "Content type",
+      "expression": "video_type",
+      "sourceId": "__SOURCE_sonyliv-minute__",
+      "appliesToSourceIds": [
+        "__SOURCE_sonyliv-minute__"
+      ]
+    }
+  ],
+  "savedFilterValues": [
+    {
+      "type": "sql",
+      "condition": "grouping IN ('total')"
+    }
+  ],
+  "containers": [
+    {
+      "id": "grain",
+      "title": "Reporting grain",
+      "collapsed": false,
+      "collapsible": false,
+      "bordered": true,
+      "tabs": [
+        {
+          "id": "minute",
+          "title": "Minute"
+        },
+        {
+          "id": "hour",
+          "title": "Hour"
+        },
+        {
+          "id": "day",
+          "title": "Day"
+        }
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "name": "Peak (ungrouped)",
+      "x": 0,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT max(minute_peak) AS exact_peak FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND grouping = 'total'"
+      }
+    },
+    {
+      "name": "Average (ungrouped)",
+      "x": 6,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT round(sum(active_ms) / greatest(dateDiff('millisecond', greatest($__fromTime_ms, min(minute_start)), least($__toTime_ms, max(minute_start) + toIntervalMinute(1))), 1), 6) AS avg_concurrency FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND grouping = 'total'"
+      }
+    },
+    {
+      "name": "Viewer-hours (ungrouped)",
+      "x": 12,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT round(sum(active_ms) / 3600000.0, 2) AS viewer_hours FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND grouping = 'total'"
+      }
+    },
+    {
+      "name": "Rows read",
+      "x": 18,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT count() AS rows_read FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND grouping = 'total'"
+      }
+    },
+    {
+      "name": "Peak by dimension value",
+      "x": 0,
+      "y": 4,
+      "w": 24,
+      "h": 9,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT grouping, dim_values, max(minute_peak) AS exact_peak, argMax(minute_start, minute_peak) AS peaked_at, round(sum(active_ms) / greatest(dateDiff('millisecond', greatest($__fromTime_ms, min(minute_start)), least($__toTime_ms, max(minute_start) + toIntervalMinute(1))), 1), 6) AS avg_concurrency, round(sum(active_ms) / 3600000.0, 2) AS viewer_hours FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY grouping, dim_values ORDER BY exact_peak DESC LIMIT 50",
+        "sourceId": "__SOURCE_sonyliv-minute__"
+      }
+    },
+    {
+      "name": "Peak per minute",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT minute_start AS ts, concat(grouping, ': ', dim_values) AS series, minute_peak AS peak FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters ORDER BY ts",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "fillNulls": false
+      },
+      "containerId": "grain",
+      "tabId": "minute"
+    },
+    {
+      "name": "Peak per hour",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT toStartOfHour(minute_start) AS ts, concat(grouping, ': ', dim_values) AS series, max(minute_peak) AS peak FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY ts, series ORDER BY ts",
+        "sourceId": "__SOURCE_sonyliv-minute__",
+        "fillNulls": false
+      },
+      "containerId": "grain",
+      "tabId": "hour"
+    },
+    {
+      "name": "Per day",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT toDate(minute_start) AS service_date, grouping, dim_values, max(minute_peak) AS exact_peak, argMax(minute_start, minute_peak) AS peaked_at, round(sum(active_ms) / 86400000.0, 4) AS avg_over_full_day, round(sum(active_ms) / (count() * 60000.0), 3) AS avg_over_active_minutes, count() AS minutes_with_viewers FROM __DATABASE__.serving_minute_current WHERE ($__timeFilter(minute_start) AND minute_start < $__toTime) AND $__filters GROUP BY service_date, grouping, dim_values ORDER BY service_date, exact_peak DESC",
+        "sourceId": "__SOURCE_sonyliv-minute__"
+      },
+      "containerId": "grain",
+      "tabId": "day"
+    },
+    {
+      "name": "Query evidence",
+      "x": 0,
+      "y": 21,
+      "w": 18,
+      "h": 8,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "WITH (SELECT count() FROM clusterAllReplicas(default, system.query_log) WHERE type = 'QueryFinish' AND ($__timeFilter(event_time) AND event_time < $__toTime) AND positionCaseInsensitive(query, 'system.query_log') = 0 AND positionCaseInsensitive(query, 'serving_minute_current') > 0) AS in_range SELECT if(in_range > 0, 'selected range', 'full log — selected range predates it') AS scope, any(query_id) AS sample_query_id, normalized_query_hash AS query_shape, count() AS runs, formatReadableQuantity(round(avg(read_rows))) AS avg_read_rows, formatReadableSize(round(avg(read_bytes))) AS avg_read_bytes, round(quantile(0.50)(query_duration_ms)) AS p50_ms, round(quantile(0.99)(query_duration_ms)) AS p99_ms, max(event_time) AS last_run FROM clusterAllReplicas(default, system.query_log) WHERE type = 'QueryFinish' AND (in_range = 0 OR ($__timeFilter(event_time) AND event_time < $__toTime)) AND positionCaseInsensitive(query, 'system.query_log') = 0 AND positionCaseInsensitive(query, 'serving_minute_current') > 0 GROUP BY scope, query_shape ORDER BY avg(read_rows) DESC LIMIT 20"
+      }
+    },
+    {
+      "name": "Query log coverage",
+      "x": 18,
+      "y": 21,
+      "w": 6,
+      "h": 8,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT min(event_time) AS log_starts_utc, max(event_time) AS log_ends_utc, dateDiff('minute', min(event_time), max(event_time)) AS span_minutes, (SELECT formatReadableTimeDelta(max(uptime())) FROM clusterAllReplicas(default, system.one)) AS replica_uptime FROM clusterAllReplicas(default, system.query_log)"
+      }
+    },
+    {
+      "name": "Notes",
+      "x": 0,
+      "y": 29,
+      "w": 24,
+      "h": 6,
+      "config": {
+        "displayType": "markdown",
+        "markdown": "**Grouping** selects which pre-aggregated slice to read — one slice per answer. 60 rows for `total`, 41,845 for `all dimensions`, against 118,972 to load all eleven. *Rows read* shows it live and *Query evidence* reports what ClickHouse scanned; read volume is judged and the brief requires pipeline evidence.\n\nThe four numbers are pinned to the ungrouped slice in SQL. A dashboard filter can be cleared, and a cleared grouping selector would blend all eleven slices — 9,411.64 against the true 855.60.\n\n**Groupings exist for peaks only.** Averages and instantaneous counts are additive, so one slice plus a filter is exact for any combination. A peak is not recoverable that way: ANDROID_PHONE reads 1,461 at `platform` and 223 at `all dimensions`.\n\nEleven groupings, not thirteen. A grouping adds nothing when the dimensions it introduces are functionally determined by those it already has: `video_type` is determined by `content_id`, so `content + video type` was identical to `content` across 79,770 rows — 36% of the day for no information. `country` is redundant today as well (single value) but kept, being a named benchmark dimension.\n\nPeak is one number per range, not per grain: `max()` composes, so an hourly peak is the max of its minute peaks. The average does not compose and is recomputed as `sum(active_ms) / duration`.\n\n**Two traps.** `$__timeFilter` is inclusive at both ends, so every window adds `AND minute_start < $__toTime`; without it the average ran 4.3% high. Timestamps render in the browser's timezone while the pipeline is UTC — drive the range from UTC epochs for reference comparisons (`?from=1785060000000&to=1785063600000` is the hot hour).\n\n**`system.query_log` starts when the replica last started.** It is a per-node system table on Cloud, so a restart or autoscale event discards everything before it — the TTL is 180 days and almost never the reason a window is empty. Measured here: both replicas came up at 22:23:40 and the oldest logged query is 22:23:46.\n\nBecause of that, a range older than the log can only ever render empty, so these tiles do not fail silently on it: each counts how many rows its own predicates match inside the selected range, and when that is zero it falls back to the whole log. The **scope** column says which happened — `selected range`, or `full log — selected range predates it`. *Query log coverage* reports the span the log actually holds."
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Real-time foreground-only streaming concurrency explorer">
+  <title>Viewers Without Borders</title>
+  <link rel="stylesheet" href="/styles.css?v=20260802-9">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Home">
+      <span class="brand-mark"><i></i><i></i><i></i></span>
+      <span><strong id="product-name">Viewers Without Borders</strong><small>Real-Time Foreground Concurrency</small></span>
+    </a>
+    <nav class="topnav" aria-label="Dashboard sections">
+      <a href="#explore">Explore</a><a href="#segments">Segments</a><a href="#evidence">Evidence</a>
+    </nav>
+    <div class="live-pill"><span></span> CLICKHOUSE CLOUD</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">SONYLIV · CLICK-A-THON 2026</p>
+        <h1>Who is <em>actually</em> watching?</h1>
+        <p class="lede">Minute-level audience truth with background, pause, heartbeat-loss and late-arrival periods removed.</p>
+      </div>
+      <div class="model-card">
+        <span>MODEL</span>
+        <strong>Foreground-only intervals</strong>
+        <small>40s heartbeat · 60s buckets · exact distinct</small>
+      </div>
+    </section>
+
+    <section id="explore" class="control-shell" aria-label="Query controls">
+      <div class="time-controls">
+        <label>From (UTC)<input id="from" type="datetime-local" step="60"></label>
+        <label>To (UTC)<input id="to" type="datetime-local" step="60"></label>
+        <label>Resolution
+          <select id="grain"><option value="minute">Minute</option><option value="hour">Hour</option><option value="day">Day</option></select>
+        </label>
+        <label>Count
+          <select id="metric"><option value="sessions">Sessions</option><option value="users">Distinct users</option></select>
+        </label>
+        <button id="run" class="primary">Run analysis <kbd>↵</kbd></button>
+      </div>
+      <details class="filter-panel">
+        <summary><span>Filters</span><b id="filter-count">0 active</b></summary>
+        <p>Every delivered dimension—and newly discovered map key—is filterable. Options load lazily from compact interval/catalog tables.</p>
+        <div id="filters" class="filter-grid"></div>
+        <button id="clear-filters" class="text-button">Clear all filters</button>
+      </details>
+      <div id="active-filters" class="active-filters" hidden></div>
+    </section>
+
+    <div id="error" class="error" role="alert" hidden></div>
+    <div id="loading" class="loading" hidden><span></span><p>Computing exact concurrency in ClickHouse…</p></div>
+
+    <section class="kpi-grid" aria-label="Summary">
+      <article><button class="inspect-mini" data-inspect-panel="summary">SQL + trace</button><p>Peak concurrency</p><strong id="peak">—</strong><small id="peak-time">Select a range</small></article>
+      <article><button class="inspect-mini" data-inspect-panel="summary">SQL + trace</button><p>Average concurrency</p><strong id="average">—</strong><small>weighted across displayed minutes</small></article>
+      <article><button class="inspect-mini" data-inspect-panel="summary">SQL + trace</button><p>Viewer-minutes</p><strong id="viewer-minutes">—</strong><small>foreground time only</small></article>
+      <article class="latency-kpi"><button class="inspect-mini" data-inspect-panel="summary">SQL + trace</button><p>ClickHouse latency</p><strong id="latency">—</strong><small id="query-mode">waiting for query</small></article>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="panel-heading">
+        <div><p class="eyebrow">FULL CURVE</p><h2>Foreground concurrency</h2></div>
+        <div class="chart-actions">
+          <div class="presets" aria-label="Time presets"><button data-hours="1">1h</button><button data-hours="6">6h</button><button data-hours="24">24h</button></div>
+          <button id="compare-models" class="secondary">Compare models</button>
+          <button class="secondary" data-inspect-panel="curve">Inspect SQL + lineage</button>
+          <button id="export-csv" class="secondary">Export CSV</button>
+          <button id="share-view" class="secondary">Copy link</button>
+        </div>
+      </div>
+      <div class="legend" role="group" aria-label="Visible chart series">
+        <button class="legend-toggle active" data-chart-series="accurate" aria-pressed="true"><i class="dot"></i>accurate</button>
+        <button class="legend-toggle" data-chart-series="stateless" aria-pressed="false"><i class="model-stateless"></i>stateless</button>
+        <button class="legend-toggle" data-chart-series="naive" aria-pressed="false"><i class="model-naive"></i>naive</button>
+        <button class="legend-toggle active" data-chart-series="peak" aria-pressed="true"><i class="peak-dot"></i>peak</button>
+        <span class="brush-hint">drag across the chart to zoom</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="curve-chart" aria-label="Concurrency curve"></canvas>
+        <div id="chart-tooltip" class="chart-tooltip" hidden></div>
+      </div>
+      <div class="execution-heading"><div><span>CLICKHOUSE EXECUTION</span><small>Exact query work, enriched asynchronously from system.query_log</small></div></div>
+      <div id="curve-execution" class="query-strip"><p class="empty">Run an analysis to capture ClickHouse execution evidence.</p></div>
+    </section>
+
+    <section id="segments" class="split-grid">
+      <article class="panel">
+        <div class="panel-heading compact">
+          <div><p class="eyebrow">TOP SEGMENTS</p><h2>Peak breakdown</h2></div>
+          <div class="heading-actions"><select id="breakdown-dimension" aria-label="Breakdown dimension"></select><button class="secondary" data-inspect-panel="breakdown">Inspect</button></div>
+        </div>
+        <div id="breakdown" class="bars"><p class="empty">Run a query to see the breakdown.</p></div>
+        <div class="execution-heading compact"><div><span>CLICKHOUSE EXECUTION</span><small>Independent exact breakdown query</small></div></div>
+        <div id="breakdown-execution" class="query-strip panel-query-strip"><p class="empty">Waiting for breakdown query.</p></div>
+      </article>
+      <article class="panel">
+        <div class="panel-heading compact"><div><p class="eyebrow">AUDIENCE RHYTHM</p><h2>Hour-of-day heatmap</h2></div><button class="secondary" data-inspect-panel="heatmap">Inspect</button></div>
+        <div id="heatmap" class="heatmap"><p class="empty">Minute or hour results become a UTC activity heatmap.</p></div>
+        <div class="execution-heading compact"><div><span>CLICKHOUSE SOURCE</span><small>Browser-derived from the exact foreground curve response</small></div></div>
+        <div id="heatmap-execution" class="query-strip panel-query-strip"><p class="empty">Waiting for source query.</p></div>
+      </article>
+    </section>
+
+    <section id="evidence" class="panel proof-panel">
+      <div class="panel-heading">
+        <div><p class="eyebrow">JUDGE MODE</p><h2>Trace the answer</h2></div>
+        <div class="heading-actions"><button class="secondary" data-inspect-panel="diagnostics">Inspect</button><button id="refresh-diagnostics" class="secondary">Refresh query evidence</button></div>
+      </div>
+      <div class="proof-flow" aria-label="Data pipeline">
+        <div><span>01</span><strong>Raw events</strong><small id="raw-count">—</small></div><i>→</i>
+        <div><span>02</span><strong>Land + quarantine</strong><small>cast rejects, unusable rows</small></div><i>→</i>
+        <div><span>03</span><strong>Active intervals</strong><small id="interval-count">—</small></div><i>→</i>
+        <div><span>04</span><strong>Hour-clipped deltas</strong><small>fast exact serving</small></div><i>→</i>
+        <div><span>05</span><strong>Dashboard</strong><small>parameterized, read-only</small></div>
+      </div>
+      <div class="diagnostic-table-wrap">
+        <table><thead><tr><th>Query path</th><th>Runs</th><th>Median</th><th>p95</th><th>Rows read</th><th>Peak memory</th></tr></thead><tbody id="diagnostics"><tr><td colspan="6">Run the dashboard, then refresh evidence.</td></tr></tbody></table>
+      </div>
+    </section>
+  </main>
+
+  <aside id="inspector" class="inspector" aria-label="Panel query inspector" aria-live="polite" hidden>
+    <button id="inspector-backdrop" class="inspector-backdrop" aria-label="Close query inspector"></button>
+    <section class="inspector-drawer">
+      <header><div><p class="eyebrow">CLICKHOUSE EXPLAINER</p><h2 id="inspector-title">Panel inspector</h2><small id="inspector-mode"></small></div><button id="close-inspector" class="secondary">Close</button></header>
+      <div id="inspector-loading" class="inspector-loading"><span></span><p>Loading schema, lineage and a capped raw trace asynchronously…</p></div>
+      <div id="inspector-error" class="error" hidden></div>
+      <div id="inspector-content" hidden>
+        <section><h3>ClickHouse execution profile</h3><p class="inspector-caption">Live request timing plus the completed query record and ProfileEvents from system.query_log.</p><div id="inspector-metrics" class="inspector-metrics"></div></section>
+        <section><h3>Exact visualization SQL</h3><p class="inspector-caption">Prepared values are listed in placeholder order. SQL is copied from the same query plan the panel executes.</p><pre id="inspector-sql"></pre><div id="inspector-parameters" class="parameter-list"></div></section>
+        <section><h3>Lineage to raw</h3><div id="inspector-lineage" class="lineage-list"></div></section>
+        <section><h3>Source schemas</h3><div id="inspector-schemas" class="schema-list"></div></section>
+        <section><h3>Capped real-data trace</h3><div id="inspector-trace"></div></section>
+        <section><h3>Notes and limits</h3><ul id="inspector-notes" class="inspector-notes"></ul></section>
+      </div>
+    </section>
+  </aside>
+
+  <footer><span>Built on ClickHouse Cloud</span><span id="database-name">database —</span><span>All times UTC</span></footer>
+  <script src="/app.js?v=20260802-9" defer></script>
+</body>
+</html>

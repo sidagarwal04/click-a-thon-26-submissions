@@ -1,0 +1,94 @@
+# LibreChat + Mongo — adapted from agentic-data-stack
+# No RAG / pgvector / Meilisearch. Admin panel is a separate compose file.
+# Langfuse env vars point at Langfuse Cloud (see root .env)
+# LibreChat file logs → librechat-log-shipper → ClickStack OTLP → HyperDX
+
+services:
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    restart: always
+    ports:
+      - "${LIBRECHAT_PORT:-3080}:${LIBRECHAT_PORT:-3080}"
+    depends_on:
+      mongodb:
+        condition: service_started
+      clickhouse-mcp:
+        condition: service_healthy
+      rca-mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    environment:
+      - HOST=0.0.0.0
+      - PORT=${LIBRECHAT_PORT:-3080}
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - SEARCH=false
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - CREDS_KEY=${CREDS_KEY}
+      - CREDS_IV=${CREDS_IV}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-user_provided}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_MODELS=${OPENAI_MODEL:-gpt-5.6-sol}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-user_provided}
+      - GOOGLE_KEY=${GOOGLE_KEY:-user_provided}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL}
+      - CLICKHOUSE_MCP_AUTH_TOKEN=${CLICKHOUSE_MCP_AUTH_TOKEN}
+      # Structured file + JSON console logs for ClickStack / HyperDX
+      - DEBUG_LOGGING=true
+      - CONSOLE_JSON=true
+      - LOG_TO_FILE=true
+      - LIBRECHAT_LOG_DIR=/app/logs
+    volumes:
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+      - librechat_images:/app/client/public/images
+      - librechat_uploads:/app/uploads
+      - librechat_logs:/app/logs
+    networks:
+      - clickathon
+
+  # Tails LibreChat Winston files and ships OTLP logs → ClickStack collector
+  librechat-log-shipper:
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    restart: always
+    command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      HYPERDX_API_KEY: ${HYPERDX_API_KEY}
+    volumes:
+      - type: bind
+        source: ./otel/librechat-logs-collector.yml
+        target: /etc/otelcol/config.yaml
+        read_only: true
+      - librechat_logs:/var/log/librechat:ro
+    depends_on:
+      librechat:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - clickathon
+
+  mongodb:
+    image: mongo:8.0.17
+    restart: always
+    volumes:
+      - librechat_mongodb_data:/data/db
+    command: mongod --noauth
+    ports:
+      - "127.0.0.1:27017:27017"
+    networks:
+      - clickathon
+
+volumes:
+  librechat_mongodb_data:
+  librechat_images:
+  librechat_uploads:
+  librechat_logs:

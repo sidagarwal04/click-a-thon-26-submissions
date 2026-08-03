@@ -1,0 +1,26 @@
+# evidence: insight_bench_cohorts_retention_curve
+# what: read_rows, read_bytes, result_rows, tables and EXPLAIN key condition per filter shape for cohorts_retention_curve
+# run_utc: 2026-08-01 19:50:22
+# git: f1b6d38-dirty
+# host: ss-cric
+# row_count: 2203368
+# event_watermark: 2026-08-01 20:03:11.372
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:44:51   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+shape	cold_ms	warm_ms	read_rows	read_bytes	result_rows	memory_bytes	tables_read	raw_scan	key_condition
+unfiltered	12	12	8181	361131	316	7430140	phoenix_next.content_entry_cohorts	no	true ; granules 1/1
+platform	11	11	8181	361131	305	2813951	phoenix_next.content_entry_cohorts	no	(platform in ['ANDROID_PHONE', 'ANDROID_PHONE']) ; granules 1/1
+country	12	13	8181	361131	316	7442394	phoenix_next.content_entry_cohorts	no	(country in ['india', 'india']) ; granules 1/1
+content	9	9	8181	361131	62	2644987	phoenix_next.content_entry_cohorts	no	true ; granules 1/1
+app_version	11	11	8181	361131	252	2765111	phoenix_next.content_entry_cohorts	no	(app_version in ['6.34.8', '6.34.8']) ; granules 1/1
+platform+country	11	12	8181	361131	305	2518718	phoenix_next.content_entry_cohorts	no	and((country in ['india', 'india']), (platform in ['ANDROID_PHONE', 'ANDROID_PHONE'])) ; granules 1/1
+#	query	sql/insights/benchmark/cohorts_retention_curve.sql
+#	window	2026-07-26 00:00:00 -> 2026-07-27 00:00:00
+#	service	26.2.1.525
+#	use_query_cache	0
+gate.raw_events_in_plan	0	(required 0)	PASS

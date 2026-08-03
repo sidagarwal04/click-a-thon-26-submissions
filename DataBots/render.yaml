@@ -1,0 +1,27 @@
+services:
+  # 🟢 Peekachu Backend + Go RCA Engine Unified Service
+  - type: web
+    name: peekachu-backend
+    env: docker
+    region: singapore # or oregon, frankfurt, etc.
+    plan: free
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: RCA_ENGINE_URL
+        value: http://127.0.0.1:8081/analyze
+      - key: CLICKHOUSE_URL
+        sync: false # Set in Render Dashboard
+      - key: CLICKHOUSE_USERNAME
+        sync: false # Set in Render Dashboard
+      - key: CLICKHOUSE_PASSWORD
+        sync: false # Set in Render Dashboard
+      - key: DEEPSEEK_API_KEY
+        sync: false # Set in Render Dashboard
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RCAMole — Automated Root-Cause Analyst</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="brand-row">
+          <svg class="brand-icon" width="42" height="42" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs><linearGradient id="moleGrad" x1="0" y1="0" x2="34" y2="34"><stop offset="0" stop-color="#22D3EE"/><stop offset="1" stop-color="#22C55E"/></linearGradient></defs>
+            <ellipse cx="18" cy="17" rx="13" ry="11" fill="url(#moleGrad)"/>
+            <ellipse cx="10.5" cy="21" rx="6.4" ry="5.2" fill="rgba(255,255,255,0.22)"/>
+            <circle cx="5.2" cy="18" r="1.7" fill="#06131C"/>
+            <circle cx="15.5" cy="12.5" r="1.4" fill="#06131C"/>
+          </svg>
+          <h1>RCAMole</h1>
+        </div>
+        <div class="sub" id="meta-sub">Loading dataset info…</div>
+      </div>
+      <div class="live-pill" id="live-pill">
+        <span class="live-dot" id="live-dot"></span>
+        <span id="live-pill-text">Connecting…</span>
+      </div>
+    </header>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="filters-row">
+      <div class="tabs" id="metric-tabs"></div>
+      <input type="date" id="start-date" />
+      <span style="color:var(--text-muted); font-size:13px;">to</span>
+      <input type="date" id="end-date" />
+      <div class="spacer"></div>
+      <button class="btn primary" id="scan-btn">Scan for incidents</button>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title" id="chart-title">Revenue over time</div>
+      <div class="chart-legend" id="chart-legend" style="display:none;"></div>
+      <div style="position:relative;">
+        <svg class="chart" id="chart">
+          <defs>
+            <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#22D3EE" stop-opacity="0.30"/>
+              <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+    </div>
+
+    <section>
+      <h2>Incidents</h2>
+      <p class="section-hint">Detected anomalies, most recent first — click one for the full root-cause breakdown.</p>
+      <div class="filters-row" id="filterRow" style="margin-bottom:16px;">
+        <button class="filter-btn" data-menu="metric">
+          <span id="metricLabel">All Metrics</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="filter-menu" id="menu-metric"></div>
+
+        <button class="filter-btn" data-menu="severity">
+          <span id="severityLabel">All Severities</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="filter-menu" id="menu-severity"></div>
+
+        <button class="filter-btn" data-menu="sort">
+          <span id="sortLabel">Newest first</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="filter-menu" id="menu-sort"></div>
+      </div>
+      <div class="incident-list" id="incident-list"><div class="loading">Loading…</div></div>
+    </section>
+  </div>
+  <div class="toast-container" id="toast-container"></div>
+  <script src="app.js"></script>
+</body>
+</html>

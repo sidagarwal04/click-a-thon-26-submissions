@@ -1,0 +1,238 @@
+# Please consult our docs for more info: https://www.librechat.ai/docs/configuration/docker_override
+
+# TO USE THIS FILE, FIRST UNCOMMENT THE LINE ('services:')
+
+# THEN UNCOMMENT ONLY THE SECTION OR SECTIONS CONTAINING THE CHANGES YOU WANT TO APPLY
+# SAVE THIS FILE AS 'docker-compose.override.yaml'
+# AND USE THE 'docker compose build' & 'docker compose up -d' COMMANDS AS YOU WOULD NORMALLY DO
+
+# WARNING: YOU CAN ONLY SPECIFY EVERY SERVICE NAME ONCE (api, mongodb, meilisearch, ...)
+# IF YOU WANT TO OVERRIDE MULTIPLE SETTINGS IN ONE SERVICE YOU WILL HAVE TO EDIT ACCORDINGLY
+
+# EXAMPLE: if you want to use the config file and the latest numbered release docker image the result will be:
+
+# services:
+#   api:
+#     volumes:
+#     - type: bind
+#       source: ./librechat.yaml
+#       target: /app/librechat.yaml
+#     image: registry.librechat.ai/danny-avila/librechat:latest
+
+# ---------------------------------------------------
+
+services:
+
+  # USE LIBRECHAT CONFIG FILE
+  api:
+    # environment:
+    #   - MONGO_URI=${MONGO_URI}
+    volumes:
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+      - ./context_docs:/app/context_docs
+      - ./specs:/app/specs
+
+  # WRITE-CAPABLE ClickHouse MCP (open-source mcp-clickhouse).
+  # The hosted mcp.clickhouse.cloud is READ-ONLY, so the Instrumentation Agent's
+  # DDL/INSERT go through this self-hosted server instead. Referenced by
+  # librechat.yaml -> mcpServers.clickhouse_write_tools at http://clickhouse-mcp-write:8000/mcp
+  clickhouse-mcp-write:
+    image: ghcr.io/clickhouse/mcp-clickhouse:latest
+    container_name: clickhouse-mcp-write
+    restart: unless-stopped
+    environment:
+      # --- Cloud connection (HTTPS interface on 8443, NOT native 9440) ---
+      CLICKHOUSE_HOST: ${CH_HOST}
+      CLICKHOUSE_PORT: 8443
+      CLICKHOUSE_USER: ${CH_USER}
+      CLICKHOUSE_PASSWORD: ${CH_PASSWORD}
+      CLICKHOUSE_SECURE: "true"
+      # The container image lacks a CA bundle that trusts the Cloud cert chain
+      # (same reason the standalone CLI needs --accept-invalid-certificate), so
+      # disable cert verification for this trusted Cloud endpoint.
+      CLICKHOUSE_VERIFY: "false"
+      CLICKHOUSE_DATABASE: ${CH_DATABASE:-atlys}
+      # --- Enable write/DDL tools (run_query executes CREATE/ALTER/INSERT) ---
+      CLICKHOUSE_ALLOW_WRITE_ACCESS: "true"
+      CLICKHOUSE_ALLOW_DROP: "true"
+      # --- Serve over HTTP so LibreChat can reach it via streamable-http ---
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: http
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: 8000
+      # HTTP transport mandates auth config. Server is only on the internal docker
+      # network (port not published), so auth is disabled to match the no-header
+      # librechat.yaml client config.
+      CLICKHOUSE_MCP_AUTH_DISABLED: "true"
+
+  # GIT-WRITE MCP (custom, ./git-mcp). Lets the Instrumentation Agent commit a generated
+  # schema file and push it DIRECTLY to the target branch (master) with no shell — the
+  # LibreChat agent has no local shell and execute_code runs in a remote sandbox with no
+  # repo access. Authenticates to GitHub with a PAT ($GITHUB_TOKEN). Referenced by
+  # librechat.yaml -> mcpServers.clickhouse_git_write at http://clickhouse-git-write:8000/mcp
+  clickhouse-git-write:
+    build:
+      context: ./git-mcp
+    image: atlys-git-mcp:latest
+    container_name: clickhouse-git-write
+    restart: unless-stopped
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      CH_TARGET_REPO: ${CH_TARGET_REPO:-https://github.com/srinidhi-22/tillthelastrow.git}
+      CH_TARGET_BRANCH: ${CH_TARGET_BRANCH:-master}
+      CH_REPO_DIR: /work/repo
+      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-Atlys Instrumentation Agent}
+      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-atlys-agent@users.noreply.github.com}
+      MCP_BIND_HOST: 0.0.0.0
+      MCP_BIND_PORT: 8000
+
+  # # LOCAL BUILD
+  #   api:
+  #     image: librechat
+  #     build:
+  #       context: .
+  #       target: node
+
+  # # BUILD FROM LATEST IMAGE
+  #   api:
+  #     image: registry.librechat.ai/danny-avila/librechat-dev:latest
+
+  # # BUILD FROM LATEST IMAGE (NUMBERED RELEASE)
+  #   api:
+  #     image: registry.librechat.ai/danny-avila/librechat:latest
+
+  # # BUILD FROM LATEST API IMAGE
+  #   api:
+  #     image: registry.librechat.ai/danny-avila/librechat-dev-api:latest
+
+  # # BUILD FROM LATEST API IMAGE (NUMBERED RELEASE)
+  #   api:
+  #     image: registry.librechat.ai/danny-avila/librechat-api:latest
+
+  # # ADD SAML CERT FILE
+  #   api:
+  #     volumes:
+  #     - type: bind
+  #       source: ./your_cert.pem
+  #       target: /app/your_cert.pem
+
+  # # ADD MONGO-EXPRESS
+  #   mongo-express:
+  #     image: mongo-express
+  #     container_name: mongo-express
+  #     environment:
+  #       ME_CONFIG_MONGODB_SERVER: mongodb
+  #       ME_CONFIG_BASICAUTH_USERNAME: admin
+  #       ME_CONFIG_BASICAUTH_PASSWORD: password
+  #     ports:
+  #       - '8081:8081'
+  #     depends_on:
+  #       - mongodb
+  #     restart: always
+
+  # # USE MONGODB V4.4.18 - FOR OLDER CPU WITHOUT AVX SUPPORT
+  #   mongodb:
+  #     image: mongo:4.4.18
+
+  # DISABLE THE MONGODB CONTAINER - YOU NEED TO SET AN ALTERNATIVE MONGODB URI IN THE .ENV FILE
+  # api:
+  #   environment:
+  #     - MONGO_URI=${MONGO_URI}
+  # mongodb:
+  #   image: tianon/true
+  #   command: ""
+  #   entrypoint: ""
+
+  # # EXPOSE MONGODB PORTS - USE CAREFULLY, THIS MAKES YOUR DATABASE VULNERABLE TO ATTACKS
+  #   mongodb:
+  #     ports:
+  #       - 27018:27017
+
+  # # DISABLE MEILISEARCH
+  #   meilisearch:
+  #     profiles:
+  #       - donotstart
+
+  # # EXPOSE MEILISEARCH PORTS - DO NOT USE THE DEFAULT VALUE FOR THE MASTER KEY IF YOU DO THIS
+  #   meilisearch:
+  #     ports:
+  #       - 7700:7700
+
+  # # USE RAG API IMAGE WITH LOCAL EMBEDDINGS SUPPORT
+  #  rag_api:
+  #    image: registry.librechat.ai/danny-avila/librechat-rag-api-dev:latest
+  # # For Linux user:
+  #    extra_hosts:
+  #      - "host.docker.internal:host-gateway"
+
+  # # ADD OLLAMA
+  #  ollama:
+  #    image: ollama/ollama:latest
+  #    deploy:
+  #      resources:
+  #        reservations:
+  #          devices:
+  #            - driver: nvidia
+  #              capabilities: [compute, utility]
+  #    ports:
+  #      - "11434:11434"
+  #    volumes:
+  #      - ./ollama:/root/.ollama
+
+  # # ADD LITELLM BASIC - NEED TO CONFIGURE litellm-config.yaml, ONLY NEED ENV TO ENABLE REDIS FOR CACHING OR LANGFUSE FOR MONITORING
+  #  litellm:
+  #    image: ghcr.io/berriai/litellm:main-latest
+  #    volumes:
+  #      - ./litellm/litellm-config.yaml:/app/config.yaml
+  #      - ./litellm/application_default_credentials.json:/app/application_default_credentials.json # only if using Google Vertex
+  #    ports:
+  #      - "4000:8000"
+  #    command: [ "--config", "/app/config.yaml", "--port", "8000", "--num_workers", "8" ]
+  #    environment:
+  #      OPENAI_API_KEY: none ## needs to be set if ollama's openai api compatibility is used
+  #      GOOGLE_APPLICATION_CREDENTIALS: /app/application_default_credentials.json ## only if using Google Vertex
+  #      REDIS_HOST: redis
+  #      REDIS_PORT: 6379
+  #      REDIS_PASSWORD: RedisChangeMe
+  #      LANGFUSE_PUBLIC_KEY: pk-lf-RandomStringFromLangfuseWebInterface
+  #      LANGFUSE_SECRET_KEY: sk-lf-RandomStringFromLangfuseWebInterface
+  #      LANGFUSE_HOST: http://langfuse-server:3000
+
+  # # ADD LITELLM CACHING
+  #  redis:
+  #    image: redis:7-alpine
+  #    command:
+  #    - sh
+  #    - -c # this is to evaluate the $REDIS_PASSWORD from the env
+  #    - redis-server --appendonly yes --requirepass $$REDIS_PASSWORD ## $$ because of docker-compose
+  #    environment:
+  #      REDIS_PASSWORD: RedisChangeMe
+  #    volumes:
+  #    - ./redis:/data
+
+  # # ADD LITELLM MONITORING
+  #  langfuse-server:
+  #    image: ghcr.io/langfuse/langfuse:latest
+  #    depends_on:
+  #      - db
+  #    ports:
+  #      - "3000:3000"
+  #    environment:
+  #      - NODE_ENV=production
+  #      - DATABASE_URL=postgresql://postgres:PostgresChangeMe@db:5432/postgres
+  #      - NEXTAUTH_SECRET=ChangeMe
+  #      - SALT=ChangeMe
+  #      - NEXTAUTH_URL=http://localhost:3000
+  #      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+  #      - NEXT_PUBLIC_SIGN_UP_DISABLED=${NEXT_PUBLIC_SIGN_UP_DISABLED:-false}
+  #      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
+  #  db:
+  #    image: postgres
+  #    restart: always
+  #    environment:
+  #      - POSTGRES_USER=postgres
+  #      - POSTGRES_PASSWORD=PostgresChangeMe
+  #      - POSTGRES_DB=postgres
+  #    volumes:
+  #      - ./postgres:/var/lib/postgresql/data

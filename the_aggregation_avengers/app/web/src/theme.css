@@ -1,0 +1,152 @@
+/* Design tokens — SonyLIV palette.
+ *
+ * Taken from sonyliv.com: near-black page, gold brand mark, blue CTA.
+ * SonyLIV is a dark-first brand, so **dark is our default theme** and light is
+ * the alternate — the reverse of the usual arrangement.
+ *
+ * BRAND GOLD vs SERIES GOLD — these are deliberately different values.
+ * SonyLIV's logo gold (#F2C230) sits at OKLCH L 0.834, well outside the
+ * 0.48–0.67 band a dark-mode series colour must occupy; used as a mark it
+ * glows against near-black and reads inconsistently next to the blue. So the
+ * brand gold stays where brand colour belongs — the wordmark, links, focus
+ * rings — and the *series* uses the nearest step of the same hue that passes.
+ *
+ * Validated with the palette validator, not by eye:
+ *   dark  #BA8A15 + #1668E3 on #141416 — all checks PASS, CVD ΔE 32.0
+ *   light #8A6410 + #1668E3 on #FAFAF8 — all checks PASS, CVD ΔE 29.9
+ * (target is ΔE ≥ 8, so both clear it several times over)
+ */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #141416; /* card — lifted off pure black so cards read as layers */
+  --page: #000000; /* SonyLIV's page black */
+  --text-primary: #ffffff;
+  --text-secondary: #b4b4b8;
+  --text-muted: #86868c;
+  --grid: #26262a;
+  --axis: #35353b;
+  --border: rgba(255, 255, 255, 0.11);
+  --brand: #f2c230; /* logo gold — text/links/focus only, never a mark */
+  /* The wordmark's metallic gold, matching the Liv mark: pale specular
+   * highlight at the top, the brand gold through the middle, deep amber at the
+   * base. Lit from the upper left, hence 165deg rather than a flat vertical. */
+  --wordmark: linear-gradient(165deg, #f9dc82 0%, #f2c230 30%, #eab423 54%, #d1920f 78%, #a96d09 100%);
+  --series-1: #ba8a15; /* sessions */
+  --series-2: #1668e3; /* users */
+  --seq-400: #ba8a15;
+  --seq-250: #6d5311;
+  --good: #0ca30c;
+  --critical: #e0464b;
+  --shadow: none;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface-1: #ffffff;
+  --page: #fafaf8;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7a76;
+  --grid: #e6e5e0;
+  --axis: #c9c8c2;
+  --border: rgba(11, 11, 11, 0.12);
+  --brand: #8a6410;
+  /* Same metal, re-lit for a near-white page. The dark-mode gradient's pale
+   * top stop (#F9DC82) is effectively invisible on #FAFAF8 — a wordmark that
+   * disappears at its highlight is not a wordmark. Every stop is stepped down
+   * to hold contrast while keeping the highlight → gold → amber structure. */
+  --wordmark: linear-gradient(165deg, #c9a24a 0%, #a97f1d 32%, #8a6410 58%, #6f4e0b 100%);
+  --series-1: #8a6410;
+  --series-2: #1668e3;
+  --seq-400: #8a6410;
+  --seq-250: #c9a24a;
+  --good: #006300;
+  --critical: #d03b3b;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Background belongs on html AND body. body's background propagates to the
+ * canvas only for the initial containing block; any horizontal overflow falls
+ * back to html's default white, which showed as a band down the right. */
+html {
+  background: var(--page);
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  /* System sans everywhere, including the hero figure — no display face. */
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* The wordmark — gradient-filled text.
+ *
+ * `color` is set to the flat brand gold FIRST and only made transparent inside
+ * the @supports block. Setting it transparent unconditionally would render the
+ * word invisible anywhere background-clip:text is unsupported or disabled —
+ * including Windows forced-colors mode, which drops background images while
+ * keeping the color. The flat gold is the fallback, not a missing wordmark.
+ *
+ * This is the ONE gradient in the app. It is brand identity on a wordmark, not
+ * an encoding: a gradient on a data mark would imply a magnitude that isn't
+ * there. Everything that carries a number stays flat and in text ink. */
+.wordmark {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--brand);
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .wordmark {
+    background-image: var(--wordmark);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Forced-colors (Windows high contrast) throws away background images. Hand
+ * the word back its own colour rather than letting it clip to nothing. */
+@media (forced-colors: active) {
+  .wordmark {
+    background-image: none;
+    color: CanvasText;
+  }
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+/* Wide content scrolls inside its own container; the page body never does. */
+.scroll-x {
+  overflow-x: auto;
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}

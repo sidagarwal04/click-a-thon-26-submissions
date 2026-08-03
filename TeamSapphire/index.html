@@ -1,0 +1,75 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team Sapphire — From alert to answer</title>
+<style>
+:root{ --bg:#0d0d0f; --panel:#16161a; --line:#2a2a31; --fg:#f2f2ef; --dim:#9a9a93; --faint:#6b6b66; --blue:#5b9df9; --green:#3ecf6b; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;padding:6vh 5vw;max-width:1000px;margin:0 auto}
+.kick{color:var(--faint);font-size:13px;letter-spacing:.16em;text-transform:uppercase}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:-.02em;margin:14px 0 10px}
+.lead{font-size:clamp(17px,2.2vw,21px);color:var(--dim);max-width:62ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:34px 0}
+a.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;text-decoration:none;color:inherit;transition:border-color .15s}
+a.card:hover{border-color:var(--blue)}
+a.card b{display:block;font-size:18px;margin-bottom:5px}
+a.card span{color:var(--dim);font-size:14.5px;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:8px 0 28px;font-size:15px}
+th{text-align:left;color:var(--faint);font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:0 14px 8px 0;border-bottom:1px solid var(--line)}
+td{padding:11px 14px 11px 0;border-bottom:1px solid #1c1c22;vertical-align:top}
+h2{font-size:15px;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;margin:34px 0 12px;font-weight:600}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;color:var(--dim)}
+.red{color:#e66767} .grn{color:var(--green)} .dim{color:var(--dim)}
+footer{color:var(--faint);font-size:14px;border-top:1px solid var(--line);padding-top:18px;margin-top:34px}
+</style>
+
+<p class="kick">Click-a-thon India 2026 · InMobi track · Team Sapphire</p>
+<h1>From alert to answer</h1>
+<p class="lead">Your alert says revenue moved. This says <b>why</b>, which segment, and what it <b>ruled out</b> — with the arithmetic attached. The analysis is SQL in ClickHouse; the LLM only writes the sentence.</p>
+
+<div class="grid">
+  <a class="card" href="demo/"><b>Live demo →</b><span>The incident view: every detected event, the responsible segment, the ruled-out ledger for all nine dimensions, and the query-latency envelope.</span></a>
+  <a class="card" href="deck.html"><b>Pitch deck →</b><span>15 slides. Architecture, the schema measurement, benchmarks, and what we know is broken.</span></a>
+  <a class="card" href="artifacts/"><b>Artifacts →</b><span>Diagnoses, all 131 queries with their SQL, compound findings, and the exported traces.</span></a>
+  <a class="card" href="https://github.com/shravankgl/teamsapphire-click-a-thon-26-submissions/tree/main/TeamSapphire"><b>Source →</b><span>Engine, API, UI, schema and tests. <code>README.md</code> has the full run steps.</span></a>
+</div>
+
+<h2>What it found, unassisted</h2>
+<table>
+  <tr><th>Window</th><th>Shape</th><th>Diagnosis</th></tr>
+  <tr><td><b>2026-06-21</b><br><span class="dim">24 h</span></td><td>global, uniform<br><span class="dim">all 9 dimensions</span></td><td>requests <b class="red">−43.5%</b>; fill, render and eCPM normal.<br><span class="dim"><b>No segment is responsible</b> — and saying so is the finding.</span></td></tr>
+  <tr><td><b>06-23 → 06-25</b><br><span class="dim">72 h</span></td><td>localized<br><span class="dim">os_version = Android 15</span></td><td>fill rate <b class="red">0.785 → 0.433</b>; requests normal.<br><span class="dim">Invisible globally — it moved platform fill only ~5%.</span></td></tr>
+  <tr><td><b>06-28 → 06-30</b><br><span class="dim">3 days</span></td><td><b>compound</b><br><span class="dim">iOS 18.1 × APAC</span></td><td>fill rate <b class="red">−50.6%</b>, while APAC alone is −2.3% and iOS 18.1 alone −12.3%.<br><span class="dim">No single-dimension scan can see it.</span></td></tr>
+</table>
+
+<h2>The unseen incident — 2026-07-06 → 07-10, run cold</h2>
+<p class="lead" style="margin-bottom:14px">1,500,000 fresh events, released in the final hours. One command, 37 seconds.
+<a href="artifacts/unseen/" style="color:var(--blue)">Full bundle →</a></p>
+
+<table>
+  <tr><th>In the data</th><th>What our system reported</th></tr>
+  <tr>
+    <td><b>A · Jul 6 — mix shift</b><br>
+      <span class="dim">Request share: APAC + LATAM <span class="grn">+17pp</span>, EU + NAM <span class="red">−13pp</span>.
+      No region&rsquo;s own eCPM changed — global eCPM still fell ~8% by dilution alone.</span></td>
+    <td><span class="dim">Right window and factor —</span> <code>requests</code> in <code>campaign_type=CPC</code> <b>+139.5%</b>.
+      <br><span class="dim">Named CPC; <code>region=APAC</code> ranked 5th of 7 responsible.</span></td>
+  </tr>
+  <tr>
+    <td><b>B · Jul 9 — real price change</b><br>
+      <span class="dim">video eCPM <span class="red">−30%</span>, rewarded <span class="grn">+26%</span>, everything else flat.
+      Shares did not move.</span></td>
+    <td><b class="grn">Correct.</b> <code>ecpm</code> in <code>ad_format=video</code> <b>−35.0%</b> vs −12.0% globally —
+      <span class="dim">segment, magnitude and direction all match.</span></td>
+  </tr>
+</table>
+
+<p class="lead" style="margin-bottom:28px"><b>Where it fell short, stated plainly.</b> Our attribution asks whether a segment&rsquo;s
+<i>metric</i> moved beyond what its size explains. In a mix shift <b>no segment&rsquo;s metric moves</b> — only the weights do,
+so the system reached for correlates of the incoming traffic instead of the shift itself. Catching that needs a
+share-of-volume decomposition alongside the metric one, and we did not build it. The consolidation also merged the two
+incidents into one on the full-window run.</p>
+
+<h2>How it works</h2>
+<p class="lead">Raw <code>MergeTree</code> → three dictionaries resolving nine dimensions at insert time → two <code>SummingMergeTree</code> rollups. The obvious fully-crossed rollup was built first and measured at <b>7,247,816 rows from 7.2M events</b> — it compressed nothing. The unpivoted grain that replaced it is <b class="grn">53,760 rows</b>, 167× smaller. One investigation runs <b>131 queries over 1,217,174,868 rows</b> in ~53s of ClickHouse time.</p>
+
+<footer>MIT licensed · every number on this page is computed from the data and reproducible from the queries in <a href="artifacts/queries.md" style="color:var(--dim)">artifacts/queries.md</a></footer>

@@ -1,0 +1,24 @@
+# evidence: rebuild_idempotence
+# what: full rebuild run twice into separate shadow databases, derived tables diffed row by row over the shared frozen input
+# run_utc: 2026-08-01 16:19:40
+# git: dc0d374-dirty
+# host: ss-cric
+# row_count: 1138316
+# event_watermark: 2026-08-01 16:19:38.385
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 16:19:41   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+table	rows_run1	rows_run2	diff_lines	verdict
+foreground_intervals	598752	598752	0	PASS
+session_minute_runs	17585	17585	0	PASS
+concurrency_deltas	24892	24892	0	PASS
+user_minute_runs	16582	16582	0	PASS
+user_concurrency_deltas	23452	23452	0	PASS
+#	compared_on	minute < frozen_before, the input both runs shared
+#	run1_db	phoenix_idem_a
+#	run2_db	phoenix_idem_b
+verdict	PASS

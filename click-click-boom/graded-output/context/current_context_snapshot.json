@@ -1,0 +1,1052 @@
+[
+  {
+    "section": "convention:funnel_analysis",
+    "content": {
+      "title": "How to analyse the funnel",
+      "summary": "Use uniqExact(user_id)/uniqExact(application_id) per stage, matched by application_id, order-agnostic. Do NOT use windowFunnel/sequenceMatch past document_uploaded \u2014 timestamps are not reliably ordered there and it silently undercounts.",
+      "body": "Verified against atlys: destination_card_clicked->application_started is 100% ordered, application_started->document_uploaded is 95.5% ordered \u2014 windowFunnel/sequenceMatch is safe there. Past document_uploaded, ordering breaks down: document_uploaded->pay_now_clicked is only 50.3% ordered, pay_now_clicked->purchase_completed only 52.6% ordered (the rest have the later step's timestamp BEFORE the earlier step's). windowFunnel on doc_uploaded->pay_now_clicked->purchase_completed returns 1,264/20,446=6.2% reaching purchase; the true, order-agnostic application_id-matched rate is 7,054/20,446=34.5% (pay->purchase alone is 47.9%). Always join/match by application_id and count distinct, ignoring order, for anything touching pay_now_clicked or purchase_completed. Still cut by device, geo, and destination before concluding.",
+      "fields": {
+        "ordered_stages_pct": {
+          "click_to_start": 100.0,
+          "start_to_doc": 95.5
+        },
+        "unordered_stages_pct_out_of_order": {
+          "doc_to_pay": 49.7,
+          "pay_to_purchase": 47.4
+        },
+        "windowfunnel_undercount_example": "doc->pay->purchase windowFunnel level3 = 6.2% vs true order-agnostic 34.5%",
+        "rule": "windowFunnel/sequenceMatch OK for click->start->doc; use order-agnostic uniqExact-by-application_id for doc->pay->purchase"
+      },
+      "sources": [
+        "base_context.md#7",
+        "atlys EDA 2026-08-01: windowFunnel vs application_id-match comparison"
+      ]
+    },
+    "confidence": 0.9300000071525574,
+    "trace_url": "",
+    "last_updated": "2026-08-01 16:50:31"
+  },
+  {
+    "section": "convention:segment_cuts",
+    "content": {
+      "title": "Standard segment cuts",
+      "summary": "device_type/os, geoip_country_code, destination, citizenship, co_travelers, acquisition (gclid present => paid search).",
+      "body": "These are the cuts every insight should check before concluding a finding is segment-neutral.",
+      "fields": {
+        "cuts": [
+          "device_type",
+          "os",
+          "geoip_country_code",
+          "destination",
+          "citizenship",
+          "co_travelers",
+          "gclid_present"
+        ]
+      },
+      "sources": [
+        "base_context.md#6"
+      ]
+    },
+    "confidence": 0.800000011920929,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "convention:visa_status_sharing_ingestion",
+    "content": {
+      "title": "MOVED",
+      "summary": "MOVED to dataquality:visa_status_sharing_dedup -- this was always specific to the visa_status_sharing_events ingestion path, not a project-wide convention. Do not apply its dedup/ingest_version/ledger requirements to other tables.",
+      "body": "This section was originally minted with the `convention:` prefix, which this project reserves for genuinely general, cross-table rules (see convention:funnel_analysis, convention:segment_cuts). Its actual content was a specific lesson learned while building visa_status_sharing_events -- deduplicate by event_id/ingest_version before insert, because that table's AggregatingMergeTree MVs can't retract duplicates after the fact. A later review (express_checkout, see agent_meta.schema_proposals) surfaced this section via list_context_sections and applied its ledger/versioning/correction requirements wholesale to an unrelated checkout feature whose spec never asked for deduplication or corrections at all -- burning the full revision budget chasing a requirement that was never in scope. Real content now lives at dataquality:visa_status_sharing_dedup, correctly scoped to that one table.",
+      "fields": {
+        "moved_to": "dataquality:visa_status_sharing_dedup"
+      },
+      "sources": [
+        "manual rescope after express_checkout review-loop root-cause analysis"
+      ]
+    },
+    "confidence": 0.9800000190734863,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/1e415803f097ead2372f5e435849d04f",
+    "last_updated": "2026-08-02 01:46:55"
+  },
+  {
+    "section": "dataquality:abandonment_recovery_events_column_shift",
+    "content": {
+      "title": "abandonment_recovery_events \u2014 column-shift defect remains an active blocker",
+      "summary": "CONFIRMED data-integrity bug remains unresolved: the landed table's values are shifted relative to declared column names, so reads and aggregate views over the landed data must not be treated as authoritative.",
+      "body": "The executed proposal does not claim that the existing landed rows were repaired. Instead, it explicitly treats the landed table and aggregate state as untrusted, restricts production writes to validated staging, and requires a high-watermark cutover: isolate writes, record W, validate and deduplicate through W, build and backfill corrected targets, create live materialized views, replay post-W events through the same idempotent path, reconcile continuity, and atomically swap. Reminders without exactly one valid reminder_sent event are quarantined; reminder outcomes must retain the same reminder_id; valid sent events require a valid channel and nonnegative timing. The defect therefore remains confirmed with fix_status not_fixed.",
+      "fields": "{\"status\":\"confirmed\",\"affected_table\":\"abandonment_recovery_events\",\"fix_status\":\"not_fixed\",\"production_read_policy\":\"do not trust landed columns or aggregate state\",\"required_remediation\":[\"validated staging\",\"event_id deduplication\",\"required-field and reminder consistency validation\",\"high-watermark cutover\",\"post-replay reconciliation\",\"atomic swap\"],\"quarantine_rule\":\"reminders without exactly one valid reminder_sent are quarantined\"}",
+      "sources": [
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.rationale",
+        "dataquality:abandonment_recovery_events_column_shift current context"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/737d5929b42820d5c68c1ffcc42a22fb",
+    "last_updated": "2026-08-02 03:49:23"
+  },
+  {
+    "section": "dataquality:envelope",
+    "content": {
+      "title": "Envelope data-quality quirks (not documented in base_context.md)",
+      "summary": "duplicate_id ~3.0%, is_back_filled ~2.0%, os NULL only for android rows -- consistent across the original 8 funnel/supporting tables. The 1:1 user:row pattern and device_type/os taxonomy are scoped to those same 8; newer feature tables do NOT follow the 1:1 pattern (see entity:user).",
+      "body": "The original 8 funnel/supporting-event tables (destination_card_clicked, application_started, document_uploaded, purchase_completed, search_typed, landing_page_scrolled, auth_completed, pay_now_clicked) share: duplicate_id ~3.0%, is_back_filled ~2.0%, os NULL only for android rows (~18% of android, never ios/web/Desktop), a consistent device_type/os two-tier taxonomy (device_type in {ios, android, web-user-b2c, Desktop}; os in {iOS, Android, Windows, 'Mac OS X', Linux, NULL}), and the synthetic-data 1:1 user:row pattern (one row per user_id) -- don't assume GROUP BY user_id collapses anything meaningful WITHIN THIS SET OF 8, it's already collapsed. Feature tables instrumented since (table:* sections not in the original 8) are NOT covered by this section's claims by default -- check each one's own table:* section for its real grain; several (e.g. abandonment_recovery_events) show genuine repeat events per user, the opposite of the 1:1 pattern. Separately: application_id-matched event pairs are NOT guaranteed to be timestamp-ordered from document_uploaded onward (confirmed by direct join, not sampling) -- treat any windowFunnel/sequenceMatch result touching pay_now_clicked or purchase_completed as suspect; see convention:funnel_analysis for the safe method.",
+      "fields": {
+        "duplicate_id_rate": 0.03,
+        "backfilled_rate": 0.02,
+        "os_null_only_on": "android",
+        "scope": "original 8 funnel/supporting tables only -- see table:* sections for feature tables added since",
+        "one_row_per_user_id": "true for the original 8 tables only -- FALSE for feature tables added since (verified: abandonment_recovery_events, express_checkout_events, forex_addon_events, group_application_events, visa_status_sharing_events all show real repeat events per user)",
+        "device_type_os_taxonomy_consistent_across_tables": true,
+        "timestamp_ordering_reliable_through": "application_started->document_uploaded only"
+      },
+      "sources": [
+        "Atlys/analysis/00_overview.md",
+        "atlys EDA 2026-08-01",
+        "scripts/audit_context_staleness.py"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/99010ac96db65a41e3c4e1b1463e7f86",
+    "last_updated": "2026-08-02 03:13:49"
+  },
+  {
+    "section": "dataquality:visa_status_sharing_dedup",
+    "content": {
+      "title": "visa_status_sharing_events dedup/ingestion note (table-specific)",
+      "summary": "Raw sharing events must be deduplicated before insertion into the canonical table; aggregate materialized-view states cannot retract duplicates after ingestion.",
+      "body": "The ingestion path should first deduplicate the raw landing stream by event_id, retaining the row with the greatest ingest_version and using payload_hash as a deterministic tie-breaker when needed, and only then insert into visa_status_sharing_events. Historical data must be deduplicated before creating or backfilling the materialized views. Empty event_id values should be rejected or quarantined. The executed proposal uses inferred internal AggregatingMergeTree targets so each supplied view is a standalone CREATE MATERIALIZED VIEW statement. For production, explicitly managed target tables with separate TO views are preferred when the migration runner supports multi-step deployment. Destination should be validated upstream as NULL or a valid ISO-2 code. Retention remains a separate operational policy requiring documented TTL, tiering, or DROP PARTITION handling.",
+      "fields": "{\"deduplication_key\":\"event_id\",\"latest_row_rule\":\"greatest ingest_version, then deterministic payload_hash tie-breaker\",\"deduplication_stage\":\"before insertion into canonical table\",\"historical_backfill\":\"deduplicate before view creation or avoid replaying duplicate rows\",\"empty_event_id_policy\":\"reject_or_quarantine\",\"destination_validation\":\"NULL or valid ISO-2 code\",\"retention\":\"separate TTL, tiering, or DROP PARTITION policy\",\"deployment_note\":\"inferred internal MV targets used for standalone executable DDL\"}",
+      "sources": [
+        "user executed_proposal rationale and deployment notes"
+      ]
+    },
+    "confidence": 0.9800000190734863,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fa8f02506c28c1b9d4e7a7a6ada0f05d",
+    "last_updated": "2026-08-02 03:41:09"
+  },
+  {
+    "section": "entity:application",
+    "content": {
+      "title": "Application",
+      "summary": "One visa application, identified by application_id, created at application_started.",
+      "body": "Records destination, purpose, co-traveller count. **Correction**: base_context claims application_started carries `visa_issuance_eta_days` (an integer). The real column is `eta_shown Nullable(String)` \u2014 a bucket like \"3-5 days\"/\"24 hours\", not an integer, not that name. On-time delivery rate as literally formulated in base_context \u00a74 does not type-check against the real schema. Also: base_context says pre-application events \"carry an empty application_id\" \u2014 true 84.6% of the time in destination_card_clicked/search_typed/landing_page_scrolled, not 100% (15.4% of card-clicks happen after a user already has an application, e.g. browsing a second destination).",
+      "fields": {
+        "identifier_column": "application_id",
+        "created_at_step": "application_started",
+        "eta_field_actual": "eta_shown Nullable(String), bucketed (e.g. '3-5 days')",
+        "eta_field_claimed_by_base_context": "visa_issuance_eta_days Nullable(Int) \u2014 DOES NOT EXIST"
+      },
+      "sources": [
+        "base_context.md#2",
+        "Atlys/analysis/02_application_started.md",
+        "Atlys/analysis/01_destination_card_clicked.md"
+      ]
+    },
+    "confidence": 0.949999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "entity:destination",
+    "content": {
+      "title": "Destination",
+      "summary": "Target country (ISO-2 in `destination`), belongs to a region with its own visa types.",
+      "body": "AE dominates volume at every funnel stage checked so far (~16% share) \u2014 worth its own baseline rather than lumping into 'top 10'.",
+      "fields": {
+        "identifier_column": "destination",
+        "top_by_volume": [
+          "AE",
+          "US",
+          "ID",
+          "TH",
+          "VN"
+        ]
+      },
+      "sources": [
+        "base_context.md#2",
+        "Atlys/analysis/01_destination_card_clicked.md"
+      ]
+    },
+    "confidence": 0.800000011920929,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "entity:document",
+    "content": {
+      "title": "Document",
+      "summary": "The passport captured during KYC, recorded in document_uploaded.",
+      "body": "One row per application, not one row per capture attempt \u2014 `retry_count` and `is_crossed_failed_attempt_threshold` summarize retries into this single row rather than emitting a separate event per attempt. Future capture-related instrumentation should decide explicitly whether to keep this summarize-on-submit pattern.",
+      "fields": {
+        "grain": "one row per application_id (summary, not per-attempt)"
+      },
+      "sources": [
+        "base_context.md#2",
+        "Atlys/analysis/03_document_uploaded.md"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "entity:event",
+    "content": {
+      "title": "Event",
+      "summary": "One row in one of the raw event tables; common envelope + event-specific columns.",
+      "body": "Grain of all analysis. See dataquality:envelope for the shared quality quirks across every event table.",
+      "fields": {},
+      "sources": [
+        "base_context.md#2"
+      ]
+    },
+    "confidence": 0.699999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "entity:user",
+    "content": {
+      "title": "User",
+      "summary": "A traveller, identified by user_id (28-char string), present on every event.",
+      "body": "May browse many destinations and start multiple applications in production. **Caveat from live data, scoped**: the original 8 funnel/supporting tables each have exactly `uniqExact(user_id) == count()` -- one row per user, a synthetic-data artifact (see dataquality:envelope), not evidence repeat applications are rare in production. **This does NOT hold for feature tables landed since**: abandonment_recovery_events (5,919 rows / 2,300 distinct users), express_checkout_events, forex_addon_events, group_application_events, and visa_status_sharing_events all show real repeat events per user -- don't assume 1:1 for any table outside the original 8; check that table's own table:* section for its real grain first.",
+      "fields": {
+        "identifier_column": "user_id",
+        "identifier_shape": "28-char string",
+        "one_row_per_user_id_holds_for": "original 8 funnel/supporting tables only"
+      },
+      "sources": [
+        "base_context.md#2",
+        "Atlys/analysis/00_overview.md",
+        "scripts/audit_context_staleness.py"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/99010ac96db65a41e3c4e1b1463e7f86",
+    "last_updated": "2026-08-02 03:13:49"
+  },
+  {
+    "section": "issue:K1",
+    "content": {
+      "title": "K1 \u2014 iOS WebKit OTP autofill regression",
+      "summary": "CONTRADICTED, including in the exact cohort base_context implies. iOS pay->purchase is highest of any OS (49.9%); Gulf-geo iOS (61-67%) converts BETTER than non-Gulf iOS (43-48%) at every app_version, 7.42.0-7.46.0.",
+      "body": "base_context claims Gulf-geo iOS card users are most exposed to an OTP-autofill regression. Checked iOS pay_now_clicked->purchase_completed split by geoip_country_code (AE/SA/QA/OM/KW/BH vs rest) x app_version: Gulf iOS conversion is 61-67% at every version; non-Gulf iOS is 43-48% at every version \u2014 the opposite of the claimed exposure, and no dip at any specific version either. No evidence of this regression anywhere in the dataset. Treat K1 as not reproducible here; if raised again, source it to a system outside these 8 tables rather than re-deriving from this data.",
+      "fields": {
+        "status": "contradicted",
+        "gulf_ios_pay_to_purchase_pct_range": "61-67% across app_version 7.42.0-7.46.0",
+        "non_gulf_ios_pay_to_purchase_pct_range": "43-48% across same versions"
+      },
+      "sources": [
+        "base_context.md#5",
+        "Atlys/analysis/08_pay_now_clicked.md",
+        "atlys EDA 2026-08-01: geoip_country_code x app_version cohort cut"
+      ]
+    },
+    "confidence": 0.9300000071525574,
+    "trace_url": "",
+    "last_updated": "2026-08-01 16:50:31"
+  },
+  {
+    "section": "issue:K2",
+    "content": {
+      "title": "K2 \u2014 Passport scan model update (Apr 2026)",
+      "summary": "DIRECTIONALLY CONFIRMED in aggregate. Android crossed-threshold rate (16.3%) is ~1.9x iOS (8.7%).",
+      "body": "Not yet time-sliced before/after April to confirm the timing claim specifically \u2014 only the device-skew direction is confirmed so far.",
+      "fields": {
+        "status": "directionally_confirmed",
+        "needs": "before/after April 2026 time slice to confirm timing"
+      },
+      "sources": [
+        "base_context.md#5",
+        "Atlys/analysis/03_document_uploaded.md"
+      ]
+    },
+    "confidence": 0.699999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "issue:K3",
+    "content": {
+      "title": "K3 \u2014 MRZ OCR weaker on non-Latin passports",
+      "summary": "UNTESTED \u2014 not yet checked against citizenship/retry_count.",
+      "body": "document_uploaded doesn't carry an explicit MRZ-script column; would need to join citizenship as a proxy.",
+      "fields": {
+        "status": "untested"
+      },
+      "sources": [
+        "base_context.md#5"
+      ]
+    },
+    "confidence": 0.4000000059604645,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "issue:K4",
+    "content": {
+      "title": "K4 \u2014 Schengen summer slot scarcity (Apr-Jun)",
+      "summary": "UNTESTED \u2014 expected seasonal softness, not yet isolated from other Q2 effects.",
+      "body": "Would need a Schengen-destination-only cut over Apr-Jun vs. rest of year.",
+      "fields": {
+        "status": "untested"
+      },
+      "sources": [
+        "base_context.md#5"
+      ]
+    },
+    "confidence": 0.4000000059604645,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "issue:K5",
+    "content": {
+      "title": "K5 \u2014 WhatsApp nudge launch (Feb 2026)",
+      "summary": "Table now exists (abandonment_recovery_events, channel column has real 'whatsapp' values) but CANNOT be verified yet -- the landed table has a confirmed data-integrity bug (see dataquality:abandonment_recovery_events_column_shift) that makes any read from it unreliable until it's corrected.",
+      "body": "The blocker this issue was originally waiting on (no channel/nudge column in the original 8 tables) is resolved -- abandonment_recovery_events exists with a real channel column including 'push'/'email'/'whatsapp' values. However, an attempt to actually compute a whatsapp-vs-other reconversion rate from this table surfaced a separate, more serious problem: every row's column values are shifted relative to their declared column names (e.g. the real channel value for a 'reminder_sent' row lands in `resume_step`, not `channel`; `application_id`/`user_id` are swapped with `device_type`; etc. -- full mapping in dataquality:abandonment_recovery_events_column_shift). Do NOT trust a channel-effectiveness number computed from this table's `channel` column as currently landed. Re-verify K5 once the table is corrected or re-ingested.",
+      "fields": {
+        "status": "untested",
+        "becomes_testable_via": "abandoned_checkout_recovery spec (table now exists, but see blocked_reason)",
+        "blocked_reason": "abandonment_recovery_events has a confirmed column-shift data-integrity bug -- see dataquality:abandonment_recovery_events_column_shift"
+      },
+      "sources": [
+        "base_context.md#5",
+        "system.columns + row-level diff against source events.ndjson (2026-08-02)",
+        "scripts/audit_context_staleness.py"
+      ]
+    },
+    "confidence": 0.6000000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/99010ac96db65a41e3c4e1b1463e7f86",
+    "last_updated": "2026-08-02 03:13:49"
+  },
+  {
+    "section": "issue:K6",
+    "content": {
+      "title": "K6 \u2014 SUMMER20 coupon campaign",
+      "summary": "CONTRADICTED on timing. SUMMER20 redemptions are flat ~55-65/month across all 6 months, no Q2 spike.",
+      "body": "Either the campaign window is mis-documented, or it's evergreen in this dataset rather than a Q2-only promo.",
+      "fields": {
+        "status": "contradicted_on_timing"
+      },
+      "sources": [
+        "base_context.md#5",
+        "Atlys/analysis/04_purchase_completed.md"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "issue:K7",
+    "content": {
+      "title": "K7 \u2014 App 7.45 rollout",
+      "summary": "CONTRADICTED. app_version shows no rollout curve at all \u2014 5 versions (7.42.0-7.46.0) each hold a flat ~20% share every month, Jan-Jun 2026.",
+      "body": "base_context implies a phased rollout (7.45.x shipping mid-quarter, displacing older versions over time). Actual data shows all 5 versions in equal proportion (19.96-20.04% each) in every single month of the window, with no ramp-up or decline for any version. Not consistent with a real staged rollout \u2014 app_version reads as assigned independently of time in this dataset. Do not attribute any funnel-timing shift to a 7.45 rollout without a version-share-over-time chart to confirm first; on this evidence, no such rollout is visible.",
+      "fields": {
+        "status": "contradicted",
+        "version_share_by_month_pct": "each of 5 versions 19.96-20.04% every month, no ramp"
+      },
+      "sources": [
+        "base_context.md#5",
+        "atlys EDA 2026-08-01: app_version share by month"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "",
+    "last_updated": "2026-08-01 16:50:31"
+  },
+  {
+    "section": "metric:abandonment_recovery_daily_metrics",
+    "content": {
+      "title": "Daily abandonment recovery operational metrics",
+      "summary": "Executed daily AggregatingMergeTree materialized view for operational event counts and daily distinct recovery/user states across recovery, timing, device, geography, destination, and channel dimensions.",
+      "body": "The materialized view writes to atlys.abandonment_recovery_daily_metrics and aggregates by event_date, event_type, drop_step, channel, timing_bucket, device_type, geoip_country_code, and destination. It stores countState(), uniqExactState(recovery_id), and uniqExactState(user_id). Timing buckets are not_applicable for NULL elapsed time, invalid for negative values, followed by 0-2h, >2-12h, >12-36h, >36-60h, and >60h. The view is intended for operational event counts and daily distinct states; it must not be used as a cross-event attribution-rate calculation. Historical backfills require an explicit INSERT SELECT using the same normalized query after the raw rows are loaded.",
+      "fields": "{\"target_table\":\"atlys.abandonment_recovery_daily_metrics\",\"engine\":\"AggregatingMergeTree\",\"partition_key\":\"toYYYYMM(event_date)\",\"order_by\":\"(event_date, event_type, drop_step, channel, timing_bucket, device_type, geoip_country_code, destination)\",\"aggregates\":[\"countState() event_count\",\"uniqExactState(recovery_id) unique_recoveries\",\"uniqExactState(user_id) unique_users\"],\"timing_buckets\":[\"not_applicable\",\"invalid\",\"0-2h\",\">2-12h\",\">12-36h\",\">36-60h\",\">60h\"],\"supports_cross_event_attribution_rates\":false,\"backfill\":\"explicit INSERT SELECT after raw deduplicated load\"}",
+      "sources": [
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.materialized_views[0]",
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.rationale"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/1618cf48369ea25575b5ae9871f2cc06",
+    "last_updated": "2026-08-02 02:31:36"
+  },
+  {
+    "section": "metric:abandonment_recovery_episode_metrics",
+    "content": {
+      "title": "Abandonment recovery episode metrics",
+      "summary": "New executed episode-level AggregatingMergeTree target records one aggregate state per recovery episode for abandonment, reminder, engagement, resume, and reconversion flags plus abandonment-time dimensions.",
+      "body": "The episode target is keyed by recovery_id and stores argMax states for drop_step, device_type, geoip_country_code, and destination, selecting values from abandonment_detected events by event-type priority, timestamp, and event_id. It stores max states for sent, opened, CTA-clicked, resumed, and reconverted flags. The supplied backfill and live materialized-view SELECTs are identical and filter to nonempty event_id, recovery_id, and user_id. Consumers must finalize the aggregate states when querying. The target must be created and backfilled before the live materialized view is created; it must not be interpreted as trustworthy until corrected, validated source rows are loaded through the remediation path.",
+      "fields": "{\"target_table\":\"atlys.abandonment_recovery_episode_metrics\",\"engine\":\"AggregatingMergeTree\",\"order_by\":\"recovery_id\",\"grain\":\"one recovery_id\",\"dimension_states\":[\"drop_step_state\",\"device_type_state\",\"geoip_country_code_state\",\"destination_state\"],\"outcome_flags\":[\"abandoned\",\"sent\",\"opened\",\"cta_clicked\",\"resumed\",\"reconverted\"],\"state_finalization_required\":true,\"requires_validated_source\":true}",
+      "sources": [
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.materialized_views[1]",
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.rationale"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/737d5929b42820d5c68c1ffcc42a22fb",
+    "last_updated": "2026-08-02 03:49:23"
+  },
+  {
+    "section": "metric:abandonment_recovery_reminder_metrics",
+    "content": {
+      "title": "Abandonment recovery reminder metrics",
+      "summary": "New executed reminder-level AggregatingMergeTree target attributes reminder channel and timing and records reminder outcomes only when events share the same recovery_id and reminder_id.",
+      "body": "The reminder target is keyed by (recovery_id, reminder_id) and stores argMax states for channel, timing_bucket, and hours_since_drop, with reminder_sent given event-type priority, plus max states for sent, opened, CTA-clicked, resumed, and reconverted. The backfill and live materialized-view SELECTs are identical and require nonempty event_id, recovery_id, user_id, and reminder_id. This target supports channel and timing rates with outcomes attributed to the same reminder identifier, but it depends on the proposal's validation rule requiring exactly one authoritative valid reminder_sent per recovery_id/reminder_id; invalid or ambiguous reminders must be quarantined. Aggregate states require finalization at query time.",
+      "fields": "{\"target_table\":\"atlys.abandonment_recovery_reminder_metrics\",\"engine\":\"AggregatingMergeTree\",\"order_by\":\"(recovery_id, reminder_id)\",\"grain\":\"one recovery_id/reminder_id\",\"dimension_states\":[\"channel_state\",\"timing_bucket_state\",\"hours_since_drop_state\"],\"outcome_flags\":[\"sent\",\"opened\",\"cta_clicked\",\"resumed\",\"reconverted\"],\"attribution_key\":\"recovery_id, reminder_id\",\"state_finalization_required\":true,\"valid_sent_rule\":\"exactly one authoritative reminder_sent with valid channel and nonnegative timing\"}",
+      "sources": [
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.materialized_views[2]",
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.rationale"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/737d5929b42820d5c68c1ffcc42a22fb",
+    "last_updated": "2026-08-02 03:49:23"
+  },
+  {
+    "section": "metric:conversion_rate",
+    "content": {
+      "title": "Conversion rate",
+      "summary": "purchase_completed users / application_started users (funnel-scoped definition, per base_context \u00a74 note).",
+      "body": "base_context \u00a74 defines conversion twice, inconsistently: once as 'completed purchases / sessions' (headline number to leadership) and once, in a note, as 'purchase_completed users / application_started users' (the funnel drop-off dashboard definition). These are different denominators. Treat 'sessions' as ambiguous \u2014 no session table/column exists in the 8 raw tables (app_session_id is per-event, not a session-count entity). Use the application_started-denominator version; flag the sessions-based version as unimplementable as literally stated.",
+      "fields": {
+        "formula": "uniqExact(purchase_completed.user_id) / uniqExact(application_started.user_id)",
+        "computable": true
+      },
+      "sources": [
+        "base_context.md#4"
+      ]
+    },
+    "confidence": 0.699999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "metric:drop_off_rate",
+    "content": {
+      "title": "Drop-off rate (per funnel stage)",
+      "summary": "1 - (users at stage N+1 / users at stage N), distinct user_id, in timestamp order.",
+      "body": "Computable directly against the 4 funnel tables. Measured whole-window step-through: click->start 15.4%, start->doc 13.2%, doc->pay 72.1%, pay->purchase 47.9%.",
+      "fields": {
+        "formula": "1 - uniq(stage_N+1)/uniq(stage_N)",
+        "computable": true
+      },
+      "sources": [
+        "base_context.md#4",
+        "Atlys/analysis/00_overview.md"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "metric:forex_addon_application_funnel",
+    "content": {
+      "title": "Forex Add-on Application Funnel",
+      "summary": "Application-level aggregated funnel for forex offer exposure through purchase, with deterministic offer-time destination/currency attribution and purchased INR add-on value.",
+      "body": "The materialized view groups events by application_id and records first nonempty user, destination, to_currency, and from_currency values using deterministic argMin logic. Destination and currencies prefer values from forex_offer_shown, then fall back to later nonblank events. Device type and geoip country use the earliest nonempty observed values. Funnel stages are represented as application-level presence flags for forex_offer_shown, currency_selected, amount_entered, forex_added_to_cart, and forex_purchased. purchased_addon_value_inr sums addon_value_inr only for purchase events. Queries must finalize AggregatingMergeTree states first, then regroup by the desired dimension; attach rate is sum(purchased) / nullIf(sum(offer_shown), 0).",
+      "fields": "{\"view_name\":\"forex_addon_application_funnel\",\"engine\":\"AggregatingMergeTree\",\"grouping_key\":\"application_id\",\"stages\":[\"forex_offer_shown\",\"currency_selected\",\"amount_entered\",\"forex_added_to_cart\",\"forex_purchased\"],\"attach_rate\":\"sum(purchased) / nullIf(sum(offer_shown), 0)\",\"purchased_value\":\"sumMerge(purchased_addon_value_inr)\",\"dimension_attribution\":\"destination and currencies prefer forex_offer_shown; device and geo use earliest nonempty observed values\",\"state_query_requirement\":\"finalize states before regrouping\"}",
+      "sources": [
+        "schema_proposals:forex_addon_events",
+        "executed proposal: forex_addon_application_funnel",
+        "executed proposal rationale: canonical destination query and state query contract"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/764f66e6fa153486ad49a1ee19a7eeb3",
+    "last_updated": "2026-08-02 02:51:38"
+  },
+  {
+    "section": "metric:forex_addon_daily_event_metrics",
+    "content": {
+      "title": "Daily Forex Add-on Event Metrics",
+      "summary": "Daily event-volume and distinct-entity aggregates by event type, destination, currency, device, and geography, retaining anonymous event volume while excluding empty identifiers from distinct counts.",
+      "body": "The materialized view aggregates by event_date, event_type, destination, to_currency, device_type, and geoip_country_code. event_count includes all rows, including anonymous events. unique_users and unique_applications count only nonempty identifiers using uniqExactIfState. To query the view, use countMerge for events and uniqExactMerge for users and applications, grouping by the desired daily dimensions. This view is intended for daily operational volume, user, and application reporting rather than application-level stage conversion.",
+      "fields": "{\"view_name\":\"forex_addon_daily_event_metrics\",\"engine\":\"AggregatingMergeTree\",\"ordering_key\":\"(event_date, event_type, destination, to_currency, device_type, geoip_country_code)\",\"dimensions\":[\"event_date\",\"event_type\",\"destination\",\"to_currency\",\"device_type\",\"geoip_country_code\"],\"event_count_definition\":\"all rows\",\"unique_users_definition\":\"uniqExactIf(user_id, user_id != '')\",\"unique_applications_definition\":\"uniqExactIf(application_id, application_id != '')\",\"query_merges\":{\"events\":\"countMerge(event_count)\",\"users\":\"uniqExactMerge(unique_users)\",\"applications\":\"uniqExactMerge(unique_applications)\"}}",
+      "sources": [
+        "schema_proposals:forex_addon_events",
+        "executed proposal: forex_addon_daily_event_metrics",
+        "executed proposal rationale: daily query contract"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/764f66e6fa153486ad49a1ee19a7eeb3",
+    "last_updated": "2026-08-02 02:51:38"
+  },
+  {
+    "section": "metric:group_application_daily_metrics",
+    "content": {
+      "title": "Daily group application event metrics",
+      "summary": "Incremental daily event and distinct-group aggregates by normalized destination, group size, device, OS, and GeoIP country.",
+      "body": "`group_application_daily_metrics` is an incremental `AggregatingMergeTree` materialized view partitioned monthly by `event_date` and ordered by `(event_date, event, destination, group_size, device_type, os, geoip_country_code)`. It normalizes nullable dimensions to empty-string or zero sentinel values and stores aggregate states for all distinct groups, groups started, groups submitted, traveller add events, traveller remove events, and document-complete add events. Consumers must use the corresponding merge functions when querying aggregate states; incremental views require a separate backfill for rows that predate view creation.",
+      "fields": "{\"view_name\":\"group_application_daily_metrics\",\"type\":\"incremental\",\"engine\":\"AggregatingMergeTree\",\"partition_by\":\"toYYYYMM(event_date)\",\"order_by\":\"(event_date, event, destination, group_size, device_type, os, geoip_country_code)\",\"grain\":\"event_date, event, normalized destination, group size, device type, OS, GeoIP country\",\"aggregate_states\":[\"uniqState(group_id)\",\"uniqStateIf(group_id, event = group_started)\",\"uniqStateIf(group_id, event = group_submitted)\",\"sumState(event = traveller_added)\",\"sumState(event = traveller_removed)\",\"sumState(event = traveller_added AND docs_complete = true)\"]}",
+      "sources": [
+        "executed_proposal:group_application_events supplied in this round",
+        "clickhouse-best-practices/rules/query-mv-incremental.md",
+        "clickhouse-best-practices/rules/schema-partition-lifecycle.md"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/e0a6194f03875aad6c0060c7818fb0e0",
+    "last_updated": "2026-08-02 03:31:35"
+  },
+  {
+    "section": "metric:group_application_summary",
+    "content": {
+      "title": "Group application lifecycle summary",
+      "summary": "One periodically refreshed row per group for lifecycle completion, add/remove churn, start attributes, submission timing, and submitted-traveller counts.",
+      "body": "`group_application_summary` is a refreshable materialized view refreshed every 15 minutes into a `ReplacingMergeTree(last_event_ts)`, partitioned by `cityHash64(group_id) % 32` and ordered by `group_id`. It derives start/application/owner attributes from `group_started`, tracks first start and latest event timestamps, counts traveller additions and removals, flags add/remove churn, records submission status and latest submission timestamp, and retains the latest submitted-traveller count. Queries should account for refresh staleness and ReplacingMergeTree merge behavior when exact current-state results are required.",
+      "fields": "{\"view_name\":\"group_application_summary\",\"refresh_schedule\":\"15 minutes\",\"grain\":\"one row per group\",\"engine\":\"ReplacingMergeTree(last_event_ts)\",\"partition_by\":\"cityHash64(group_id) % 32\",\"order_by\":\"(group_id)\",\"measures\":[\"add_events\",\"remove_events\",\"has_add_remove_churn\",\"submitted\",\"submitted_at\",\"travellers_submitted\"],\"dimensions\":[\"destination\",\"group_size\",\"device_type\",\"os\",\"geoip_country_code\",\"app_version\",\"client_lib\"]}",
+      "sources": [
+        "executed_proposal:group_application_events supplied in this round",
+        "clickhouse-best-practices/rules/query-mv-refreshable.md"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/e0a6194f03875aad6c0060c7818fb0e0",
+    "last_updated": "2026-08-02 03:31:35"
+  },
+  {
+    "section": "metric:group_traveller_state",
+    "content": {
+      "title": "Current group traveller state",
+      "summary": "Latest active or removed state per group and traveller index, including the latest explicit document-completion value.",
+      "body": "`group_traveller_state` is a refreshable materialized view refreshed every 15 minutes into a `ReplacingMergeTree(last_event_ts)`, partitioned by stable group hash buckets and ordered by `(group_id, traveller_index)`. For each traveller add/remove stream, it selects the latest complete tuple `(event, docs_complete)` using `(timestamp, id)` ordering. `active` is true only when the latest event is `traveller_added`; a later remove or NULL document status is not skipped.",
+      "fields": "{\"view_name\":\"group_traveller_state\",\"refresh_schedule\":\"15 minutes\",\"grain\":\"one row per group_id and traveller_index\",\"engine\":\"ReplacingMergeTree(last_event_ts)\",\"partition_by\":\"cityHash64(group_id) % 32\",\"order_by\":\"(group_id, traveller_index)\",\"state_fields\":[\"latest_event\",\"active\",\"latest_docs_complete\",\"last_event_ts\"]}",
+      "sources": [
+        "executed_proposal:group_application_events supplied in this round",
+        "clickhouse-best-practices/rules/query-mv-refreshable.md"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/e0a6194f03875aad6c0060c7818fb0e0",
+    "last_updated": "2026-08-02 03:31:35"
+  },
+  {
+    "section": "metric:on_time_delivery_rate",
+    "content": {
+      "title": "On-time delivery rate",
+      "summary": "NOT COMPUTABLE from these tables as literally defined.",
+      "body": "base_context defines this against `visa_issuance_eta_days` (an integer), which does not exist \u2014 the real column is `eta_shown` (a string bucket). Even setting that aside, on-time delivery is reported by the fulfilment team from post-purchase systems not in this dataset. Flag any agent output claiming an on-time-delivery number as ungrounded unless it explicitly sources a system outside these 8 tables.",
+      "fields": {
+        "computable": false,
+        "blocking_reason": "visa_issuance_eta_days column does not exist; post-purchase data out of scope"
+      },
+      "sources": [
+        "base_context.md#4",
+        "Atlys/analysis/02_application_started.md"
+      ]
+    },
+    "confidence": 0.949999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "metric:passport_capture_pass_rate",
+    "content": {
+      "title": "Passport-capture pass rate",
+      "summary": "document uploads NOT crossing failed-capture threshold / document uploads.",
+      "body": "Cleanly maps onto the real schema (is_crossed_failed_attempt_threshold=0). Overall 88.8% pass rate; Android notably worse (83.7%) than iOS (91.3%).",
+      "fields": {
+        "formula": "countIf(is_crossed_failed_attempt_threshold=0)/count()",
+        "computable": true
+      },
+      "sources": [
+        "base_context.md#4",
+        "Atlys/analysis/03_document_uploaded.md"
+      ]
+    },
+    "confidence": 0.949999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "metric:promo_coupon_checkout_code_metrics",
+    "content": {
+      "title": "Executed coupon-code metrics",
+      "summary": "Incremental aggregate view for non-empty coupon-code event volume, exact users and applications, applied discount cost, checkout value, and code-level segment performance.",
+      "body": "Target table `promo_coupon_checkout_code_metrics` uses `AggregatingMergeTree`, monthly partitions, and orders by `(event_date, coupon_code, event_type, destination, device_type, os, geoip_country_code, currency)`. The materialized view includes only `coupon_entered`, `coupon_applied`, `coupon_rejected`, and `checkout_with_coupon` rows with non-null, non-empty coupon codes. It stores count, exact non-empty user/application states, discount totals for `coupon_applied`, and final checkout totals for `checkout_with_coupon`. Historical rows are populated through the explicit code-metrics backfill before the cutover boundary; live rows are then processed by the MV.",
+      "fields": "Dimensions: event_date Date, coupon_code String, event_type LowCardinality(String), device_type LowCardinality(String), os LowCardinality(String), geoip_country_code LowCardinality(String), destination LowCardinality(String), currency LowCardinality(String). States: events AggregateFunction(count), users AggregateFunction(uniqExact, String), applications AggregateFunction(uniqExact, String), discount_total AggregateFunction(sum, Decimal(18, 2)), final_value_total AggregateFunction(sum, Decimal(18, 2)).",
+      "sources": [
+        "user.executed_proposal",
+        "clickhouse-best-practices/rules/query-mv-incremental.md",
+        "clickhouse-best-practices/rules/schema-pk-cardinality-order.md"
+      ]
+    },
+    "confidence": 0.4000000059604645,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fb0be1756c33bf73b2028b397fe0cd7d",
+    "last_updated": "2026-08-02 04:17:11"
+  },
+  {
+    "section": "metric:promo_coupon_checkout_daily_metrics",
+    "content": {
+      "title": "Executed daily promo coupon checkout metrics",
+      "summary": "Incremental daily aggregate view for event counts, exact non-empty users and applications, discount cost, checkout value, and operational segment cuts.",
+      "body": "Target table `promo_coupon_checkout_daily_metrics` uses `AggregatingMergeTree`, monthly partitions, and dimensions `(event_date, event_type, destination, device_type, os, geoip_country_code, currency)`. The materialized view `promo_coupon_checkout_daily_metrics_mv` writes `countState`, `uniqExactStateIf` for non-empty `user_id` and `application_id`, discount totals only for `coupon_applied`, and final checkout value only for `checkout_with_coupon`. Readers must use `countMerge`, `uniqExactMerge`, and `sumMerge`, grouping by all dimension columns. The MV is incremental for new inserts; historical data requires the explicit pre-cutover direct target backfill.",
+      "fields": "Dimensions: event_date Date, event_type LowCardinality(String), device_type LowCardinality(String), os LowCardinality(String), geoip_country_code LowCardinality(String), destination LowCardinality(String), currency LowCardinality(String). States: events AggregateFunction(count), users AggregateFunction(uniqExact, String), applications AggregateFunction(uniqExact, String), discount_total AggregateFunction(sum, Decimal(18, 2)), final_value_total AggregateFunction(sum, Decimal(18, 2)).",
+      "sources": [
+        "user.executed_proposal",
+        "clickhouse-best-practices/rules/query-mv-incremental.md"
+      ]
+    },
+    "confidence": 0.4000000059604645,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fb0be1756c33bf73b2028b397fe0cd7d",
+    "last_updated": "2026-08-02 04:17:11"
+  },
+  {
+    "section": "metric:revenue_per_conversion",
+    "content": {
+      "title": "Revenue per conversion",
+      "summary": "`value` on purchase_completed, in the event's own currency.",
+      "body": "NOT FX-normalized in the raw data (9 currencies observed). Any cross-currency aggregate (AOV, total revenue) needs an explicit FX step before averaging/summing raw `value`.",
+      "fields": {
+        "formula": "purchase_completed.value",
+        "fx_normalized": false,
+        "computable": true
+      },
+      "sources": [
+        "base_context.md#4",
+        "Atlys/analysis/04_purchase_completed.md"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "metric:step_through_rate",
+    "content": {
+      "title": "Step-through rate",
+      "summary": "users at stage N+1 / users at stage N.",
+      "body": "Inverse of drop-off rate, same computability.",
+      "fields": {
+        "formula": "uniq(stage_N+1)/uniq(stage_N)",
+        "computable": true
+      },
+      "sources": [
+        "base_context.md#4"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "metric:visa_status_sharing_daily_event_metrics",
+    "content": {
+      "title": "Daily sharing event metrics",
+      "summary": "Executed daily AggregatingMergeTree materialized view for channel mix, status segmentation, new-user opens, destination spread, and distinct entity counts.",
+      "body": "The view aggregates by event_date, event_type, status_shared, channel, and destination_key. It stores countState for total events, uniqExactStateIf states for users, applications, and shares, and separate event/share states for link_opened events where recipient_is_new_user = 1 and share_id is present. Consumers must finalize aggregate states with the appropriate -Merge combinators. This is an event-grain view and should not be interpreted as a one-row-per-share funnel.",
+      "fields": "{\"view_name\":\"visa_status_sharing_daily_event_metrics\",\"grain\":[\"event_date\",\"event_type\",\"status_shared\",\"channel\",\"destination_key\"],\"engine\":\"AggregatingMergeTree\",\"metrics\":[\"event_count\",\"unique_user_count\",\"unique_application_count\",\"unique_share_count\",\"new_user_open_event_count\",\"new_user_open_share_count\"],\"status\":\"executed\"}",
+      "sources": [
+        "user executed_proposal: visa_status_sharing_daily_event_metrics DDL and answers_pm_question"
+      ]
+    },
+    "confidence": 0.9800000190734863,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fa8f02506c28c1b9d4e7a7a6ada0f05d",
+    "last_updated": "2026-08-02 03:41:09"
+  },
+  {
+    "section": "metric:visa_status_sharing_share_dimensions",
+    "content": {
+      "title": "Per-share origin dimensions",
+      "summary": "Executed per-share AggregatingMergeTree view preserving authoritative origin destination, channel, and shared-status dimensions for recipient-event attribution.",
+      "body": "The view filters out empty share_id values and groups by share_id. It selects the earliest link_generated row using event_timestamp and event_id as a deterministic tie-breaker, then stores the corresponding destination_key, channel, and status_shared as aggregate states. Recipient events cannot overwrite these origin dimensions. destination_key preserves valid NULL destinations through the documented empty-string analytics sentinel.",
+      "fields": "{\"view_name\":\"visa_status_sharing_share_dimensions\",\"grain\":[\"share_id\"],\"engine\":\"AggregatingMergeTree\",\"metrics\":[\"origin_destination_state\",\"origin_channel_state\",\"origin_status_shared_state\"],\"origin_event_filter\":\"event_type = 'link_generated'\",\"tie_breaker\":[\"event_timestamp\",\"event_id\"],\"filters\":{\"share_id\":\"!= ''\"},\"status\":\"executed\"}",
+      "sources": [
+        "user executed_proposal: visa_status_sharing_share_dimensions DDL and answers_pm_question"
+      ]
+    },
+    "confidence": 0.9800000190734863,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fa8f02506c28c1b9d4e7a7a6ada0f05d",
+    "last_updated": "2026-08-02 03:41:09"
+  },
+  {
+    "section": "metric:visa_status_sharing_share_metrics",
+    "content": {
+      "title": "Per-share sharing funnel metrics",
+      "summary": "Executed one-row-per-share AggregatingMergeTree materialized view for first generated/open/CTA timestamps and opens-to-CTA attribution.",
+      "body": "The view filters out empty share_id values and groups solely by share_id. It records the first timestamp for link_generated, link_opened, link_opened by new recipients, and recipient_cta_clicked, plus event counts for opens, new-user opens, and CTA clicks. It also stores distinct event_id counts for new-user open events and CTA events. This supports share-level open-to-CTA analysis and K-factor calculations while keeping event counts distinct from share counts.",
+      "fields": "{\"view_name\":\"visa_status_sharing_share_metrics\",\"grain\":[\"share_id\"],\"engine\":\"AggregatingMergeTree\",\"metrics\":[\"first_link_generated_at\",\"first_opened_at\",\"first_new_user_opened_at\",\"first_cta_at\",\"open_event_count\",\"new_user_open_event_count\",\"cta_event_count\",\"new_user_open_event_id_count\",\"cta_event_id_count\"],\"filters\":{\"share_id\":\"!= ''\"},\"status\":\"executed\"}",
+      "sources": [
+        "user executed_proposal: visa_status_sharing_share_metrics DDL and answers_pm_question"
+      ]
+    },
+    "confidence": 0.9800000190734863,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fa8f02506c28c1b9d4e7a7a6ada0f05d",
+    "last_updated": "2026-08-02 03:41:09"
+  },
+  {
+    "section": "overview:business",
+    "content": {
+      "title": "Atlys \u2014 business overview",
+      "summary": "Digital visa platform; north-star metric is pre-purchase funnel conversion across 120+ destinations.",
+      "body": "Atlys lets travellers discover visa requirements, start an application, upload a passport, and pay. North star: conversion \u2014 visitor tapping a destination card to paid application, minimal drop-off. Funnel is seasonal (weekend dip, summer lifts leisure destinations) and mobile-heavy (iOS-first, large Android base, meaningful web cohort). Everything after payment (submission, embassy processing, issuance, refunds) is out of scope for this context layer \u2014 those systems aren't in the tables we have.",
+      "fields": {
+        "funnel_spine": [
+          "destination_card_clicked",
+          "application_started",
+          "document_uploaded",
+          "purchase_completed"
+        ],
+        "supporting_events": [
+          "search_typed",
+          "landing_page_scrolled",
+          "auth_completed",
+          "pay_now_clicked"
+        ]
+      },
+      "sources": [
+        "base_context.md#1"
+      ]
+    },
+    "confidence": 0.699999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "relationship:join_map",
+    "content": {
+      "title": "Entity relationship / join map",
+      "summary": "user_id links every table; application_id links funnel + most feature tables; several feature tables add their own additional key.",
+      "body": "This section never existed in the live context layer before this audit -- the chronicler never created it despite every landed table introducing real join keys, and relationship:join_map's own convention (see below) says it should be extended, not written once and left. Edges below are keyed by column name (schema-level fact, reliable regardless of any table's specific data quality) -- extend this list, don't replace it, the next time a table lands.",
+      "fields": {
+        "edges": [
+          {
+            "from": "destination_card_clicked",
+            "to": "*",
+            "key": "user_id"
+          },
+          {
+            "from": "application_started",
+            "to": "document_uploaded",
+            "key": "application_id"
+          },
+          {
+            "from": "application_started",
+            "to": "pay_now_clicked",
+            "key": "application_id"
+          },
+          {
+            "from": "application_started",
+            "to": "purchase_completed",
+            "key": "application_id"
+          },
+          {
+            "from": "search_typed / landing_page_scrolled / auth_completed",
+            "to": "*",
+            "key": "user_id (application_id often empty)"
+          },
+          {
+            "from": "abandonment_recovery_events",
+            "to": "application_started",
+            "key": "user_id, application_id"
+          },
+          {
+            "from": "abandonment_recovery_events",
+            "to": "*",
+            "key": "recovery_id, reminder_id (table-internal, links abandonment_detected -> reminder_sent -> ... -> reconverted rows for the same journey)"
+          },
+          {
+            "from": "express_checkout_events",
+            "to": "application_started",
+            "key": "user_id, application_id"
+          },
+          {
+            "from": "forex_addon_events",
+            "to": "application_started",
+            "key": "user_id, application_id"
+          },
+          {
+            "from": "group_application_events",
+            "to": "application_started",
+            "key": "user_id, application_id"
+          },
+          {
+            "from": "group_application_events",
+            "to": "*",
+            "key": "group_id (links multiple users' applications in the same group booking)"
+          },
+          {
+            "from": "visa_status_sharing_events",
+            "to": "application_started",
+            "key": "user_id, application_id"
+          },
+          {
+            "from": "visa_status_sharing_events",
+            "to": "*",
+            "key": "share_id, destination_key"
+          }
+        ]
+      },
+      "sources": [
+        "base_context.md#6",
+        "system.columns (atlys, 2026-08-02)",
+        "scripts/audit_context_staleness.py"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/99010ac96db65a41e3c4e1b1463e7f86",
+    "last_updated": "2026-08-02 03:13:49"
+  },
+  {
+    "section": "table:abandonment_recovery_events",
+    "content": {
+      "title": "Abandonment recovery event history",
+      "summary": "Executed canonical MergeTree schema plus recovery-episode and reminder-level aggregate targets; however, the landed base table remains unsafe for trusted production reads because the confirmed column-shift defect has not been remediated.",
+      "body": "The executed proposal defines the append-only abandonment recovery event history with six lifecycle event types, millisecond UTC timestamps, a materialized event_date, monthly partitions, and recovery_id-first ordering: (recovery_id, event_date, timestamp, event_type, event_id). It preserves recovery, reminder, user, application, device, platform, geography, destination, funnel-step, channel, and elapsed-time attributes, with a materialized timing_bucket. The proposal also defines daily operational metrics, episode-level flags and abandonment-time dimensions, and reminder-level outcome attribution. These aggregate targets require explicit creation and backfill before their live materialized views. The proposal's rationale correctly retains the confirmed column-shift defect as a blocker: defaults are compatibility fallbacks rather than valid identifiers, and production writes should pass through validated staging with event_id deduplication, required-field validation, reminder consistency checks, and quarantine of invalid reminders. A high-watermark cutover and post-replay reconciliation are required before the corrected path is treated as authoritative.",
+      "fields": "{\"table_name\":\"abandonment_recovery_events\",\"engine\":\"MergeTree\",\"partition_key\":\"toYYYYMM(event_date)\",\"ordering_key\":\"(recovery_id, event_date, timestamp, event_type, event_id)\",\"event_types\":[\"abandonment_detected\",\"reminder_sent\",\"reminder_opened\",\"reminder_cta_clicked\",\"resumed_at_step\",\"reconverted\"],\"aggregate_targets\":[\"atlys.abandonment_recovery_daily_metrics\",\"atlys.abandonment_recovery_episode_metrics\",\"atlys.abandonment_recovery_reminder_metrics\"],\"deduplication\":\"validated staging keyed by event_id\",\"invalid_event_handling\":\"quarantine and monitor\",\"landed_data_trust\":\"untrusted until column-shift remediation and cutover reconciliation\"}",
+      "sources": [
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.table_name and executed_proposal.ddl",
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.materialized_views",
+        "schema_proposals:abandoned_checkout_recovery: executed_proposal.rationale"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/737d5929b42820d5c68c1ffcc42a22fb",
+    "last_updated": "2026-08-02 03:49:23"
+  },
+  {
+    "section": "table:application_started",
+    "content": {
+      "title": "application_started",
+      "summary": "Funnel step 2 \u2014 application_id minted here. 154,413 rows.",
+      "body": "eta_shown is a String bucket, not an integer (see entity:application). This table is the denominator for base_context's funnel conversion metric.",
+      "fields": {
+        "kind": "funnel",
+        "row_count": 154413,
+        "grain": "one row per application_id"
+      },
+      "sources": [
+        "Atlys/analysis/02_application_started.md"
+      ]
+    },
+    "confidence": 0.949999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:auth_completed",
+    "content": {
+      "title": "auth_completed",
+      "summary": "Supporting/identity. 183,790 rows.",
+      "body": "16% of auths have no application_id \u2014 a real 'authenticated but never applied' cohort the base context's 4-step funnel diagram skips entirely.",
+      "fields": {
+        "kind": "supporting",
+        "row_count": 183790
+      },
+      "sources": [
+        "Atlys/analysis/07_auth_completed.md"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:destination_card_clicked",
+    "content": {
+      "title": "destination_card_clicked",
+      "summary": "Funnel step 1 (top of funnel). 1,000,000 rows, Jan-Jun 2026.",
+      "body": "application_id empty 84.6% of the time (not 100%). os NULL only for android rows (18%). Highest-volume table \u2014 filter before joining.",
+      "fields": {
+        "kind": "funnel",
+        "row_count": 1000000,
+        "grain": "one row per card-tap",
+        "join_keys": [
+          "user_id",
+          "application_id (sparse)"
+        ]
+      },
+      "sources": [
+        "Atlys/analysis/01_destination_card_clicked.md"
+      ]
+    },
+    "confidence": 0.949999988079071,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:document_uploaded",
+    "content": {
+      "title": "document_uploaded",
+      "summary": "Funnel step 3 (KYC). 20,446 rows \u2014 the single biggest drop in the funnel (86.8% drop from application_started).",
+      "body": "Android crossed-threshold rate (16.3%) is ~1.9x iOS (8.7%) \u2014 directionally consistent with K2 (passport scan model update, Apr 2026).",
+      "fields": {
+        "kind": "funnel",
+        "row_count": 20446,
+        "grain": "one row per application_id (summary)"
+      },
+      "sources": [
+        "Atlys/analysis/03_document_uploaded.md"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:express_checkout_events",
+    "content": {
+      "title": "Express checkout events",
+      "summary": "Canonical express-checkout MergeTree table with an immutable landing and replay path, idempotent delivery handling, and checkout-specific eligibility, OTP, saved-payment-method, and payment-performance fields.",
+      "body": "Grain is one accepted canonical express-checkout delivery per row. The canonical table retains the shared event envelope (`id`, `delivery_id`, `payload_hash`, `timestamp`, `event`, client/device, geography, `user_id`, and `application_id`) plus `destination`, eligibility, displayed amount/currency, saved payment method type, OTP attempts/success, payment amount/currency, and payment latency. It uses `MergeTree`, monthly partitions via `toYYYYMM(timestamp)`, and ordering key `(application_id, user_id, timestamp, event, id)`, selected for the stated workload with a reported 2.62x improvement over the legacy baseline. No materialized view was created.\n\nDeployment must also create `express_checkout_events_landing` as a separate raw MergeTree table containing `raw_payload`, delivery metadata, validation status/error, and nullable replay timing. Landing is partitioned by `toYYYYMM(received_at)`, ordered by `(delivery_id, received_at)`, and uses a configurable TTL covering the maximum replay, audit, and producer-contract remediation window. `express_checkout_replay_ledger` must track delivery status, payload hash, fencing claims, completion, and errors. Because MergeTree does not enforce uniqueness, replay workers use an external fenced compare-and-set lease keyed by `delivery_id`.\n\nCanonical insertion is idempotent by `delivery_id` and `payload_hash`. A producer delivery ID is used directly when available; otherwise ingestion generates a deterministic nonempty fallback from source identity, source event ID, and canonicalized raw payload. Records without a stable identity are quarantined. If a delivery ID arrives with a different payload hash, both payloads remain auditable in landing, the delivery is marked conflicting, and neither representation is inserted into the canonical table until manual resolution. Replay acquires a fencing token, reads ledger state, validates the payload, checks for an existing canonical delivery, inserts only when absent, and completes the ledger transition with the same token. Crash reconciliation checks canonical delivery ID and payload hash before retrying.\n\nValidation trims and uppercases geography and destination, accepts empty values as unknown, validates nonempty values as ISO-2 codes, validates event names and boolean fields, and treats event-specific co-presence rules as warnings or quarantine decisions. Amounts are `Int64` with producer-defined units; until scale or minor-unit semantics are confirmed, comparisons and aggregations must remain within the same currency, and populated amounts without a currency are quarantined. Accepted duplicate deliveries remain auditable in landing. Raw volume and OTP-attempt metrics count accepted canonical deliveries, while funnel, conversion, adoption, and confirmation metrics use distinct `application_id` or `user_id`.",
+      "fields": "{\"table_name\":\"express_checkout_events\",\"engine\":\"MergeTree\",\"partition_key\":\"toYYYYMM(timestamp)\",\"ordering_key\":[\"application_id\",\"user_id\",\"timestamp\",\"event\",\"id\"],\"materialized_views\":[],\"join_keys\":[\"application_id\",\"user_id\"],\"timestamp_type\":\"DateTime64(3, UTC)\",\"event_type\":\"LowCardinality(String)\",\"geoip_country_code_type\":\"String\",\"destination_type\":\"String\",\"payment_latency_ms_type\":\"UInt32\",\"monetary_fields\":[\"shown_amount\",\"payment_amount\"],\"delivery_id_required\":true,\"payload_hash_required\":true,\"landing_table\":\"express_checkout_events_landing\",\"replay_ledger\":\"express_checkout_replay_ledger\",\"canonical_idempotency_key\":[\"delivery_id\",\"payload_hash\"],\"mv_status\":\"not_created\",\"amount_contract\":\"producer-defined units; same-currency comparisons only until scale is confirmed\",\"proposal_confidence\":0.4}",
+      "sources": [
+        "executed proposal supplied by user: canonical DDL, column mapping, landing/replay requirements, validation rules, and replay protocol",
+        "schema_proposals:express_checkout_events"
+      ]
+    },
+    "confidence": 0.9700000286102295,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/949953f093345de738ecc85d9f9fc02f",
+    "last_updated": "2026-08-02 03:21:36"
+  },
+  {
+    "section": "table:forex_addon_events",
+    "content": {
+      "title": "Forex Add-on Events",
+      "summary": "Executed canonical MergeTree table for append-only forex add-on lifecycle events, including offer, selection, cart, and purchase data with currency and INR-value fields.",
+      "body": "The table stores common event-envelope attributes plus forex-specific fields: destination, from_currency, to_currency, fx_rate, amount, and addon_value_inr. event_date is materialized from the UTC event timestamp. The ordering key is (application_id, event_type, event_timestamp, event_id), selected for the application-level funnel access pattern. No partition key is specified. Deployment and backfills must deduplicate event_id before insertion because downstream aggregate materialized views cannot retract duplicate rows. Empty application_id rows remain available in the raw table and daily event metrics, but are excluded from the application funnel materialized view.",
+      "fields": "{\"table_name\":\"forex_addon_events\",\"engine\":\"MergeTree\",\"ordering_key\":\"(application_id, event_type, event_timestamp, event_id)\",\"partition_key\":null,\"timestamp_column\":\"event_timestamp DateTime64(3, 'UTC')\",\"materialized_date_column\":\"event_date\",\"deduplication_required\":true,\"application_id_required_for_funnel\":true,\"currency_fields\":[\"from_currency\",\"to_currency\",\"fx_rate\",\"amount\",\"addon_value_inr\"]}",
+      "sources": [
+        "schema_proposals:forex_addon_events",
+        "executed proposal: instant_forex"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/764f66e6fa153486ad49a1ee19a7eeb3",
+    "last_updated": "2026-08-02 02:51:38"
+  },
+  {
+    "section": "table:group_application_events",
+    "content": {
+      "title": "Group application lifecycle events",
+      "summary": "Executed canonical MergeTree table for group application lifecycle events, with validated payloads and three analytical materialized views for group, traveller, and daily metric state.",
+      "body": "`group_application_events` is an append-only `MergeTree` table partitioned monthly by `toYYYYMM(event_date)` and ordered by `(group_id, event_date, timestamp, event, id)`. It supports `group_started`, `traveller_added`, `traveller_removed`, and `group_submitted` events. The schema includes millisecond UTC timestamps, a materialized event date, shared device and geography dimensions, application and group identifiers, destination, group size, traveller position, relationship, document completion, submitted-traveller count, and `ingest_version`. Check constraints enforce nonempty IDs, ISO-2 destination and country codes, valid group-start payloads, positive submitted-traveller counts, and traveller indexes for add/remove events. Canonical ingestion must deduplicate staged records by `id`, retaining the greatest `ingest_version`, before insertion; `MergeTree` does not enforce ID uniqueness. Late corrections should be quarantined after insertion. Three views were executed: `group_application_summary`, a 15-minute refreshable `ReplacingMergeTree` group-level lifecycle summary; `group_traveller_state`, a 15-minute refreshable current-state view keyed by `(group_id, traveller_index)` and preserving the latest complete `(event, docs_complete)` tuple; and `group_application_daily_metrics`, an incremental `AggregatingMergeTree` view for daily event and distinct-group metrics by event, destination, group size, device, OS, and geography. The summary and traveller-state views use stable hash-bucket partitions (`cityHash64(group_id) % 32`) to distribute replacement work. Historical data must be deduplicated before rollup or projection backfills. Monthly raw-table partitions provide retention, tiering, and backfill boundaries; TTL duration remains unspecified.",
+      "fields": "{\"table_name\":\"group_application_events\",\"engine\":\"MergeTree\",\"partition_key\":\"toYYYYMM(event_date)\",\"ordering_key\":\"(group_id, event_date, timestamp, event, id)\",\"event_values\":[\"group_started\",\"traveller_added\",\"traveller_removed\",\"group_submitted\"],\"event_date_expression\":\"toDate(timestamp)\",\"deduplication_key\":\"id\",\"deduplication_rule\":\"retain greatest ingest_version before canonical insertion\",\"late_correction_policy\":\"quarantine after insertion\",\"ttl_policy\":\"not specified\",\"materialized_views\":[{\"name\":\"group_application_summary\",\"type\":\"refreshable\",\"schedule\":\"15 minutes\",\"engine\":\"ReplacingMergeTree(last_event_ts)\",\"order_by\":\"(group_id)\",\"partition_by\":\"cityHash64(group_id) % 32\",\"grain\":\"one lifecycle row per group\"},{\"name\":\"group_traveller_state\",\"type\":\"refreshable\",\"schedule\":\"15 minutes\",\"engine\":\"ReplacingMergeTree(last_event_ts)\",\"order_by\":\"(group_id, traveller_index)\",\"partition_by\":\"cityHash64(group_id) % 32\",\"grain\":\"latest traveller state per group and traveller index\"},{\"name\":\"group_application_daily_metrics\",\"type\":\"incremental\",\"engine\":\"AggregatingMergeTree\",\"order_by\":\"(event_date, event, destination, group_size, device_type, os, geoip_country_code)\",\"grain\":\"daily event and distinct-group aggregates\"}],\"schema_status\":\"executed proposal\"}",
+      "sources": [
+        "executed_proposal:group_application_events supplied in this round",
+        "context:entity:event",
+        "context:entity:application",
+        "context:entity:user",
+        "context:relationship:join_map",
+        "clickhouse-best-practices/rules/query-mv-refreshable.md",
+        "clickhouse-best-practices/rules/query-mv-incremental.md",
+        "clickhouse-best-practices/rules/schema-partition-lifecycle.md"
+      ]
+    },
+    "confidence": 0.9900000095367432,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/e0a6194f03875aad6c0060c7818fb0e0",
+    "last_updated": "2026-08-02 03:31:35"
+  },
+  {
+    "section": "table:landing_page_scrolled",
+    "content": {
+      "title": "landing_page_scrolled",
+      "summary": "Supporting/engagement depth. 499,786 rows.",
+      "body": "page_version v3->v4 rollout shows ~zero measured lift in scroll depth or time-on-page \u2014 looks like a null A/B result, worth surfacing as a finding rather than ignoring.",
+      "fields": {
+        "kind": "supporting",
+        "row_count": 499786
+      },
+      "sources": [
+        "Atlys/analysis/06_landing_page_scrolled.md"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:pay_now_clicked",
+    "content": {
+      "title": "pay_now_clicked",
+      "summary": "Bridges document_uploaded and purchase_completed. 14,739 rows. pay->purchase is 47.9% \u2014 the largest true drop in the money part of the funnel.",
+      "body": "K1 (iOS OTP autofill regression) does NOT hold up in the full-window aggregate: iOS has the HIGHEST pay->purchase rate (49.9%) of any OS, not the lowest. Either stale, resolved, or cohort/geo-specific enough to be invisible here.",
+      "fields": {
+        "kind": "bridge",
+        "row_count": 14739
+      },
+      "sources": [
+        "Atlys/analysis/08_pay_now_clicked.md"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:promo_coupon_checkout_events",
+    "content": {
+      "title": "Executed promo coupon checkout events table",
+      "summary": "Canonical append-only MergeTree table for coupon entry, application, rejection, and checkout-with-coupon events, partitioned monthly and ordered for date, destination, device, OS, event, application, and ID analysis.",
+      "body": "Table `promo_coupon_checkout_events` was executed with `id String`, UTC `timestamp DateTime64(3)`, materialized `event_date`, event and envelope dimensions, user/application identifiers, destination, monetary fields, coupon attributes, and rejection reason. `coupon_code`, `discount_amount`, and `final_value` remain Nullable because absence has semantic meaning. The table uses `ENGINE = MergeTree`, `PARTITION BY toYYYYMM(event_date)`, and `ORDER BY (event_date, destination, device_type, os, event_type, application_id, id)`. Supporting ingestion preconditions are an immutable landing table, durable event-ID ledger, canonical-writer interface, retry of incomplete reservations, reconciliation, and prohibition of direct caller writes to canonical or aggregate tables. Backfill is bounded by `{cutover_utc}` and writes directly to aggregate targets before live ingestion resumes.",
+      "fields": "id String; timestamp DateTime64(3, 'UTC'); event_type LowCardinality(String); event_date Date MATERIALIZED toDate(timestamp); device_type LowCardinality(String); os LowCardinality(String) DEFAULT ''; app_version LowCardinality(String) DEFAULT ''; geoip_country_code LowCardinality(String) DEFAULT ''; city LowCardinality(String) DEFAULT ''; client_lib LowCardinality(String) DEFAULT ''; user_id String; application_id String; destination LowCardinality(String); cart_value Decimal(18, 2) DEFAULT 0; currency LowCardinality(String) DEFAULT ''; coupon_code Nullable(String); discount_type LowCardinality(String) DEFAULT ''; discount_amount Nullable(Decimal(18, 2)); final_value Nullable(Decimal(18, 2)); reject_reason LowCardinality(String) DEFAULT ''; partition key: toYYYYMM(event_date); ordering key: (event_date, destination, device_type, os, event_type, application_id, id).",
+      "sources": [
+        "user.executed_proposal",
+        "clickhouse-best-practices/rules/schema-partition-query-tradeoffs.md",
+        "clickhouse-best-practices/rules/schema-types-lowcardinality.md",
+        "clickhouse-best-practices/rules/schema-types-avoid-nullable.md"
+      ]
+    },
+    "confidence": 0.4000000059604645,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fb0be1756c33bf73b2028b397fe0cd7d",
+    "last_updated": "2026-08-02 04:17:11"
+  },
+  {
+    "section": "table:purchase_completed",
+    "content": {
+      "title": "purchase_completed",
+      "summary": "Funnel step 5 \u2014 the conversion event. 7,054 rows.",
+      "body": "Multi-currency (9 currencies); `value` is NOT FX-normalized \u2014 naive averaging across currencies is meaningless. SUMMER20 coupon usage is flat all 6 months, contradicting K6's 'ran in Q2' claim.",
+      "fields": {
+        "kind": "funnel",
+        "row_count": 7054,
+        "grain": "one row per successful payment",
+        "fx_normalized": false
+      },
+      "sources": [
+        "Atlys/analysis/04_purchase_completed.md"
+      ]
+    },
+    "confidence": 0.8999999761581421,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:search_typed",
+    "content": {
+      "title": "search_typed",
+      "summary": "Supporting/discovery. 599,630 rows \u2014 second-highest volume after card clicks.",
+      "body": "base_context labels this 'noisy discovery signal' but search_term is actually low-cardinality in practice (~10 dominant terms) \u2014 may be more useful for demand analysis than the base context implies.",
+      "fields": {
+        "kind": "supporting",
+        "row_count": 599630
+      },
+      "sources": [
+        "Atlys/analysis/05_search_typed.md"
+      ]
+    },
+    "confidence": 0.8500000238418579,
+    "trace_url": "https://us.cloud.langfuse.com/trace/675d1c59e151fde58d6cfc0dd7002eae",
+    "last_updated": "2026-08-01 15:49:23"
+  },
+  {
+    "section": "table:visa_status_sharing_events",
+    "content": {
+      "title": "Visa status sharing event fact table",
+      "summary": "Executed canonical MergeTree schema for link-sharing lifecycle events, partitioned monthly and ordered for event/status/channel/date/destination analytics.",
+      "body": "The table captures link_generated, link_opened, and recipient_cta_clicked events with shared identifiers and dimensions including event_timestamp, device, OS, app version, geography, user_id, application_id, share_id, destination, status_shared, channel, recipient_is_new_user, cta, and ingest_version. event_date is MATERIALIZED from the UTC event timestamp. destination_key is MATERIALIZED as a non-null analytics sentinel using an empty string when destination is NULL. The table uses MergeTree, partitions by toYYYYMM(event_date), and orders by event_type, status_shared, channel, event_date, destination_key, event_timestamp, share_id, application_id, user_id, and event_id. The ordering key was selected by perf_tool at 1.0x versus the legacy baseline. Raw rows must be deduplicated by event_id before insertion, and empty event_id values should be rejected or quarantined.",
+      "fields": "{\"table_name\":\"visa_status_sharing_events\",\"engine\":\"MergeTree\",\"partition_key\":\"toYYYYMM(event_date)\",\"ordering_key\":[\"event_type\",\"status_shared\",\"channel\",\"event_date\",\"destination_key\",\"event_timestamp\",\"share_id\",\"application_id\",\"user_id\",\"event_id\"],\"timestamp_type\":\"DateTime64(3, UTC)\",\"destination_type\":\"Nullable(FixedString(2))\",\"destination_analytics_key\":\"destination_key\",\"destination_null_sentinel\":\"\",\"deduplication_key\":\"event_id\",\"status\":\"executed\"}",
+      "sources": [
+        "user executed_proposal: visa_status_sharing_events DDL, ordering key, partition key, column mapping, and rationale"
+      ]
+    },
+    "confidence": 0.9800000190734863,
+    "trace_url": "https://us.cloud.langfuse.com/project/cmsa4lt1l18xrad0dh1vrhjnq/traces/fa8f02506c28c1b9d4e7a7a6ada0f05d",
+    "last_updated": "2026-08-02 03:41:09"
+  }
+]

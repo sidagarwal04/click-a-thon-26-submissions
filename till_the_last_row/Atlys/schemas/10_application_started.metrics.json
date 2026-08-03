@@ -1,0 +1,63 @@
+{
+  "spec": "10_application_started",
+  "database": "atlys",
+  "base_table": "application_started",
+  "event_types": ["application_started"],
+  "metrics": [
+    {
+      "name": "application_started_count",
+      "pm_question": "Which citizenship x destination pairs generate the most applications, and where does conversion fall off? (Q5)",
+      "formula": "count() of application_started events",
+      "numerator": "count(application_started)",
+      "denominator": null,
+      "dimensions": ["citizenship", "destination", "purpose", "flow", "eta_shown", "is_back_filled", "day"],
+      "clarity": "clear",
+      "served_by": "mv_application_started_daily",
+      "serving_table": "application_started_daily"
+    },
+    {
+      "name": "back_filled_rate",
+      "pm_question": "What is the is_back_filled rate, and do back-filled applications convert differently from fresh ones? (Q4)",
+      "formula": "countIf(is_back_filled = true) / count() over application_started",
+      "numerator": "countIf(is_back_filled = true)",
+      "denominator": "count(application_started)",
+      "dimensions": ["destination", "purpose", "flow", "day"],
+      "clarity": "clear (rate portion); conversion portion is cross-event and NOT servable from this spec alone",
+      "served_by": "mv_application_started_daily",
+      "serving_table": "application_started_daily"
+    },
+    {
+      "name": "start_to_purchase_conversion",
+      "pm_question": "application_started -> purchase_completed conversion by destination, purpose, flow. Which combinations convert best? (Q1)",
+      "formula": "count(purchase_completed) / count(application_started), joined by user_id/application_id",
+      "numerator": "count(purchase_completed)  [NOT in this spec]",
+      "denominator": "count(application_started)  [this spec; served by mv_application_started_daily]",
+      "dimensions": ["destination", "purpose", "flow"],
+      "clarity": "AMBIGUOUS / cross-event — numerator event (purchase_completed) not present in this NDJSON; this spec supplies the denominator only",
+      "served_by": "mv_application_started_daily (denominator only)",
+      "serving_table": "application_started_daily"
+    },
+    {
+      "name": "eta_shown_conversion_lift",
+      "pm_question": "Does showing a shorter eta_shown (e.g. instant) materially improve conversion vs 7-10 days? (Q2)",
+      "formula": "conversion rate grouped by eta_shown",
+      "numerator": "count(purchase_completed)  [NOT in this spec]",
+      "denominator": "count(application_started) by eta_shown  [this spec]",
+      "dimensions": ["eta_shown"],
+      "clarity": "AMBIGUOUS / cross-event — denominator only from this spec",
+      "served_by": "mv_application_started_daily (denominator only)",
+      "serving_table": "application_started_daily"
+    },
+    {
+      "name": "co_travelers_dropoff",
+      "pm_question": "How does co_travelers > 0 affect drop-off between start and document upload? (Q3)",
+      "formula": "1 - count(document_uploaded) / count(application_started), split by co_travelers > 0",
+      "numerator": "count(document_uploaded)  [NOT in this spec]",
+      "denominator": "count(application_started)  [this spec]",
+      "dimensions": ["co_travelers_bucket"],
+      "clarity": "AMBIGUOUS / cross-event — document-upload event not present; co_travelers is untyped in payload, not pre-aggregated",
+      "served_by": null,
+      "serving_table": null
+    }
+  ]
+}

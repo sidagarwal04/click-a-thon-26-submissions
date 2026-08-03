@@ -1,0 +1,94 @@
+{
+  "call_id": "CALL-04-EASY",
+  "category": "Easy",
+  "title": "Top 10 Destination Search Terms and Result Counts",
+  "question": "What are the top 10 most frequently searched destination terms and their average search result counts in search_typed?",
+  "database": "default",
+  "target_tables": "search_typed",
+  "timestamp": "2026-08-02T00:14:30.232724+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 367.24,
+    "row_count": 10,
+    "columns_count": 4,
+    "columns": [
+      "search_term",
+      "search_volume",
+      "avg_search_results",
+      "distinct_searching_users"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_easy_04",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/76ccf9e0262689bdb7d73daeb44a5b9e",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    search_term,\n    count() AS search_volume,\n    round(avg(results_count), 2) AS avg_search_results,\n    uniqExact(user_id) AS distinct_searching_users\nFROM default.search_typed\nWHERE search_term != ''\nGROUP BY search_term\nORDER BY search_volume DESC\nLIMIT 10",
+  "result_sample": [
+    {
+      "search_term": "schengen",
+      "search_volume": 60477,
+      "avg_search_results": 19.57,
+      "distinct_searching_users": 60477
+    },
+    {
+      "search_term": "usa visa",
+      "search_volume": 60430,
+      "avg_search_results": 19.51,
+      "distinct_searching_users": 60430
+    },
+    {
+      "search_term": "thailand visa",
+      "search_volume": 60428,
+      "avg_search_results": 19.48,
+      "distinct_searching_users": 60428
+    },
+    {
+      "search_term": "egypt",
+      "search_volume": 60008,
+      "avg_search_results": 19.49,
+      "distinct_searching_users": 60008
+    },
+    {
+      "search_term": "uk visa",
+      "search_volume": 59998,
+      "avg_search_results": 19.52,
+      "distinct_searching_users": 59998
+    },
+    {
+      "search_term": "singapore",
+      "search_volume": 59920,
+      "avg_search_results": 19.51,
+      "distinct_searching_users": 59920
+    },
+    {
+      "search_term": "vietnam",
+      "search_volume": 59781,
+      "avg_search_results": 19.5,
+      "distinct_searching_users": 59781
+    },
+    {
+      "search_term": "dubai",
+      "search_volume": 59771,
+      "avg_search_results": 19.47,
+      "distinct_searching_users": 59771
+    },
+    {
+      "search_term": "japan",
+      "search_volume": 59528,
+      "avg_search_results": 19.49,
+      "distinct_searching_users": 59528
+    },
+    {
+      "search_term": "bali",
+      "search_volume": 59289,
+      "avg_search_results": 19.54,
+      "distinct_searching_users": 59289
+    }
+  ],
+  "full_results_count": 10,
+  "summary": "Query executed successfully against ClickHouse default database in 367.24ms, returning 10 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Filtered single-table aggregation on search_typed (599k rows). Validates string filtering, group-by frequency, and distinct user counts."
+}

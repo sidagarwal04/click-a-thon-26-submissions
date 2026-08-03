@@ -1,0 +1,81 @@
+{
+  "_comment": [
+    "Webhooks and alerts for the viewer-drop detector. Applied by apply.sh, which resolves",
+    "dashboard and tile ids by NAME — an alert binds to a tileId, so renaming a tile in the",
+    "dashboard JSON without renaming it here silently detaches the alert.",
+    "",
+    "url is __ALERT_WEBHOOK_URL__, taken from CLICKSTACK_ALERT_WEBHOOK_URL in .env. When that",
+    "is unset it resolves to an RFC 2606 .invalid host, which cannot resolve: the alert objects",
+    "and their state transitions are still real and visible in ClickStack, but nothing is",
+    "delivered anywhere. Point it at a Slack incoming webhook to get delivery. Deliberately not",
+    "defaulted to a live endpoint — concurrency figures should not leave the account because a",
+    "config value was missing.",
+    "",
+    "interval MUST exceed the minute layer's publish lag. At 1m or 5m the alert window contains",
+    "no settled minute, min() over an empty set returns 0.0 in ClickHouse, and every evaluation",
+    "would page — hence 15m and the explicit count() = 0 guard in each tile.",
+    "",
+    "threshold 0.7 = 30% below the slice's own trailing median, sustained two consecutive",
+    "minutes. Backtested over the full extract: two episodes in 19 days, no false positives.",
+    "See ingest/sql/008_serving_drop_signal.sql for the derivation."
+  ],
+  "webhooks": [
+    {
+      "name": "sonyliv-oncall",
+      "service": "generic",
+      "url": "__ALERT_WEBHOOK_URL__"
+    }
+  ],
+  "alerts": [
+    {
+      "name": "Viewers dropped — location",
+      "dashboard": "SonyLIV — Viewer-drop alerts",
+      "tile": "Worst retention — location",
+      "webhook": "sonyliv-oncall",
+      "interval": "15m",
+      "threshold": 0.7,
+      "thresholdType": "below",
+      "message": "Concurrent viewers in at least one location fell 30%+ below that location's trailing 15-minute median for two consecutive settled minutes. Open 'Breaching slices, any dimension' to see which. NOTE: country carries a single value in the current extract, so today this fires on total collapse rather than a regional one."
+    },
+    {
+      "name": "Viewers dropped — platform",
+      "dashboard": "SonyLIV — Viewer-drop alerts",
+      "tile": "Worst retention — platform",
+      "webhook": "sonyliv-oncall",
+      "interval": "15m",
+      "threshold": 0.7,
+      "thresholdType": "below",
+      "message": "At least one platform lost 30%+ of its viewers against its own trailing median, sustained two minutes. A single platform breaching while others hold is a client or CDN fault, not a content one."
+    },
+    {
+      "name": "Viewers dropped — content type",
+      "dashboard": "SonyLIV — Viewer-drop alerts",
+      "tile": "Worst retention — content type",
+      "webhook": "sonyliv-oncall",
+      "interval": "15m",
+      "threshold": 0.7,
+      "thresholdType": "below",
+      "message": "Viewers on one content type (live / vod / preview) fell 30%+ below its trailing median. LIVE breaching alone points at the origin or packager for live streams."
+    },
+    {
+      "name": "Viewers dropped — category",
+      "dashboard": "SonyLIV — Viewer-drop alerts",
+      "tile": "Worst retention — category",
+      "webhook": "sonyliv-oncall",
+      "interval": "15m",
+      "threshold": 0.7,
+      "thresholdType": "below",
+      "message": "Viewers in one category fell 30%+ below its trailing median, sustained two minutes."
+    },
+    {
+      "name": "Drop detector is blind — serving layer stale",
+      "dashboard": "SonyLIV — Viewer-drop alerts",
+      "tile": "Detector lag (s)",
+      "webhook": "sonyliv-oncall",
+      "interval": "15m",
+      "threshold": 900,
+      "thresholdType": "above",
+      "message": "The minute serving layer has not advanced in 15 minutes, so no minute inside an alert window is settled. Every retention tile correctly reports 1.00 and every drop alert above is GREEN BECAUSE IT IS BLIND, not because viewers are healthy. This alert is the only thing covering that gap — check the rollup loop before trusting the others."
+    }
+  ]
+}

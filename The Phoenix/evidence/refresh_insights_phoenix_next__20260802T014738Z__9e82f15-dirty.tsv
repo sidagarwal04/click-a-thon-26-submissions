@@ -1,0 +1,28 @@
+# evidence: refresh_insights_phoenix_next
+# what: incremental insight refresh into phoenix_next, with the post-conditions that catch an additive re-run
+# run_utc: 2026-08-02 01:47:38
+# git: 9e82f15-dirty
+# host: ss-cric
+# row_count: 905558
+# event_watermark: 2026-07-26 11:30:04.847
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 17:34:51   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+database	phoenix_next
+window	2026-07-01 00:00:00 .. 2026-08-01 00:00:00
+refresh_seconds	6
+spike_seconds	3
+spike_content_classified	8
+spike_rows_under_final	35
+sessions	10866
+rows_stored	10866	(versions, including superseded, before merges collapse them)
+rows_under_final	10866	(required equal to sessions: this is what makes a re-run idempotent rather than additive)
+invariant.max_rows_per_session	1	(required 1)
+invariant.negative_durations	0	(required 0)
+invariant.active_exceeds_session_span	0	(required 0)
+verdict	PASS

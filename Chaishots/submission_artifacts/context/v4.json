@@ -1,0 +1,427 @@
+{
+  "version": 4,
+  "run_id": "5bef9fb7-34f1-4f5c-86a7-1afca5e4544f",
+  "entities": [
+    {
+      "name": "Express Checkout Event",
+      "table_name": "express_checkout_events",
+      "primary_key": "id",
+      "description": "Raw event table capturing the Express Checkout feature user interactions.",
+      "dimensions": [
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "destination",
+        "currency",
+        "saved_method_type",
+        "city",
+        "client_lib",
+        "app_version"
+      ],
+      "grain": "event row",
+      "business_entities": [],
+      "time_field": "timestamp",
+      "event_field": "event",
+      "common_filters": [
+        "eligible",
+        "event"
+      ],
+      "common_groupings": [
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "destination",
+        "saved_method_type"
+      ]
+    },
+    {
+      "name": "Group Application Event",
+      "table_name": "group_application_events",
+      "primary_key": "id",
+      "description": "Raw event table capturing group/family application flow events.",
+      "dimensions": [
+        "group_size",
+        "destination",
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "city",
+        "app_version",
+        "client_lib"
+      ],
+      "grain": "event row",
+      "business_entities": [],
+      "time_field": "timestamp",
+      "event_field": "event",
+      "common_filters": [
+        "event"
+      ],
+      "common_groupings": [
+        "group_size",
+        "destination",
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "city",
+        "app_version",
+        "client_lib"
+      ]
+    },
+    {
+      "name": "Visa Status Sharing Event",
+      "table_name": "visa_status_sharing_events",
+      "primary_key": "id",
+      "description": "Raw event table capturing the Visa Status Sharing feature user interactions.",
+      "dimensions": [
+        "status_shared",
+        "channel",
+        "destination",
+        "recipient_is_new_user"
+      ],
+      "grain": "event row",
+      "business_entities": [],
+      "time_field": "timestamp",
+      "event_field": "event",
+      "common_filters": [
+        "status_shared",
+        "channel",
+        "destination",
+        "recipient_is_new_user"
+      ],
+      "common_groupings": [
+        "status_shared",
+        "channel",
+        "destination",
+        "recipient_is_new_user"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "source_table": "destination_card_clicked",
+      "source_column": "user_id",
+      "target_table": "application_started",
+      "target_column": "user_id",
+      "reason": "All eight event tables join on user_id, the traveller identity."
+    },
+    {
+      "source_table": "application_started",
+      "source_column": "application_id",
+      "target_table": "document_uploaded",
+      "target_column": "application_id",
+      "reason": "Application created at application_started; later funnel steps reference the same application_id."
+    },
+    {
+      "source_table": "application_started",
+      "source_column": "application_id",
+      "target_table": "pay_now_clicked",
+      "target_column": "application_id",
+      "reason": "pay_now_clicked belongs to the application started earlier in the funnel."
+    },
+    {
+      "source_table": "application_started",
+      "source_column": "application_id",
+      "target_table": "purchase_completed",
+      "target_column": "application_id",
+      "reason": "purchase_completed is the conversion event for a given application."
+    },
+    {
+      "source_table": "search_typed",
+      "source_column": "user_id",
+      "target_table": "destination_card_clicked",
+      "target_column": "user_id",
+      "reason": "Supporting events (search_typed, landing_page_scrolled, auth_completed) join on user_id and may precede an application, so application_id can be empty."
+    },
+    {
+      "source_table": "express_checkout_events",
+      "source_column": "user_id",
+      "target_table": "application_started",
+      "target_column": "user_id",
+      "reason": "Join Express events to core user activity tables via user_id"
+    },
+    {
+      "source_table": "express_checkout_events",
+      "source_column": "application_id",
+      "target_table": "application_started",
+      "target_column": "application_id",
+      "reason": "Link Express events to the application context"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "conversion_rate",
+      "description": "Headline metric reported to leadership.",
+      "numerator": "count(purchase_completed)",
+      "denominator": "count(sessions)",
+      "dimensions": [
+        "device_type",
+        "geoip_country_code",
+        "destination"
+      ]
+    },
+    {
+      "name": "drop_off_rate",
+      "description": "Per funnel stage: 1 - (users at stage N+1 / users at stage N), counting distinct user_id reaching each stage in order within the window.",
+      "numerator": "uniq(user_id) at stage N - uniq(user_id) at stage N+1",
+      "denominator": "uniq(user_id) at stage N",
+      "dimensions": [
+        "destination",
+        "device_type"
+      ]
+    },
+    {
+      "name": "step_through_rate",
+      "description": "Users at stage N+1 divided by users at stage N.",
+      "numerator": "uniq(user_id) at stage N+1",
+      "denominator": "uniq(user_id) at stage N",
+      "dimensions": [
+        "destination",
+        "device_type"
+      ]
+    },
+    {
+      "name": "passport_capture_pass_rate",
+      "description": "Document uploads that did not cross the failed-capture threshold, divided by all document uploads.",
+      "numerator": "count(document_uploaded WHERE is_crossed_failed_attempt_threshold = 0)",
+      "denominator": "count(document_uploaded)",
+      "dimensions": [
+        "capture_mode",
+        "doc_type"
+      ]
+    },
+    {
+      "name": "on_time_delivery_rate",
+      "description": "Applications issued on or before visa_issuance_eta_days, divided by applications issued. Reported by the fulfilment team from post-purchase systems; not computable from the funnel tables here.",
+      "numerator": "count(applications issued on or before visa_issuance_eta_days)",
+      "denominator": "count(applications issued)",
+      "dimensions": [
+        "destination"
+      ]
+    },
+    {
+      "name": "revenue_per_conversion",
+      "description": "value on purchase_completed, in the event's currency.",
+      "numerator": "sum(value)",
+      "denominator": "count(purchase_completed)",
+      "dimensions": [
+        "currency",
+        "destination"
+      ]
+    },
+    {
+      "name": "funnel_conversion_rate",
+      "description": "Within the funnel, conversion is purchase_completed users divided by users who started an application (application_started). This is the denominator used in the drop-off dashboards.",
+      "numerator": "uniq(user_id) with purchase_completed",
+      "denominator": "uniq(user_id) with application_started",
+      "dimensions": [
+        "destination",
+        "device_type"
+      ]
+    },
+    {
+      "name": "express_conversion_rate",
+      "description": "Rate of users who see the Express button and complete payment.",
+      "numerator": "countIf(event = 'express_payment_confirmed')",
+      "denominator": "countIf(event = 'express_checkout_shown')",
+      "dimensions": [
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "destination",
+        "saved_method_type"
+      ]
+    },
+    {
+      "name": "otp_success_rate",
+      "description": "Proportion of OTP entries that succeed.",
+      "numerator": "countIf(event = 'otp_entered' AND otp_success = 1)",
+      "denominator": "countIf(event = 'otp_entered')",
+      "dimensions": [
+        "device_type",
+        "os",
+        "geoip_country_code"
+      ]
+    },
+    {
+      "name": "express_adoption_rate",
+      "description": "Share of users who tap the Express button after it is shown.",
+      "numerator": "countIf(event = 'express_checkout_selected')",
+      "denominator": "countIf(event = 'express_checkout_shown')",
+      "dimensions": [
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "destination",
+        "saved_method_type"
+      ]
+    },
+    {
+      "name": "average_payment_latency_ms",
+      "description": "Average latency of successful Express payments.",
+      "numerator": "avgIf(JSONExtractFloat(payment, 'latency_ms'), event = 'express_payment_confirmed')",
+      "denominator": "1",
+      "dimensions": [
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "destination"
+      ]
+    },
+    {
+      "name": "express_payment_latency_ms",
+      "description": "Average time between Express button shown and payment confirmed.",
+      "numerator": "avgIf(timestampDiff('millisecond', minIf(timestamp, event = 'express_checkout_shown'), maxIf(timestamp, event = 'express_payment_confirmed')), event = 'express_payment_confirmed')",
+      "denominator": "countIf(event = 'express_payment_confirmed')",
+      "dimensions": [
+        "device_type",
+        "os",
+        "geoip_country_code",
+        "destination"
+      ]
+    },
+    {
+      "name": "group_completion_rate",
+      "description": "Proportion of groups that reach submission step.",
+      "numerator": "countIf(event = 'group_submitted')",
+      "denominator": "countIf(event = 'group_started')",
+      "dimensions": [
+        "group_size",
+        "destination",
+        "device_type",
+        "os",
+        "geoip_country_code"
+      ]
+    },
+    {
+      "name": "add_remove_churn_rate",
+      "description": "Rate of traveller removals relative to additions per group.",
+      "numerator": "sumIf(1, event = 'traveller_removed')",
+      "denominator": "sumIf(1, event = 'traveller_added')",
+      "dimensions": [
+        "group_size",
+        "destination",
+        "device_type",
+        "os",
+        "geoip_country_code"
+      ]
+    },
+    {
+      "name": "docs_complete_rate",
+      "description": "Average document completion flag among added travellers.",
+      "numerator": "sumIf(docs_complete, event = 'traveller_added')",
+      "denominator": "countIf(event = 'traveller_added')",
+      "dimensions": [
+        "group_size",
+        "destination",
+        "device_type",
+        "os",
+        "geoip_country_code"
+      ]
+    },
+    {
+      "name": "share_rate_overall",
+      "description": "Proportion of events that result in a share click.",
+      "numerator": "countIf(event = 'share_clicked')",
+      "denominator": "count()",
+      "dimensions": []
+    },
+    {
+      "name": "share_rate_by_status",
+      "description": "Share click rate segmented by status_shared.",
+      "numerator": "countIf(event = 'share_clicked')",
+      "denominator": "countIf(status_shared IS NOT NULL)",
+      "dimensions": [
+        "status_shared"
+      ]
+    },
+    {
+      "name": "share_rate_by_channel_destination",
+      "description": "Share click rate by channel and destination.",
+      "numerator": "countIf(event = 'share_clicked')",
+      "denominator": "count()",
+      "dimensions": [
+        "channel",
+        "destination"
+      ]
+    },
+    {
+      "name": "new_user_open_rate_by_channel",
+      "description": "Rate of new‑user link opens per generated link, by channel.",
+      "numerator": "countIf(event = 'link_opened' AND recipient_is_new_user = 1)",
+      "denominator": "countIf(event = 'link_generated')",
+      "dimensions": [
+        "channel"
+      ]
+    },
+    {
+      "name": "k_factor_by_channel",
+      "description": "Recipient CTA click rate per new‑user link open, by channel.",
+      "numerator": "countIf(event = 'recipient_cta_clicked')",
+      "denominator": "countIf(event = 'link_opened' AND recipient_is_new_user = 1)",
+      "dimensions": [
+        "channel"
+      ]
+    },
+    {
+      "name": "link_generation_adoption",
+      "description": "Proportion of share clicks that generate a link.",
+      "numerator": "countIf(event = 'link_generated')",
+      "denominator": "countIf(event = 'share_clicked')",
+      "dimensions": []
+    },
+    {
+      "name": "link_open_rate",
+      "description": "Proportion of generated links that are opened.",
+      "numerator": "countIf(event = 'link_opened')",
+      "denominator": "countIf(event = 'link_generated')",
+      "dimensions": []
+    }
+  ],
+  "known_issues": [
+    {
+      "key": "K1",
+      "title": "iOS WebKit OTP autofill regression",
+      "description": "payment OTP field fails to autofill on recent iOS builds; some users abandon at the pay step. Payment-heavy geos (Gulf card users) most exposed. Watch pay_now_clicked -> purchase_completed for iOS."
+    },
+    {
+      "key": "K2",
+      "title": "Passport scan model update (Apr 2026)",
+      "description": "on-device passport model updated early April; some Android devices report more capture failures since; being monitored."
+    },
+    {
+      "key": "K3",
+      "title": "MRZ OCR weaker on non-Latin passports",
+      "description": "passports with non-Latin machine-readable zones need more capture retries."
+    },
+    {
+      "key": "K4",
+      "title": "Schengen summer slot scarcity (Apr-Jun)",
+      "description": "appointment slots for Schengen destinations are scarce in summer; expect seasonal softness, not a bug."
+    },
+    {
+      "key": "K5",
+      "title": "WhatsApp nudge launch (Feb 2026)",
+      "description": "a WhatsApp re-engagement nudge went live in February; can lift returns to the funnel for previously-dropped users."
+    },
+    {
+      "key": "K6",
+      "title": "SUMMER20 coupon campaign",
+      "description": "a SUMMER20 promo ran in Q2; expect elevated coupon_applied and lower realised value."
+    },
+    {
+      "key": "K7",
+      "title": "App 7.45 rollout",
+      "description": "app version 7.45.x rolled out mid-quarter; minor funnel-timing shifts around the rollout are expected."
+    }
+  ],
+  "naming_conventions": [
+    "event column stores the name of the raw event (e.g., express_checkout_shown)",
+    "eligible flag indicates whether the user was eligible for Express at the time of the event",
+    "share_id is the primary entity key used to join sharer and recipient events within the Visa Status Sharing flow."
+  ],
+  "conflicts": [
+    "Validation feedback reports an unknown column 'user' referenced on table 'express_checkout_events'; the schema only contains 'user_id', not 'user'.",
+    "Validation feedback reports unknown column 'group' referenced in access pattern for entity 'Group Application Event' on table 'group_application_events'; the column does not exist in the supplied schema."
+  ],
+  "source": "context_agent"
+}

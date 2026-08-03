@@ -1,0 +1,74 @@
+# golangci-lint v2 config. The pinned binary is golangci-lint 2.12.2 (devbox.json).
+# NOTE: a v1.x binary cannot read this schema — run `devbox shell` or `devbox run lint`
+# so you get the pinned v2, not whatever is on your PATH.
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - copyloopvar
+    - dupl
+    - errorlint # we wrap with %w everywhere; catch the places that do not
+    - gocritic
+    - goconst
+    - gosec
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx # every ClickHouse call must carry a context — a query with no
+            # deadline is how a demo hangs in front of judges
+    - prealloc
+    - revive
+    - unconvert
+    - unparam
+    - wastedassign
+    - whitespace
+
+  settings:
+    dupl:
+      threshold: 120
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocritic:
+      enabled-tags: [diagnostic, performance, style]
+      disabled-checks:
+        - whyNoLint
+    gosec:
+      excludes:
+        - G404 # no crypto here; math/rand is fine for jitter and sampling
+    revive:
+      rules:
+        - name: exported
+          arguments: [checkPrivateReceivers]
+        - name: unused-parameter
+        - name: context-as-argument
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # Tests are allowed to be repetitive and to skip a few checks that only
+      # matter in production paths.
+      - path: _test\.go$
+        linters: [dupl, gosec, goconst, errcheck, unparam]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/d-cryptic/clickathon
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

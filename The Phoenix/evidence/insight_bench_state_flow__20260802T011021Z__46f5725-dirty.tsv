@@ -1,0 +1,26 @@
+# evidence: insight_bench_state_flow
+# what: read_rows, read_bytes, result_rows, tables and EXPLAIN key condition per filter shape for state_flow
+# run_utc: 2026-08-02 01:10:21
+# git: 46f5725-dirty
+# host: ss-cric
+# row_count: 8291459
+# event_watermark: 2026-08-02 07:17:58.866
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 8291459   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 01:08:19   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+shape	cold_ms	warm_ms	read_rows	read_bytes	result_rows	memory_bytes	tables_read	raw_scan	key_condition
+unfiltered	105	102	576093	47840856	36	188692845	phoenix_next.session_state_transitions	no	and((transition_at in (-Inf, '4102444800')), and((transition_at in (-Inf, '1785110400')), (transition_at in ['1785024000', +Inf)))) ; granules 72/72
+platform	85	75	576093	48432821	27	148288156	phoenix_next.session_state_transitions	no	and((transition_at in (-Inf, '4102444800')), and((transition_at in (-Inf, '1785110400')), (transition_at in ['1785024000', +Inf)))) ; granules 72/72
+country	114	101	576093	48421380	36	192110182	phoenix_next.session_state_transitions	no	and((transition_at in (-Inf, '4102444800')), and((transition_at in (-Inf, '1785110400')), (transition_at in ['1785024000', +Inf)))) ; granules 72/72
+content	50	53	576093	52452687	31	108250106	phoenix_next.session_state_transitions	no	and((transition_at in (-Inf, '4102444800')), and((transition_at in (-Inf, '1785110400')), (transition_at in ['1785024000', +Inf)))) ; granules 72/72
+app_version	79	75	576093	48453180	27	145406025	phoenix_next.session_state_transitions	no	and((transition_at in (-Inf, '4102444800')), and((transition_at in (-Inf, '1785110400')), (transition_at in ['1785024000', +Inf)))) ; granules 72/72
+platform+country	86	83	576093	49010258	27	160118947	phoenix_next.session_state_transitions	no	and((transition_at in (-Inf, '4102444800')), and((transition_at in (-Inf, '1785110400')), (transition_at in ['1785024000', +Inf)))) ; granules 72/72
+#	query	sql/insights/benchmark/state_flow.sql
+#	window	2026-07-26 00:00:00 -> 2026-07-27 00:00:00
+#	service	26.2.1.525
+#	use_query_cache	0
+gate.raw_events_in_plan	0	(required 0)	PASS

@@ -1,0 +1,1117 @@
+{
+  "name": "investigate",
+  "input": {
+    "metric": "revenue",
+    "current_window": [
+      "2026-07-03",
+      "2026-07-05"
+    ],
+    "baseline_window": [
+      "2026-06-26",
+      "2026-06-28"
+    ]
+  },
+  "output": {
+    "narrative": "Revenue decreased by 5.87% (-118.31) from 2014.73 to 1896.42. This movement was primarily driven by requests, which contributed -116.29 to the revenue delta due to a 5.77% drop. \n\nAcross all checked dimensions including ad_format, category, publisher_tier, region, country, device_model, and os_version, no single primary segment met the threshold for a disproportionate cause. For example, under ad_format, the banner segment showed an explanatory power of 0.346 with a lift of 0.99, indicating that the decline in requests was broad-based and proportional across segments rather than localized to a specific source. Segments like video (lift 1.01) and region=MEA (lift 1.05) were checked and ruled out."
+  },
+  "children": [
+    {
+      "name": "window_aggregate[baseline]",
+      "input": {
+        "range": [
+          "2026-06-26",
+          "2026-06-28"
+        ]
+      },
+      "output": {
+        "requests": 1057705.0,
+        "fills": 827420.0,
+        "impressions": 810887.0,
+        "clicks": 8747.0,
+        "revenue": 2014.726843
+      },
+      "children": [],
+      "start": 1785638725.2423246,
+      "end": 1785638725.345997,
+      "duration_s": 0.1037
+    },
+    {
+      "name": "window_aggregate[current]",
+      "input": {
+        "range": [
+          "2026-07-03",
+          "2026-07-05"
+        ]
+      },
+      "output": {
+        "requests": 996624.0,
+        "fills": 781653.0,
+        "impressions": 766078.0,
+        "clicks": 8297.0,
+        "revenue": 1896.4183939999998
+      },
+      "children": [],
+      "start": 1785638725.3467324,
+      "end": 1785638725.4520133,
+      "duration_s": 0.1053
+    },
+    {
+      "name": "decompose_revenue",
+      "input": null,
+      "output": {
+        "revenue_delta": -118.30844900000011,
+        "revenue_rel_delta": -0.058721830907774386,
+        "factor_contributions": {
+          "requests": -116.2881868141693,
+          "fill_rate": 5.047084047621609,
+          "render_rate": 0.11104218880244154,
+          "ecpm": -7.178388422254489
+        }
+      },
+      "children": [],
+      "start": 1785638725.4527411,
+      "end": 1785638725.453561,
+      "duration_s": 0.0008
+    },
+    {
+      "name": "drill_down[requests]",
+      "input": {
+        "factor": "requests",
+        "max_depth": 10,
+        "branch_factor": 2
+      },
+      "output": {
+        "factor": "requests",
+        "filters": [],
+        "dimensions_checked": {
+          "ad_format": {
+            "top_segments": [
+              {
+                "dimension": "ad_format",
+                "value": "banner",
+                "explanatory_power": 0.346,
+                "lift": 0.99,
+                "volume_share_baseline": 0.3482,
+                "volume_share_current": 0.3484,
+                "rate_baseline": 368342.0,
+                "rate_current": 347204.0,
+                "requests_baseline": 368342.0,
+                "requests_current": 347204.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "ad_format",
+                "value": "native",
+                "explanatory_power": 0.263,
+                "lift": 1.01,
+                "volume_share_baseline": 0.2605,
+                "volume_share_current": 0.2603,
+                "rate_baseline": 275534.0,
+                "rate_current": 259457.0,
+                "requests_baseline": 275534.0,
+                "requests_current": 259457.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "ad_format",
+                "value": "interstitial",
+                "explanatory_power": 0.168,
+                "lift": 0.97,
+                "volume_share_baseline": 0.1735,
+                "volume_share_current": 0.1738,
+                "rate_baseline": 183502.0,
+                "rate_current": 173220.0,
+                "requests_baseline": 183502.0,
+                "requests_current": 173220.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "ad_format",
+                "value": "video",
+                "explanatory_power": 0.131,
+                "lift": 1.01,
+                "volume_share_baseline": 0.1301,
+                "volume_share_current": 0.13,
+                "rate_baseline": 137580.0,
+                "rate_current": 129587.0,
+                "requests_baseline": 137580.0,
+                "requests_current": 129587.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "ad_format",
+                "value": "rewarded",
+                "explanatory_power": 0.092,
+                "lift": 1.04,
+                "volume_share_baseline": 0.0877,
+                "volume_share_current": 0.0875,
+                "rate_baseline": 92747.0,
+                "rate_current": 87156.0,
+                "requests_baseline": 92747.0,
+                "requests_current": 87156.0,
+                "ruled_out": true
+              }
+            ],
+            "n_segments_checked": 5,
+            "n_excluded_low_volume": 0
+          },
+          "category": {
+            "top_segments": [
+              {
+                "dimension": "category",
+                "value": "ecommerce",
+                "explanatory_power": 0.248,
+                "lift": 0.94,
+                "volume_share_baseline": 0.2635,
+                "volume_share_current": 0.2645,
+                "rate_baseline": 278696.0,
+                "rate_current": 263561.0,
+                "requests_baseline": 278696.0,
+                "requests_current": 263561.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "category",
+                "value": "gaming",
+                "explanatory_power": 0.199,
+                "lift": 1.03,
+                "volume_share_baseline": 0.1938,
+                "volume_share_current": 0.1935,
+                "rate_baseline": 204963.0,
+                "rate_current": 192808.0,
+                "requests_baseline": 204963.0,
+                "requests_current": 192808.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "category",
+                "value": "entertainment",
+                "explanatory_power": 0.164,
+                "lift": 0.91,
+                "volume_share_baseline": 0.1794,
+                "volume_share_current": 0.1803,
+                "rate_baseline": 189745.0,
+                "rate_current": 179722.0,
+                "requests_baseline": 189745.0,
+                "requests_current": 179722.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "category",
+                "value": "utility",
+                "explanatory_power": 0.118,
+                "lift": 1.01,
+                "volume_share_baseline": 0.1172,
+                "volume_share_current": 0.1172,
+                "rate_baseline": 123953.0,
+                "rate_current": 116758.0,
+                "requests_baseline": 123953.0,
+                "requests_current": 116758.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "category",
+                "value": "social",
+                "explanatory_power": 0.102,
+                "lift": 1.07,
+                "volume_share_baseline": 0.0954,
+                "volume_share_current": 0.095,
+                "rate_baseline": 100923.0,
+                "rate_current": 94691.0,
+                "requests_baseline": 100923.0,
+                "requests_current": 94691.0,
+                "ruled_out": true
+              }
+            ],
+            "n_segments_checked": 7,
+            "n_excluded_low_volume": 0
+          },
+          "publisher_tier": {
+            "top_segments": [
+              {
+                "dimension": "publisher_tier",
+                "value": "tier_2",
+                "explanatory_power": 0.444,
+                "lift": 0.96,
+                "volume_share_baseline": 0.4613,
+                "volume_share_current": 0.4623,
+                "rate_baseline": 487901.0,
+                "rate_current": 460786.0,
+                "requests_baseline": 487901.0,
+                "requests_current": 460786.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "publisher_tier",
+                "value": "tier_3",
+                "explanatory_power": 0.346,
+                "lift": 1.02,
+                "volume_share_baseline": 0.3383,
+                "volume_share_current": 0.3378,
+                "rate_baseline": 357832.0,
+                "rate_current": 336669.0,
+                "requests_baseline": 357832.0,
+                "requests_current": 336669.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "publisher_tier",
+                "value": "tier_1",
+                "explanatory_power": 0.21,
+                "lift": 1.05,
+                "volume_share_baseline": 0.2004,
+                "volume_share_current": 0.1998,
+                "rate_baseline": 211972.0,
+                "rate_current": 199169.0,
+                "requests_baseline": 211972.0,
+                "requests_current": 199169.0,
+                "ruled_out": false
+              }
+            ],
+            "n_segments_checked": 3,
+            "n_excluded_low_volume": 0
+          },
+          "region": {
+            "top_segments": [
+              {
+                "dimension": "region",
+                "value": "NAM",
+                "explanatory_power": 0.302,
+                "lift": 1.01,
+                "volume_share_baseline": 0.2996,
+                "volume_share_current": 0.2994,
+                "rate_baseline": 316880.0,
+                "rate_current": 298436.0,
+                "requests_baseline": 316880.0,
+                "requests_current": 298436.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "region",
+                "value": "APAC",
+                "explanatory_power": 0.292,
+                "lift": 1.03,
+                "volume_share_baseline": 0.284,
+                "volume_share_current": 0.2835,
+                "rate_baseline": 300436.0,
+                "rate_current": 282574.0,
+                "requests_baseline": 300436.0,
+                "requests_current": 282574.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "region",
+                "value": "EU",
+                "explanatory_power": 0.228,
+                "lift": 0.93,
+                "volume_share_baseline": 0.2442,
+                "volume_share_current": 0.2452,
+                "rate_baseline": 258243.0,
+                "rate_current": 244338.0,
+                "requests_baseline": 258243.0,
+                "requests_current": 244338.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "region",
+                "value": "MEA",
+                "explanatory_power": 0.109,
+                "lift": 1.05,
+                "volume_share_baseline": 0.1034,
+                "volume_share_current": 0.103,
+                "rate_baseline": 109339.0,
+                "rate_current": 102690.0,
+                "requests_baseline": 109339.0,
+                "requests_current": 102690.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "region",
+                "value": "LATAM",
+                "explanatory_power": 0.069,
+                "lift": 1.0,
+                "volume_share_baseline": 0.0688,
+                "volume_share_current": 0.0688,
+                "rate_baseline": 72807.0,
+                "rate_current": 68586.0,
+                "requests_baseline": 72807.0,
+                "requests_current": 68586.0,
+                "ruled_out": true
+              }
+            ],
+            "n_segments_checked": 5,
+            "n_excluded_low_volume": 0
+          },
+          "country": {
+            "top_segments": [
+              {
+                "dimension": "country",
+                "value": "US",
+                "explanatory_power": 0.201,
+                "lift": 1.0,
+                "volume_share_baseline": 0.2014,
+                "volume_share_current": 0.2015,
+                "rate_baseline": 213074.0,
+                "rate_current": 200822.0,
+                "requests_baseline": 213074.0,
+                "requests_current": 200822.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "country",
+                "value": "PH",
+                "explanatory_power": 0.104,
+                "lift": 1.12,
+                "volume_share_baseline": 0.0932,
+                "volume_share_current": 0.0925,
+                "rate_baseline": 98546.0,
+                "rate_current": 92170.0,
+                "requests_baseline": 98546.0,
+                "requests_current": 92170.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "country",
+                "value": "CA",
+                "explanatory_power": 0.101,
+                "lift": 1.03,
+                "volume_share_baseline": 0.0981,
+                "volume_share_current": 0.0979,
+                "rate_baseline": 103806.0,
+                "rate_current": 97614.0,
+                "requests_baseline": 103806.0,
+                "requests_current": 97614.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "country",
+                "value": "ES",
+                "explanatory_power": 0.1,
+                "lift": 0.8,
+                "volume_share_baseline": 0.1223,
+                "volume_share_current": 0.1237,
+                "rate_baseline": 129316.0,
+                "rate_current": 123238.0,
+                "requests_baseline": 129316.0,
+                "requests_current": 123238.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "country",
+                "value": "JP",
+                "explanatory_power": 0.066,
+                "lift": 1.05,
+                "volume_share_baseline": 0.0629,
+                "volume_share_current": 0.0627,
+                "rate_baseline": 66536.0,
+                "rate_current": 62513.0,
+                "requests_baseline": 66536.0,
+                "requests_current": 62513.0,
+                "ruled_out": true
+              }
+            ],
+            "n_segments_checked": 16,
+            "n_excluded_low_volume": 0
+          },
+          "device_model": {
+            "top_segments": [
+              {
+                "dimension": "device_model",
+                "value": "iPhone 13",
+                "explanatory_power": 0.192,
+                "lift": 1.0,
+                "volume_share_baseline": 0.1927,
+                "volume_share_current": 0.1927,
+                "rate_baseline": 203830.0,
+                "rate_current": 192082.0,
+                "requests_baseline": 203830.0,
+                "requests_current": 192082.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "device_model",
+                "value": "Galaxy A54",
+                "explanatory_power": 0.19,
+                "lift": 0.91,
+                "volume_share_baseline": 0.207,
+                "volume_share_current": 0.2081,
+                "rate_baseline": 218986.0,
+                "rate_current": 207401.0,
+                "requests_baseline": 218986.0,
+                "requests_current": 207401.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "device_model",
+                "value": "iPhone 15",
+                "explanatory_power": 0.124,
+                "lift": 0.94,
+                "volume_share_baseline": 0.1314,
+                "volume_share_current": 0.1318,
+                "rate_baseline": 138938.0,
+                "rate_current": 131375.0,
+                "requests_baseline": 138938.0,
+                "requests_current": 131375.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "device_model",
+                "value": "iPhone 14",
+                "explanatory_power": 0.123,
+                "lift": 0.98,
+                "volume_share_baseline": 0.1249,
+                "volume_share_current": 0.125,
+                "rate_baseline": 132122.0,
+                "rate_current": 124609.0,
+                "requests_baseline": 132122.0,
+                "requests_current": 124609.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "device_model",
+                "value": "Pixel 7",
+                "explanatory_power": 0.112,
+                "lift": 1.07,
+                "volume_share_baseline": 0.1054,
+                "volume_share_current": 0.105,
+                "rate_baseline": 111475.0,
+                "rate_current": 104608.0,
+                "requests_baseline": 111475.0,
+                "requests_current": 104608.0,
+                "ruled_out": true
+              }
+            ],
+            "n_segments_checked": 8,
+            "n_excluded_low_volume": 0
+          },
+          "os_version": {
+            "top_segments": [
+              {
+                "dimension": "os_version",
+                "value": "Android 14",
+                "explanatory_power": 0.176,
+                "lift": 1.04,
+                "volume_share_baseline": 0.1695,
+                "volume_share_current": 0.1692,
+                "rate_baseline": 179320.0,
+                "rate_current": 168589.0,
+                "requests_baseline": 179320.0,
+                "requests_current": 168589.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "os_version",
+                "value": "Android 12",
+                "explanatory_power": 0.174,
+                "lift": 0.95,
+                "volume_share_baseline": 0.1831,
+                "volume_share_current": 0.1836,
+                "rate_baseline": 193620.0,
+                "rate_current": 183001.0,
+                "requests_baseline": 193620.0,
+                "requests_current": 183001.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "os_version",
+                "value": "iOS 16.4",
+                "explanatory_power": 0.15,
+                "lift": 1.0,
+                "volume_share_baseline": 0.1503,
+                "volume_share_current": 0.1503,
+                "rate_baseline": 159022.0,
+                "rate_current": 149836.0,
+                "requests_baseline": 159022.0,
+                "requests_current": 149836.0,
+                "ruled_out": false
+              },
+              {
+                "dimension": "os_version",
+                "value": "iOS 17.2",
+                "explanatory_power": 0.128,
+                "lift": 1.0,
+                "volume_share_baseline": 0.1286,
+                "volume_share_current": 0.1287,
+                "rate_baseline": 136052.0,
+                "rate_current": 128223.0,
+                "requests_baseline": 136052.0,
+                "requests_current": 128223.0,
+                "ruled_out": true
+              },
+              {
+                "dimension": "os_version",
+                "value": "Android 13",
+                "explanatory_power": 0.107,
+                "lift": 1.04,
+                "volume_share_baseline": 0.1027,
+                "volume_share_current": 0.1025,
+                "rate_baseline": 108664.0,
+                "rate_current": 102158.0,
+                "requests_baseline": 108664.0,
+                "requests_current": 102158.0,
+                "ruled_out": true
+              }
+            ],
+            "n_segments_checked": 8,
+            "n_excluded_low_volume": 0
+          }
+        },
+        "primary_segments": []
+      },
+      "children": [],
+      "start": 1785638725.4541173,
+      "end": 1785638726.4655473,
+      "duration_s": 1.0114
+    },
+    {
+      "name": "narrate",
+      "input": {
+        "anomaly": {
+          "metric": "revenue",
+          "current_window": [
+            "2026-07-03",
+            "2026-07-05"
+          ],
+          "baseline_window": [
+            "2026-06-26",
+            "2026-06-28"
+          ],
+          "baseline_method": "like-for-like: same weekday(s), one week prior"
+        },
+        "revenue_decomposition": {
+          "baseline_totals": {
+            "requests": 1057705.0,
+            "fills": 827420.0,
+            "impressions": 810887.0,
+            "clicks": 8747.0,
+            "revenue": 2014.726843
+          },
+          "current_totals": {
+            "requests": 996624.0,
+            "fills": 781653.0,
+            "impressions": 766078.0,
+            "clicks": 8297.0,
+            "revenue": 1896.4183939999998
+          },
+          "baseline_factors": {
+            "requests": 1057705.0,
+            "fill_rate": 0.782279,
+            "render_rate": 0.980019,
+            "ecpm": 2.484596,
+            "ctr": 0.010787,
+            "revenue": 2014.726843
+          },
+          "current_factors": {
+            "requests": 996624.0,
+            "fill_rate": 0.784301,
+            "render_rate": 0.980074,
+            "ecpm": 2.47549,
+            "ctr": 0.01083,
+            "revenue": 1896.418394
+          },
+          "revenue_delta": -118.31,
+          "revenue_rel_delta": -0.0587,
+          "factor_contributions_to_revenue_delta": {
+            "requests": -116.29,
+            "fill_rate": 5.05,
+            "render_rate": 0.11,
+            "ecpm": -7.18
+          },
+          "factor_rel_deltas": {
+            "requests": -0.0577,
+            "fill_rate": 0.0026,
+            "render_rate": 0.0001,
+            "ecpm": -0.0037
+          }
+        },
+        "drill_down": {
+          "factor": "requests",
+          "filters": [],
+          "dimensions_checked": {
+            "ad_format": {
+              "top_segments": [
+                {
+                  "dimension": "ad_format",
+                  "value": "banner",
+                  "explanatory_power": 0.346,
+                  "lift": 0.99,
+                  "volume_share_baseline": 0.3482,
+                  "volume_share_current": 0.3484,
+                  "rate_baseline": 368342.0,
+                  "rate_current": 347204.0,
+                  "requests_baseline": 368342.0,
+                  "requests_current": 347204.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "ad_format",
+                  "value": "native",
+                  "explanatory_power": 0.263,
+                  "lift": 1.01,
+                  "volume_share_baseline": 0.2605,
+                  "volume_share_current": 0.2603,
+                  "rate_baseline": 275534.0,
+                  "rate_current": 259457.0,
+                  "requests_baseline": 275534.0,
+                  "requests_current": 259457.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "ad_format",
+                  "value": "interstitial",
+                  "explanatory_power": 0.168,
+                  "lift": 0.97,
+                  "volume_share_baseline": 0.1735,
+                  "volume_share_current": 0.1738,
+                  "rate_baseline": 183502.0,
+                  "rate_current": 173220.0,
+                  "requests_baseline": 183502.0,
+                  "requests_current": 173220.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "ad_format",
+                  "value": "video",
+                  "explanatory_power": 0.131,
+                  "lift": 1.01,
+                  "volume_share_baseline": 0.1301,
+                  "volume_share_current": 0.13,
+                  "rate_baseline": 137580.0,
+                  "rate_current": 129587.0,
+                  "requests_baseline": 137580.0,
+                  "requests_current": 129587.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "ad_format",
+                  "value": "rewarded",
+                  "explanatory_power": 0.092,
+                  "lift": 1.04,
+                  "volume_share_baseline": 0.0877,
+                  "volume_share_current": 0.0875,
+                  "rate_baseline": 92747.0,
+                  "rate_current": 87156.0,
+                  "requests_baseline": 92747.0,
+                  "requests_current": 87156.0,
+                  "ruled_out": true
+                }
+              ],
+              "n_segments_checked": 5,
+              "n_excluded_low_volume": 0
+            },
+            "category": {
+              "top_segments": [
+                {
+                  "dimension": "category",
+                  "value": "ecommerce",
+                  "explanatory_power": 0.248,
+                  "lift": 0.94,
+                  "volume_share_baseline": 0.2635,
+                  "volume_share_current": 0.2645,
+                  "rate_baseline": 278696.0,
+                  "rate_current": 263561.0,
+                  "requests_baseline": 278696.0,
+                  "requests_current": 263561.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "category",
+                  "value": "gaming",
+                  "explanatory_power": 0.199,
+                  "lift": 1.03,
+                  "volume_share_baseline": 0.1938,
+                  "volume_share_current": 0.1935,
+                  "rate_baseline": 204963.0,
+                  "rate_current": 192808.0,
+                  "requests_baseline": 204963.0,
+                  "requests_current": 192808.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "category",
+                  "value": "entertainment",
+                  "explanatory_power": 0.164,
+                  "lift": 0.91,
+                  "volume_share_baseline": 0.1794,
+                  "volume_share_current": 0.1803,
+                  "rate_baseline": 189745.0,
+                  "rate_current": 179722.0,
+                  "requests_baseline": 189745.0,
+                  "requests_current": 179722.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "category",
+                  "value": "utility",
+                  "explanatory_power": 0.118,
+                  "lift": 1.01,
+                  "volume_share_baseline": 0.1172,
+                  "volume_share_current": 0.1172,
+                  "rate_baseline": 123953.0,
+                  "rate_current": 116758.0,
+                  "requests_baseline": 123953.0,
+                  "requests_current": 116758.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "category",
+                  "value": "social",
+                  "explanatory_power": 0.102,
+                  "lift": 1.07,
+                  "volume_share_baseline": 0.0954,
+                  "volume_share_current": 0.095,
+                  "rate_baseline": 100923.0,
+                  "rate_current": 94691.0,
+                  "requests_baseline": 100923.0,
+                  "requests_current": 94691.0,
+                  "ruled_out": true
+                }
+              ],
+              "n_segments_checked": 7,
+              "n_excluded_low_volume": 0
+            },
+            "publisher_tier": {
+              "top_segments": [
+                {
+                  "dimension": "publisher_tier",
+                  "value": "tier_2",
+                  "explanatory_power": 0.444,
+                  "lift": 0.96,
+                  "volume_share_baseline": 0.4613,
+                  "volume_share_current": 0.4623,
+                  "rate_baseline": 487901.0,
+                  "rate_current": 460786.0,
+                  "requests_baseline": 487901.0,
+                  "requests_current": 460786.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "publisher_tier",
+                  "value": "tier_3",
+                  "explanatory_power": 0.346,
+                  "lift": 1.02,
+                  "volume_share_baseline": 0.3383,
+                  "volume_share_current": 0.3378,
+                  "rate_baseline": 357832.0,
+                  "rate_current": 336669.0,
+                  "requests_baseline": 357832.0,
+                  "requests_current": 336669.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "publisher_tier",
+                  "value": "tier_1",
+                  "explanatory_power": 0.21,
+                  "lift": 1.05,
+                  "volume_share_baseline": 0.2004,
+                  "volume_share_current": 0.1998,
+                  "rate_baseline": 211972.0,
+                  "rate_current": 199169.0,
+                  "requests_baseline": 211972.0,
+                  "requests_current": 199169.0,
+                  "ruled_out": false
+                }
+              ],
+              "n_segments_checked": 3,
+              "n_excluded_low_volume": 0
+            },
+            "region": {
+              "top_segments": [
+                {
+                  "dimension": "region",
+                  "value": "NAM",
+                  "explanatory_power": 0.302,
+                  "lift": 1.01,
+                  "volume_share_baseline": 0.2996,
+                  "volume_share_current": 0.2994,
+                  "rate_baseline": 316880.0,
+                  "rate_current": 298436.0,
+                  "requests_baseline": 316880.0,
+                  "requests_current": 298436.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "region",
+                  "value": "APAC",
+                  "explanatory_power": 0.292,
+                  "lift": 1.03,
+                  "volume_share_baseline": 0.284,
+                  "volume_share_current": 0.2835,
+                  "rate_baseline": 300436.0,
+                  "rate_current": 282574.0,
+                  "requests_baseline": 300436.0,
+                  "requests_current": 282574.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "region",
+                  "value": "EU",
+                  "explanatory_power": 0.228,
+                  "lift": 0.93,
+                  "volume_share_baseline": 0.2442,
+                  "volume_share_current": 0.2452,
+                  "rate_baseline": 258243.0,
+                  "rate_current": 244338.0,
+                  "requests_baseline": 258243.0,
+                  "requests_current": 244338.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "region",
+                  "value": "MEA",
+                  "explanatory_power": 0.109,
+                  "lift": 1.05,
+                  "volume_share_baseline": 0.1034,
+                  "volume_share_current": 0.103,
+                  "rate_baseline": 109339.0,
+                  "rate_current": 102690.0,
+                  "requests_baseline": 109339.0,
+                  "requests_current": 102690.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "region",
+                  "value": "LATAM",
+                  "explanatory_power": 0.069,
+                  "lift": 1.0,
+                  "volume_share_baseline": 0.0688,
+                  "volume_share_current": 0.0688,
+                  "rate_baseline": 72807.0,
+                  "rate_current": 68586.0,
+                  "requests_baseline": 72807.0,
+                  "requests_current": 68586.0,
+                  "ruled_out": true
+                }
+              ],
+              "n_segments_checked": 5,
+              "n_excluded_low_volume": 0
+            },
+            "country": {
+              "top_segments": [
+                {
+                  "dimension": "country",
+                  "value": "US",
+                  "explanatory_power": 0.201,
+                  "lift": 1.0,
+                  "volume_share_baseline": 0.2014,
+                  "volume_share_current": 0.2015,
+                  "rate_baseline": 213074.0,
+                  "rate_current": 200822.0,
+                  "requests_baseline": 213074.0,
+                  "requests_current": 200822.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "country",
+                  "value": "PH",
+                  "explanatory_power": 0.104,
+                  "lift": 1.12,
+                  "volume_share_baseline": 0.0932,
+                  "volume_share_current": 0.0925,
+                  "rate_baseline": 98546.0,
+                  "rate_current": 92170.0,
+                  "requests_baseline": 98546.0,
+                  "requests_current": 92170.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "country",
+                  "value": "CA",
+                  "explanatory_power": 0.101,
+                  "lift": 1.03,
+                  "volume_share_baseline": 0.0981,
+                  "volume_share_current": 0.0979,
+                  "rate_baseline": 103806.0,
+                  "rate_current": 97614.0,
+                  "requests_baseline": 103806.0,
+                  "requests_current": 97614.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "country",
+                  "value": "ES",
+                  "explanatory_power": 0.1,
+                  "lift": 0.8,
+                  "volume_share_baseline": 0.1223,
+                  "volume_share_current": 0.1237,
+                  "rate_baseline": 129316.0,
+                  "rate_current": 123238.0,
+                  "requests_baseline": 129316.0,
+                  "requests_current": 123238.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "country",
+                  "value": "JP",
+                  "explanatory_power": 0.066,
+                  "lift": 1.05,
+                  "volume_share_baseline": 0.0629,
+                  "volume_share_current": 0.0627,
+                  "rate_baseline": 66536.0,
+                  "rate_current": 62513.0,
+                  "requests_baseline": 66536.0,
+                  "requests_current": 62513.0,
+                  "ruled_out": true
+                }
+              ],
+              "n_segments_checked": 16,
+              "n_excluded_low_volume": 0
+            },
+            "device_model": {
+              "top_segments": [
+                {
+                  "dimension": "device_model",
+                  "value": "iPhone 13",
+                  "explanatory_power": 0.192,
+                  "lift": 1.0,
+                  "volume_share_baseline": 0.1927,
+                  "volume_share_current": 0.1927,
+                  "rate_baseline": 203830.0,
+                  "rate_current": 192082.0,
+                  "requests_baseline": 203830.0,
+                  "requests_current": 192082.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "device_model",
+                  "value": "Galaxy A54",
+                  "explanatory_power": 0.19,
+                  "lift": 0.91,
+                  "volume_share_baseline": 0.207,
+                  "volume_share_current": 0.2081,
+                  "rate_baseline": 218986.0,
+                  "rate_current": 207401.0,
+                  "requests_baseline": 218986.0,
+                  "requests_current": 207401.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "device_model",
+                  "value": "iPhone 15",
+                  "explanatory_power": 0.124,
+                  "lift": 0.94,
+                  "volume_share_baseline": 0.1314,
+                  "volume_share_current": 0.1318,
+                  "rate_baseline": 138938.0,
+                  "rate_current": 131375.0,
+                  "requests_baseline": 138938.0,
+                  "requests_current": 131375.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "device_model",
+                  "value": "iPhone 14",
+                  "explanatory_power": 0.123,
+                  "lift": 0.98,
+                  "volume_share_baseline": 0.1249,
+                  "volume_share_current": 0.125,
+                  "rate_baseline": 132122.0,
+                  "rate_current": 124609.0,
+                  "requests_baseline": 132122.0,
+                  "requests_current": 124609.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "device_model",
+                  "value": "Pixel 7",
+                  "explanatory_power": 0.112,
+                  "lift": 1.07,
+                  "volume_share_baseline": 0.1054,
+                  "volume_share_current": 0.105,
+                  "rate_baseline": 111475.0,
+                  "rate_current": 104608.0,
+                  "requests_baseline": 111475.0,
+                  "requests_current": 104608.0,
+                  "ruled_out": true
+                }
+              ],
+              "n_segments_checked": 8,
+              "n_excluded_low_volume": 0
+            },
+            "os_version": {
+              "top_segments": [
+                {
+                  "dimension": "os_version",
+                  "value": "Android 14",
+                  "explanatory_power": 0.176,
+                  "lift": 1.04,
+                  "volume_share_baseline": 0.1695,
+                  "volume_share_current": 0.1692,
+                  "rate_baseline": 179320.0,
+                  "rate_current": 168589.0,
+                  "requests_baseline": 179320.0,
+                  "requests_current": 168589.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "os_version",
+                  "value": "Android 12",
+                  "explanatory_power": 0.174,
+                  "lift": 0.95,
+                  "volume_share_baseline": 0.1831,
+                  "volume_share_current": 0.1836,
+                  "rate_baseline": 193620.0,
+                  "rate_current": 183001.0,
+                  "requests_baseline": 193620.0,
+                  "requests_current": 183001.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "os_version",
+                  "value": "iOS 16.4",
+                  "explanatory_power": 0.15,
+                  "lift": 1.0,
+                  "volume_share_baseline": 0.1503,
+                  "volume_share_current": 0.1503,
+                  "rate_baseline": 159022.0,
+                  "rate_current": 149836.0,
+                  "requests_baseline": 159022.0,
+                  "requests_current": 149836.0,
+                  "ruled_out": false
+                },
+                {
+                  "dimension": "os_version",
+                  "value": "iOS 17.2",
+                  "explanatory_power": 0.128,
+                  "lift": 1.0,
+                  "volume_share_baseline": 0.1286,
+                  "volume_share_current": 0.1287,
+                  "rate_baseline": 136052.0,
+                  "rate_current": 128223.0,
+                  "requests_baseline": 136052.0,
+                  "requests_current": 128223.0,
+                  "ruled_out": true
+                },
+                {
+                  "dimension": "os_version",
+                  "value": "Android 13",
+                  "explanatory_power": 0.107,
+                  "lift": 1.04,
+                  "volume_share_baseline": 0.1027,
+                  "volume_share_current": 0.1025,
+                  "rate_baseline": 108664.0,
+                  "rate_current": 102158.0,
+                  "requests_baseline": 108664.0,
+                  "requests_current": 102158.0,
+                  "ruled_out": true
+                }
+              ],
+              "n_segments_checked": 8,
+              "n_excluded_low_volume": 0
+            }
+          },
+          "primary_segments": []
+        }
+      },
+      "output": "Revenue decreased by 5.87% (-118.31) from 2014.73 to 1896.42. This movement was primarily driven by requests, which contributed -116.29 to the revenue delta due to a 5.77% drop. \n\nAcross all checked dimensions including ad_format, category, publisher_tier, region, country, device_model, and os_version, no single primary segment met the threshold for a disproportionate cause. For example, under ad_format, the banner segment showed an explanatory power of 0.346 with a lift of 0.99, indicating that the decline in requests was broad-based and proportional across segments rather than localized to a specific source. Segments like video (lift 1.01) and region=MEA (lift 1.05) were checked and ruled out.",
+      "children": [],
+      "start": 1785638726.4752846,
+      "end": 1785638728.36356,
+      "duration_s": 1.8883
+    }
+  ],
+  "start": 1785638725.0390363,
+  "end": 1785638728.3664563,
+  "duration_s": 3.3274,
+  "langfuse_trace_url": "https://cloud.langfuse.com/project/cmsa7vxeh0b00ad0i9q5t2zyk/traces/7cf1a9a5e76e821dff4f33e9c142edd0"
+}

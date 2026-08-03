@@ -1,0 +1,12 @@
+export const ColorPalette = {
+  PINK: "#FFAAAA",
+  DARK_BLUE: "#83A2FF",
+  PALE_BLUE: "#7FC7D9",
+  YELLOW: "#FFD35A",
+  DEATH_BLUE: "#144272",
+  SOFT_PURPLE: "#C2A9FF",
+  MINT_GREEN: "#A4F6A5",
+  CORAL: "#FF9C7A",
+  STEEL_GREY_BLUE: "#8FA9B9",
+  MUTED_TEAL: "#5FB0A9",
+};

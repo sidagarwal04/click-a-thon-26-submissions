@@ -1,0 +1,259 @@
+{
+  "seed": 20260802,
+  "randomized_targets": false,
+  "req_per_day": 257143,
+  "main": {
+    "csv": "edge_events.csv",
+    "rows": 9385928,
+    "start": "2026-07-06",
+    "days": 35,
+    "dates": {
+      "S01": "2026-07-20",
+      "S02": "2026-07-21",
+      "S03": "2026-07-22",
+      "S04": "2026-07-23",
+      "S05": "2026-07-24",
+      "S06": "2026-07-25",
+      "S07": "2026-07-26",
+      "S08": "2026-07-27",
+      "S09": "2026-07-28",
+      "S10": "2026-07-29",
+      "S11": "2026-07-30",
+      "S12": "2026-07-31",
+      "S13": "2026-08-01",
+      "S14": "2026-08-02",
+      "S15": "2026-08-09",
+      "S16": "2026-08-05"
+    }
+  },
+  "short": {
+    "csv": "edge_short_events.csv",
+    "rows": 1102699,
+    "start": "2026-08-17",
+    "days": 4,
+    "dates": {
+      "S17": "2026-08-19"
+    }
+  },
+  "seasonal_clean_dates": [
+    "2026-07-11",
+    "2026-07-12",
+    "2026-07-18",
+    "2026-07-19"
+  ],
+  "scenarios": [
+    {
+      "id": "S01",
+      "day": 14,
+      "target": {
+        "dim": "os_version",
+        "value": "Android 15"
+      },
+      "name": "single-dimension fill collapse",
+      "edge_case": "The baseline case: one segment's own rate steps down.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S02",
+      "day": 15,
+      "target": {
+        "dim": null,
+        "value": null
+      },
+      "name": "uniform global request drop",
+      "edge_case": "Every segment moves together \u2014 no segment explains >=50%. The agent must NOT force-name a scapegoat segment.",
+      "expect_verdict": "GLOBAL_MOVEMENT",
+      "expect_metric": "requests"
+    },
+    {
+      "id": "S03",
+      "day": 16,
+      "target": {
+        "dim": "ad_format",
+        "value": "video"
+      },
+      "name": "mix shift, no rate change",
+      "edge_case": "Traffic reshuffles toward a naturally weaker ad_format. Global fill falls while EVERY segment's own fill is flat. A naive sweep reads 'uniform' and would say GLOBAL; the Kitagawa split must catch that the mix term dominates.",
+      "expect_verdict": "MIX_SHIFT",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S04",
+      "day": 17,
+      "target": {
+        "dim": "os_version",
+        "value": "Android 14"
+      },
+      "target2": {
+        "dim": "region",
+        "value": "EU"
+      },
+      "name": "interaction segment (os_version x region)",
+      "edge_case": "Cause is the CROSS of two dimensions, not either alone. Single-dim sweeps see a partial signal on both and confounder-elimination shrinks but never clears the residual.",
+      "expect_verdict": "INTERACTION",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S05",
+      "day": 18,
+      "target": {
+        "dim": "vertical",
+        "value": "finance"
+      },
+      "name": "advertiser demand pullout",
+      "edge_case": "A vertical stops bidding. fill_rate BY vertical is undefined (unfilled rows carry no advertiser), so the ratio sweep is structurally blind \u2014 only a volume sweep on fills finds it.",
+      "expect_verdict": "DEMAND_PULLOUT",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S06",
+      "day": 19,
+      "target": {
+        "dim": "country",
+        "value": "ID"
+      },
+      "name": "CTR spike (click fraud), revenue flat",
+      "edge_case": "An UP move, not a drop \u2014 thresholds must be abs(). Revenue stays flat, so it is not a monetisation win; the narrative must not read it as good news.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "ctr"
+    },
+    {
+      "id": "S07",
+      "day": 20,
+      "target": {
+        "dim": "country",
+        "value": "PH"
+      },
+      "name": "partial-day onset (08:00-17:00 only)",
+      "edge_case": "Measured across the whole calendar day the move dilutes below threshold; the window must follow detection's hour buckets, not the date.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S08",
+      "day": 21,
+      "target": {
+        "dim": "os_version",
+        "value": "unknown"
+      },
+      "name": "unseen dimension values (dictionary miss)",
+      "edge_case": "New geo_device_ids absent from the dim table. dictGetOrDefault sends them to the 'unknown' bucket; an inner join would silently DROP the very rows that moved. Closest analogue to release-day data carrying values we have never seen.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S09",
+      "day": 22,
+      "target": {
+        "dim": "device_model",
+        "value": "Pixel 7"
+      },
+      "target2": {
+        "dim": "campaign_type",
+        "value": "CPC"
+      },
+      "name": "two independent simultaneous incidents",
+      "edge_case": "Two unrelated levers move on the same day (a fill collapse and an eCPM drop). Diagnosing one must not close the other.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S10",
+      "day": 23,
+      "target": {
+        "dim": null,
+        "value": null
+      },
+      "name": "ingestion gap (zero events 02:00-06:00)",
+      "edge_case": "Absence of data is itself a finding. A volume 'drop' that is really a pipeline hole must not be attributed to a segment.",
+      "expect_verdict": "GLOBAL_MOVEMENT",
+      "expect_metric": "requests"
+    },
+    {
+      "id": "S11",
+      "day": 24,
+      "target": {
+        "dim": "campaign_type",
+        "value": "CPC"
+      },
+      "name": "eCPM price drop on one campaign_type",
+      "edge_case": "Price lever rather than volume/fill \u2014 exercises the eCPM branch and its advertiser-side dimensions.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "ecpm"
+    },
+    {
+      "id": "S12",
+      "day": 25,
+      "target": {
+        "dim": null,
+        "value": null
+      },
+      "name": "slow ramp, day 1 of 3 (-5%)",
+      "edge_case": "A drift, not a step. Each day alone may sit under threshold and the ramp poisons its own trailing baseline; step detection can miss it.",
+      "expect_verdict": "ANY",
+      "expect_metric": "ecpm",
+      "note": "Day 1 legitimately may not flag \u2014 see EDGE_CASES.md"
+    },
+    {
+      "id": "S13",
+      "day": 26,
+      "target": {
+        "dim": null,
+        "value": null
+      },
+      "name": "slow ramp, day 2 of 3 (-10%)",
+      "edge_case": "Mid-ramp. Still no step change on any single day.",
+      "expect_verdict": "ANY",
+      "expect_metric": "ecpm"
+    },
+    {
+      "id": "S14",
+      "day": 27,
+      "target": {
+        "dim": null,
+        "value": null
+      },
+      "name": "slow ramp, day 3 of 3 (-15%)",
+      "edge_case": "By day 3 cumulative drift should clear threshold even though no single day is a step.",
+      "expect_verdict": "ANY",
+      "expect_metric": "ecpm"
+    },
+    {
+      "id": "S15",
+      "day": 34,
+      "target": {
+        "dim": "os_version",
+        "value": "iOS 17.2"
+      },
+      "name": "SEASONALITY: real collapse on the lowest-traffic day (Sunday)",
+      "edge_case": "The masking test. Sunday already runs -19% on volume, so a flat or pooled baseline attributes the drop to the weekend and dismisses a genuine incident. Only a same-weekday baseline (Sunday vs prior Sundays) still sees it. This is the false-NEGATIVE that seasonality causes.",
+      "expect_verdict": "CAUSE_CONFIRMED",
+      "expect_metric": "fill_rate"
+    },
+    {
+      "id": "S16",
+      "day": 30,
+      "target": {
+        "dim": null,
+        "value": null
+      },
+      "name": "SEASONALITY: weekend-sized volume drop on a WEEKDAY",
+      "edge_case": "The mirror test. -19% is normal on Sunday and an incident on Wednesday \u2014 the SAME number. A baseline that is not weekday-aware must fail exactly one of S15/S16, so passing both is the real proof the seasonality handling works.",
+      "expect_verdict": "GLOBAL_MOVEMENT",
+      "expect_metric": "requests"
+    },
+    {
+      "id": "S17",
+      "day": 2,
+      "target": {
+        "dim": "os_version",
+        "value": "iOS 18.1"
+      },
+      "name": "peer outlier on a history-free slice",
+      "edge_case": "Too few days for any same-weekday baseline. q1/q2/q3/q5 are all impossible; only sibling comparison inside the window can find the outlier. This is the release-day shape if the unseen slice ships without history.",
+      "expect_verdict": "PEER_OUTLIER",
+      "expect_metric": "fill_rate"
+    }
+  ]
+}

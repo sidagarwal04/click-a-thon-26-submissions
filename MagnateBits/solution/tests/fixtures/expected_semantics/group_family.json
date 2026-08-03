@@ -1,0 +1,137 @@
+{
+  "feature_slug": "group_family",
+  "table_fqn": "atlys.f_group_family_events",
+  "event_column": "event",
+  "event_types": [
+    "group_started",
+    "traveller_added",
+    "traveller_removed",
+    "group_submitted"
+  ],
+  "entity_key": "group_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "user_id",
+    "application_id"
+  ],
+  "ordered_steps": [
+    "group_started",
+    "traveller_added",
+    "traveller_removed",
+    "group_submitted"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "app_version",
+    "city",
+    "client_lib",
+    "destination",
+    "device_type",
+    "geoip_country_code",
+    "os",
+    "relation"
+  ],
+  "measures": [
+    {
+      "column": "group_size",
+      "kind": "count",
+      "scoped_to_events": [
+        "traveller_added",
+        "group_started",
+        "group_submitted",
+        "traveller_removed"
+      ],
+      "unit": "count"
+    },
+    {
+      "column": "traveller_index",
+      "kind": "count",
+      "scoped_to_events": [
+        "traveller_added",
+        "traveller_removed"
+      ],
+      "unit": "count"
+    },
+    {
+      "column": "travellers_submitted",
+      "kind": "count",
+      "scoped_to_events": [
+        "group_submitted"
+      ],
+      "unit": "count"
+    }
+  ],
+  "flags": [
+    "explicit_json_nulls:os",
+    "row_id_32char_hex_not_uuid:id",
+    "entity_key_coextensive_alternatives:application_id,user_id"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "destination",
+      "evidence": "`destination` shares 14/14 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `destination` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "geoip_country_code",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "geoip_country_code",
+      "evidence": "`geoip_country_code` shares 7/7 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `geoip_country_code` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "city",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "city",
+      "evidence": "`city` shares 7/7 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `city` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "device_type",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "device_type",
+      "evidence": "`device_type` shares 4/4 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `device_type` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    }
+  ]
+}

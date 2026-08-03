@@ -1,0 +1,32 @@
+services:
+  api:
+    volumes:
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+    depends_on:
+      - mcp-clickhouse
+
+  # Runs the official ClickHouse MCP server (pip: mcp-clickhouse) over streamable-HTTP on the
+  # internal compose network. Uses a glibc-based Python image on purpose: the LibreChat `api`
+  # image is Alpine/musl and has no C compiler, so `clickhouse-connect`'s `lz4` dependency fails
+  # to build there. Not published to the host — only reachable from other containers.
+  mcp-clickhouse:
+    image: python:3.12-slim
+    container_name: mcp-clickhouse
+    restart: always
+    command: sh -c "pip install --quiet mcp-clickhouse && mcp-clickhouse"
+    environment:
+      - CLICKHOUSE_HOST=${CLICKHOUSE_HOST}
+      - CLICKHOUSE_PORT=${CLICKHOUSE_PORT}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_SECURE=${CLICKHOUSE_SECURE}
+      - CLICKHOUSE_VERIFY=${CLICKHOUSE_VERIFY}
+      - CLICKHOUSE_MCP_SERVER_TRANSPORT=http
+      - CLICKHOUSE_MCP_BIND_HOST=0.0.0.0
+      - CLICKHOUSE_MCP_BIND_PORT=8000
+      # Real auth is the ClickHouse user/password above (used against ClickHouse Cloud itself).
+      # This container is never published to the host, only reachable from other containers on
+      # the internal compose network, so we don't also gate the HTTP gateway behind a token.
+      - CLICKHOUSE_MCP_AUTH_DISABLED=true

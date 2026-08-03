@@ -1,0 +1,214 @@
+{
+  "name": "scan",
+  "input": {
+    "start": "2026-06-01",
+    "end": "2026-07-05",
+    "metrics": [
+      "revenue",
+      "fill_rate",
+      "ecpm",
+      "requests",
+      "ctr"
+    ],
+    "lookback_weeks": 4
+  },
+  "output": {
+    "n_incidents_total": 10
+  },
+  "children": [
+    {
+      "name": "daily_series[revenue]",
+      "input": {
+        "metric": "revenue"
+      },
+      "output": {
+        "n_days_fetched": 35
+      },
+      "children": [],
+      "start": 1785638722.9904017,
+      "end": 1785638723.1593215,
+      "duration_s": 0.1689
+    },
+    {
+      "name": "detect_anomalies[revenue]",
+      "input": {
+        "lookback_weeks": 4
+      },
+      "output": {
+        "n_anomalous_days": 10,
+        "incidents": [
+          {
+            "start": "2026-06-21",
+            "end": "2026-06-27",
+            "peak_rel_delta": -0.4491
+          },
+          {
+            "start": "2026-07-03",
+            "end": "2026-07-05",
+            "peak_rel_delta": -0.0722
+          }
+        ]
+      },
+      "children": [],
+      "start": 1785638723.1600852,
+      "end": 1785638723.1646216,
+      "duration_s": 0.0045
+    },
+    {
+      "name": "daily_series[fill_rate]",
+      "input": {
+        "metric": "fill_rate"
+      },
+      "output": {
+        "n_days_fetched": 35
+      },
+      "children": [],
+      "start": 1785638723.1652744,
+      "end": 1785638723.305353,
+      "duration_s": 0.1401
+    },
+    {
+      "name": "detect_anomalies[fill_rate]",
+      "input": {
+        "lookback_weeks": 4
+      },
+      "output": {
+        "n_anomalous_days": 3,
+        "incidents": [
+          {
+            "start": "2026-06-23",
+            "end": "2026-06-25",
+            "peak_rel_delta": -0.0447
+          }
+        ]
+      },
+      "children": [],
+      "start": 1785638723.306151,
+      "end": 1785638723.309885,
+      "duration_s": 0.0037
+    },
+    {
+      "name": "daily_series[ecpm]",
+      "input": {
+        "metric": "ecpm"
+      },
+      "output": {
+        "n_days_fetched": 35
+      },
+      "children": [],
+      "start": 1785638723.3103778,
+      "end": 1785638723.564332,
+      "duration_s": 0.254
+    },
+    {
+      "name": "detect_anomalies[ecpm]",
+      "input": {
+        "lookback_weeks": 4
+      },
+      "output": {
+        "n_anomalous_days": 7,
+        "incidents": [
+          {
+            "start": "2026-06-19",
+            "end": "2026-06-22",
+            "peak_rel_delta": -0.0258
+          },
+          {
+            "start": "2026-06-26",
+            "end": "2026-06-28",
+            "peak_rel_delta": 0.04
+          }
+        ]
+      },
+      "children": [],
+      "start": 1785638723.5656939,
+      "end": 1785638723.5691965,
+      "duration_s": 0.0035
+    },
+    {
+      "name": "daily_series[requests]",
+      "input": {
+        "metric": "requests"
+      },
+      "output": {
+        "n_days_fetched": 35
+      },
+      "children": [],
+      "start": 1785638723.5696223,
+      "end": 1785638723.7251403,
+      "duration_s": 0.1555
+    },
+    {
+      "name": "detect_anomalies[requests]",
+      "input": {
+        "lookback_weeks": 4
+      },
+      "output": {
+        "n_anomalous_days": 6,
+        "incidents": [
+          {
+            "start": "2026-06-21",
+            "end": "2026-06-21",
+            "peak_rel_delta": -0.4352
+          },
+          {
+            "start": "2026-07-01",
+            "end": "2026-07-05",
+            "peak_rel_delta": -0.0793
+          }
+        ]
+      },
+      "children": [],
+      "start": 1785638723.7254417,
+      "end": 1785638723.726683,
+      "duration_s": 0.0012
+    },
+    {
+      "name": "daily_series[ctr]",
+      "input": {
+        "metric": "ctr"
+      },
+      "output": {
+        "n_days_fetched": 35
+      },
+      "children": [],
+      "start": 1785638723.7268476,
+      "end": 1785638723.841343,
+      "duration_s": 0.1145
+    },
+    {
+      "name": "detect_anomalies[ctr]",
+      "input": {
+        "lookback_weeks": 4
+      },
+      "output": {
+        "n_anomalous_days": 5,
+        "incidents": [
+          {
+            "start": "2026-06-19",
+            "end": "2026-06-19",
+            "peak_rel_delta": -0.0415
+          },
+          {
+            "start": "2026-06-22",
+            "end": "2026-06-23",
+            "peak_rel_delta": -0.0805
+          },
+          {
+            "start": "2026-06-25",
+            "end": "2026-06-26",
+            "peak_rel_delta": -0.0574
+          }
+        ]
+      },
+      "children": [],
+      "start": 1785638723.841996,
+      "end": 1785638723.8442836,
+      "duration_s": 0.0023
+    }
+  ],
+  "start": 1785638722.3345506,
+  "end": 1785638723.8447335,
+  "duration_s": 1.5102,
+  "langfuse_trace_url": "https://cloud.langfuse.com/project/cmsa7vxeh0b00ad0i9q5t2zyk/traces/7f6d1ecb50e9e2dc63ffcbc62ee7e0a5"
+}

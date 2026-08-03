@@ -1,0 +1,13 @@
+version: 1.3.13
+
+mcpSettings:
+  # SSRF exemption for the internal docker-compose network only (host:port pairs, not URLs).
+  # mcp-clickhouse resolves to a private container IP, so it's blocked by default SSRF
+  # protection unless explicitly exempted here.
+  allowedAddresses:
+    - "mcp-clickhouse:8000"
+
+mcpServers:
+  clickhouse:
+    type: streamable-http
+    url: http://mcp-clickhouse:8000/mcp

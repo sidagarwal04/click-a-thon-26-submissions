@@ -1,0 +1,80 @@
+# LibreChat RCA Agent — configuration summary
+# Host: GCP VM (haridas@8.231.126.50), docker compose project at
+# /mnt/data/clickathon/librechat
+# Generated: 2026-08-02
+
+librechat:
+  version: "0.8.7"
+  container: LibreChat
+  port: 3080
+  # Not public internet — reachable only via SSH tunnel to the VM
+  access: "ssh -L 3080:localhost:3080 haridas@8.231.126.50"
+
+agent:
+  name: "Revenue RCA Analyst"
+  id: agent_ySeDUAYdQxFM_9b3L04tD
+  description: >
+    Root-cause analyst for InMobi ad exchange revenue moves. Decomposes
+    revenue via LMDI, drills into dimensions/segments in ClickHouse,
+    distinguishes rate vs mix effects.
+  provider: anthropic
+  model: claude-sonnet-5
+  instructions_source: librechat-rca-agent.md   # pasted verbatim into the agent's Instructions field
+  tools:
+    - list_databases_mcp_clickhouse-inmobi
+    - list_tables_mcp_clickhouse-inmobi
+    - run_query_mcp_clickhouse-inmobi
+
+# --- librechat.yaml (as deployed at /mnt/data/clickathon/librechat/librechat.yaml) ---
+librechat_yaml:
+  version: "1.3.13"
+  cache: true
+  mcpSettings:
+    allowedDomains:
+      - mcp-clickhouse-inmobi   # required — LibreChat blocks internal docker hostnames by default
+  mcpServers:
+    clickhouse-inmobi:
+      type: sse
+      url: "http://mcp-clickhouse-inmobi:8000/sse"
+      timeout: 120000
+
+# --- MCP server: clickhouse-inmobi (its own container, mcp-clickhouse pip package) ---
+mcp_server:
+  container: mcp-clickhouse-inmobi
+  image_base: python:3.12-slim
+  package: mcp-clickhouse
+  transport: sse
+  bind: "0.0.0.0:8000"
+  auth: disabled   # CLICKHOUSE_MCP_AUTH_DISABLED=true — safe, container is not published, docker-network-internal only
+
+# --- Database the MCP server connects to ---
+clickhouse:
+  host: fc5trrzotn.ap-south-1.aws.clickhouse.cloud
+  port: 8443
+  secure: true
+  user: default
+  password: "<redacted>"
+  database: inmobi_unseen   # repointed from `inmobi` -> `inmobi_unseen` on 2026-08-02
+  tables_used:
+    - mv_alerts
+    - alerts_live
+    - v_incidents_live
+    - v_scores_1d
+    - v_factors_1d
+    - v_factors_1h
+    - v_attribution_1d
+    - rollup_totals_1m
+    - rollup_marginal_1h
+    - rollup_os_country_1h
+    - rca_dimscan        # parameterized view
+    - rca_segments        # parameterized view
+    - rca_volume           # parameterized view
+    - ad_events            # only for high-cardinality identifier lookups
+
+# --- Observability ---
+langfuse:
+  self_hosted: true
+  host: "http://host.docker.internal:3000"   # from inside the LibreChat container
+  org: "Clickathon LibreChat"
+  project: "LibreChat RCA Chat"
+  integration: "LibreChat native LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_BASE_URL env vars"

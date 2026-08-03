@@ -1,0 +1,193 @@
+{
+  "uid": "sonyliv-session-independent",
+  "title": "SonyLIV — Session-Independent Overview",
+  "tags": ["clickhouse", "sonyliv", "click-a-thon"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Total Events",
+      "gridPos": { "x": 0, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT count() AS value FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp))"
+      }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Distinct Users",
+      "gridPos": { "x": 5, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT uniqExact(user_id) AS value FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp))"
+      }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Distinct Sessions",
+      "gridPos": { "x": 10, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT uniqExact(video_session_id) AS value FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp))"
+      }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Distinct Content Played",
+      "gridPos": { "x": 15, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT uniqExact(content_id) AS value FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp))"
+      }]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Video Errors",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT countIf(event_type = 'VideoError') AS value FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp))"
+      }]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Events Over Time by Event Type",
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 15, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 0,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT $__timeInterval_ms(fromUnixTimestamp64Milli(event_timestamp)) AS time, event_type, count() AS events FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY time, event_type ORDER BY time"
+      }]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Video Errors Over Time",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "fixedColor": "red", "mode": "fixed" }, "custom": { "drawStyle": "bars", "fillOpacity": 40 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 0,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT $__timeInterval_ms(fromUnixTimestamp64Milli(event_timestamp)) AS time, count() AS errors FROM ch_hackathon_raw_data WHERE event_type = 'VideoError' AND $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY time ORDER BY time"
+      }]
+    },
+    {
+      "id": 8, "type": "barchart", "title": "Events by Platform",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "platform", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT platform, count() AS events FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY platform ORDER BY events DESC"
+      }]
+    },
+    {
+      "id": 9, "type": "barchart", "title": "Top 10 Content by Events",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "title", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT c.title AS title, count() AS events FROM ch_hackathon_raw_data r LEFT JOIN ch_hackathon_content_data c ON r.content_id = c.content_id WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(r.event_timestamp)) GROUP BY title ORDER BY events DESC LIMIT 10"
+      }]
+    },
+    {
+      "id": 10, "type": "piechart", "title": "Events by Video Type",
+      "gridPos": { "x": 0, "y": 20, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["percent"] } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT if(c.video_type = '', 'unknown', c.video_type) AS video_type, count() AS events FROM ch_hackathon_raw_data r LEFT JOIN ch_hackathon_content_data c ON r.content_id = c.content_id WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(r.event_timestamp)) GROUP BY video_type ORDER BY events DESC"
+      }]
+    },
+    {
+      "id": 11, "type": "barchart", "title": "Top 15 Categories by Events",
+      "gridPos": { "x": 8, "y": 20, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "category", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT c.category AS category, count() AS events FROM ch_hackathon_raw_data r LEFT JOIN ch_hackathon_content_data c ON r.content_id = c.content_id WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(r.event_timestamp)) GROUP BY category ORDER BY events DESC LIMIT 15"
+      }]
+    },
+    {
+      "id": 12, "type": "barchart", "title": "Audio Language Distribution",
+      "gridPos": { "x": 16, "y": 20, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "language", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT lower(audio_language) AS language, count() AS events FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY language ORDER BY events DESC LIMIT 10"
+      }]
+    },
+    {
+      "id": 13, "type": "barchart", "title": "Subtitle Language Distribution",
+      "gridPos": { "x": 0, "y": 28, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "language", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT lower(subtitle_language) AS language, count() AS events FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY language ORDER BY events DESC LIMIT 10"
+      }]
+    },
+    {
+      "id": 14, "type": "barchart", "title": "App Version Distribution",
+      "gridPos": { "x": 8, "y": 28, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "app_version", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT app_version, count() AS events FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY app_version ORDER BY events DESC LIMIT 10"
+      }]
+    },
+    {
+      "id": 15, "type": "barchart", "title": "Player Version Distribution",
+      "gridPos": { "x": 16, "y": 28, "w": 8, "h": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "orientation": "horizontal", "xField": "player_version", "legend": { "showLegend": false } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT player_version, count() AS events FROM ch_hackathon_raw_data WHERE $__timeFilter_ms(fromUnixTimestamp64Milli(event_timestamp)) GROUP BY player_version ORDER BY events DESC LIMIT 10"
+      }]
+    }
+  ]
+}

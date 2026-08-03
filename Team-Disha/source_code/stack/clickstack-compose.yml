@@ -1,0 +1,75 @@
+# ClickStack (HyperDX + OTel collector) → ClickHouse Cloud
+# Adapted from https://github.com/ClickHouse/ClickStack
+# No local ClickHouse — telemetry lands in Cloud (database: otel).
+# HyperDX API on 8002 to avoid clashing with MCP on 8000.
+
+services:
+  clickstack-db:
+    image: mongo:5.0.32-focal
+    volumes:
+      - clickstack_mongo_data:/data/db
+    networks:
+      - clickathon
+    restart: always
+
+  otel-collector:
+    image: ${CH_IMAGE_REPO:-docker.clickhouse.com}/${NEXT_OTEL_COLLECTOR_IMAGE_NAME_DOCKERHUB:-clickhouse/clickstack-otel-collector}:${IMAGE_VERSION:-2}
+    environment:
+      CLICKHOUSE_ENDPOINT: ${CLICKHOUSE_ENDPOINT}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE: ${HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE:-otel}
+      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL:-info}
+      OPAMP_SERVER_URL: "http://hyperdx:${HYPERDX_OPAMP_PORT:-4320}"
+      HYPERDX_OTEL_EXPORTER_CREATE_LEGACY_SCHEMA: "true"
+    ports:
+      - "127.0.0.1:13133:13133"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:8888:8888"
+    restart: always
+    networks:
+      - clickathon
+    depends_on:
+      - hyperdx
+
+  hyperdx:
+    image: ${HDX_IMAGE_REPO:-docker.hyperdx.io}/${IMAGE_NAME_DOCKERHUB:-hyperdx/hyperdx}:${IMAGE_VERSION:-2}
+    ports:
+      - "${HYPERDX_API_PORT:-8002}:${HYPERDX_API_PORT:-8002}"
+      - "${HYPERDX_APP_PORT:-8080}:${HYPERDX_APP_PORT:-8080}"
+    environment:
+      FRONTEND_URL: ${HYPERDX_APP_URL:-http://localhost}:${HYPERDX_APP_PORT:-8080}
+      HYPERDX_API_KEY: ${HYPERDX_API_KEY}
+      HYPERDX_API_PORT: ${HYPERDX_API_PORT:-8002}
+      HYPERDX_APP_PORT: ${HYPERDX_APP_PORT:-8080}
+      HYPERDX_APP_URL: ${HYPERDX_APP_URL:-http://localhost}
+      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL:-info}
+      MONGO_URI: "mongodb://clickstack-db:27017/hyperdx"
+      # Must match HYPERDX_API_PORT (image default healthcheck wrongly probes :8000)
+      SERVER_URL: http://127.0.0.1:${HYPERDX_API_PORT:-8002}
+      OPAMP_PORT: ${HYPERDX_OPAMP_PORT:-4320}
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_SERVICE_NAME: "hdx-oss-app"
+      USAGE_STATS_ENABLED: ${USAGE_STATS_ENABLED:-false}
+      DEFAULT_CONNECTIONS: '[{"name":"ClickHouse Cloud","host":"${CLICKHOUSE_ENDPOINT}","username":"${CLICKHOUSE_USER:-default}","password":"${CLICKHOUSE_PASSWORD}"}]'
+      # Cloud OTel schema uses Timestamp (not TimestampTime) on otel_logs
+      DEFAULT_SOURCES: '[{"from":{"databaseName":"${HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE:-otel}","tableName":"otel_logs"},"kind":"log","timestampValueExpression":"Timestamp","name":"Logs","displayedTimestampValueExpression":"Timestamp","implicitColumnExpression":"Body","serviceNameExpression":"ServiceName","bodyExpression":"Body","eventAttributesExpression":"LogAttributes","resourceAttributesExpression":"ResourceAttributes","defaultTableSelectExpression":"Timestamp,ServiceName,SeverityText,Body","severityTextExpression":"SeverityText","traceIdExpression":"TraceId","spanIdExpression":"SpanId","connection":"ClickHouse Cloud","traceSourceId":"Traces","sessionSourceId":"Sessions","metricSourceId":"Metrics"},{"from":{"databaseName":"${HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE:-otel}","tableName":"otel_traces"},"kind":"trace","timestampValueExpression":"Timestamp","name":"Traces","displayedTimestampValueExpression":"Timestamp","implicitColumnExpression":"SpanName","serviceNameExpression":"ServiceName","eventAttributesExpression":"SpanAttributes","resourceAttributesExpression":"ResourceAttributes","defaultTableSelectExpression":"Timestamp,ServiceName,StatusCode,round(Duration/1e6),SpanName","traceIdExpression":"TraceId","spanIdExpression":"SpanId","durationExpression":"Duration","durationPrecision":9,"parentSpanIdExpression":"ParentSpanId","spanNameExpression":"SpanName","spanKindExpression":"SpanKind","statusCodeExpression":"StatusCode","statusMessageExpression":"StatusMessage","connection":"ClickHouse Cloud","logSourceId":"Logs","sessionSourceId":"Sessions","metricSourceId":"Metrics"}]'
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:'+(process.env.HYPERDX_API_PORT||8002)+'/health',r=>r.statusCode===200?process.exit(0):process.exit(1)).on('error',()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    networks:
+      - clickathon
+    depends_on:
+      - clickstack-db
+    restart: always
+
+volumes:
+  clickstack_mongo_data:

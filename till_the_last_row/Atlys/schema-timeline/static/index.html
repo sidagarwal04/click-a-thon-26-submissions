@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlys · Schema Changes Over Time</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2230; --border: #2b333f;
+    --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950;
+    --amber: #d29922; --red: #f85149; --violet: #bc8cff; --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    position: sticky; top: 0; background: rgba(13,17,23,.92); backdrop-filter: blur(6px); z-index: 5;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .stats { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  main { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.35fr); gap: 24px; padding: 24px 28px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  .wide { max-width: 1500px; margin: 0 auto; padding: 0 28px 28px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+
+  /* timeline */
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline::before { content: ""; position: absolute; left: 8px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before {
+    content: ""; position: absolute; left: -22px; top: 4px; width: 12px; height: 12px;
+    border-radius: 50%; border: 2px solid var(--bg);
+  }
+  .tl-item.schema::before { background: var(--accent); }
+  .tl-item.context::before { background: var(--violet); }
+  .tl-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .tl-card .when { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+  .tl-card .title { margin: 3px 0 6px; font-weight: 550; }
+  .tl-card .ref { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 20px; border: 1px solid var(--border); margin: 2px 4px 0 0; }
+  .pill.spec { color: var(--accent); border-color: #274b73; }
+  .pill.added { color: var(--green); border-color: #1f5330; }
+  .pill.updated { color: var(--amber); border-color: #5a4413; }
+  .pill.contradiction { color: var(--red); border-color: #5f2320; }
+  .diff { margin-top: 8px; font-size: 12px; display: none; }
+  .diff.open { display: block; }
+  .diff-row { display: flex; gap: 8px; padding: 2px 0; border-top: 1px dashed var(--border); }
+  .diff-row .k { font-family: var(--mono); font-size: 10px; padding: 0 6px; border-radius: 4px; height: 16px; line-height: 16px; margin-top: 2px; }
+  .k.added { background: #10331d; color: var(--green); }
+  .k.updated { background: #3a2e0c; color: var(--amber); }
+  .k.contradiction { background: #3d1613; color: var(--red); }
+  .diff-row code { color: var(--fg); }
+  .diff-row .reason { color: var(--muted); }
+  .toggle { cursor: pointer; color: var(--accent); font-size: 12px; user-select: none; }
+
+  /* schemas */
+  .schema { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+  .schema-head { padding: 14px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+  .schema-head:hover { background: var(--panel2); }
+  .schema-head .name { font-weight: 600; font-family: var(--mono); }
+  .schema-head .badges { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
+  .badge b { color: var(--fg); }
+  .schema-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .schema.open .schema-body { display: block; }
+  .schema.open .chev { transform: rotate(90deg); }
+  .chev { transition: transform .15s; color: var(--muted); }
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; margin: 12px 0; font-size: 12.5px; }
+  .kv .key { color: var(--muted); }
+  .kv .val { font-family: var(--mono); word-break: break-word; }
+  .prop { margin: 10px 0; }
+  .prop .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .prop code { display: block; margin-top: 3px; background: #0b0f14; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+  .obj { display: inline-block; margin: 3px 6px 0 0; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-family: var(--mono); }
+  .obj.table { background: #10233a; color: var(--accent); }
+  .obj.materialized_view { background: #241b38; color: var(--violet); }
+  .obj.database { background: #16261a; color: var(--green); }
+  .idx { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .idx b { color: var(--fg); }
+  .dev { border-left: 2px solid var(--amber); padding: 4px 0 4px 10px; margin: 6px 0; color: #d9c48a; font-size: 12px; }
+  .metric { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: var(--panel2); }
+  .metric .mname { font-family: var(--mono); font-weight: 600; color: var(--accent); font-size: 12.5px; }
+  .metric .q { color: var(--muted); font-style: italic; margin: 3px 0; font-size: 12px; }
+  .metric .f { font-family: var(--mono); font-size: 11.5px; background: #0b0f14; padding: 6px 8px; border-radius: 5px; margin-top: 4px; white-space: pre-wrap; }
+  .metric .tags { margin-top: 6px; }
+  .tag { font-size: 10.5px; padding: 1px 7px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); margin-right: 4px; }
+  .tag.mv { color: var(--green); border-color: #1f5330; }
+  .tag.cross { color: var(--violet); border-color: #3a2b5a; }
+  .tag.conf { color: var(--accent); border-color: #274b73; }
+  .hist { margin-top: 12px; font-size: 12px; }
+  .hist .h { display: flex; gap: 10px; padding: 3px 0; color: var(--muted); }
+  .hist .h code { color: var(--accent); }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+  footer { padding: 18px 28px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--border); font-family: var(--mono); }
+
+  /* insights */
+  .ins-summary { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; color: var(--muted); font-size: 12.5px; }
+  .conf-chip { font-size: 11px; padding: 2px 9px; border-radius: 20px; border: 1px solid var(--border); }
+  .conf-chip.high { color: var(--green); border-color: #1f5330; }
+  .conf-chip.medium { color: var(--amber); border-color: #5a4413; }
+  .conf-chip.low { color: var(--red); border-color: #5f2320; }
+  .ki-chip { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #3d1613; color: #ff9d96; }
+  .ins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .ins { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-left: 3px solid var(--border); }
+  .ins.high { border-left-color: var(--green); }
+  .ins.medium { border-left-color: var(--amber); }
+  .ins.low { border-left-color: var(--red); }
+  .ins .top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .ins .spec { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .ins .dir { font-size: 14px; }
+  .ins .dir.positive { color: var(--green); } .ins .dir.negative { color: var(--red); } .ins .dir.mixed { color: var(--amber); }
+  .ins h3 { font-size: 14px; margin: 0 0 8px; font-weight: 600; line-height: 1.35; }
+  .confbar { display: flex; align-items: center; gap: 8px; margin: 6px 0 10px; }
+  .confbar .track { flex: 1; height: 7px; background: #0b0f14; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .confbar .fill { height: 100%; border-radius: 4px; }
+  .confbar .fill.high { background: var(--green); } .confbar .fill.medium { background: var(--amber); } .confbar .fill.low { background: var(--red); }
+  .confbar .num { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .ins .row { font-size: 12.5px; margin: 5px 0; }
+  .ins .row .lbl { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: .05em; display: block; }
+  .ins .why { color: #cdd6e0; }
+  .ins .foot { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 8px; }
+  .ins .foot a { color: var(--accent); text-decoration: none; font-size: 12px; }
+  .ins .foot a:hover { text-decoration: underline; }
+  .segline { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .segline b { color: var(--fg); }
+  .caveat { color: var(--amber); font-size: 11.5px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Atlys · Schema Changes Over Time</h1>
+    <div class="sub" id="source">loading…</div>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<main>
+  <section>
+    <h2>Timeline <span style="color:var(--accent)">▣</span> schema commit &nbsp; <span style="color:var(--violet)">◇</span> context version</h2>
+    <div class="timeline" id="timeline"></div>
+  </section>
+  <section>
+    <h2>Schemas</h2>
+    <div id="schemas"></div>
+  </section>
+</main>
+
+<div class="wide">
+  <h2>Agent-generated insights <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">· with confidence scores</span></h2>
+  <div class="ins-summary" id="ins-summary"></div>
+  <div id="insights"></div>
+</div>
+
+<footer id="footer"></footer>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const el = (t, cls, html) => { const e = document.createElement(t); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => (s==null?"":String(s)).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const day = s => (s||"").slice(0,10);
+
+async function load() {
+  let m;
+  try { m = await (await fetch("/api/timeline")).json(); }
+  catch (e) { $("#schemas").innerHTML = `<div class="empty">Failed to load /api/timeline: ${esc(e.message)}</div>`; return; }
+  if (m.error) { $("#schemas").innerHTML = `<div class="empty">${esc(m.error)}</div>`; return; }
+
+  $("#source").textContent = m.generated_from + (m.is_git_repo ? "" : "  ⚠ not a git repo — history empty");
+  renderStats(m.totals);
+  renderTimeline(m.events);
+  renderSchemas(m.schemas);
+  renderInsights(m.insights);
+  $("#footer").textContent = `repo: ${m.repo_root}  ·  rebuilt live on each request  ·  read-only`;
+}
+
+function renderStats(t) {
+  const wrap = $("#stats"); wrap.innerHTML = "";
+  const items = [
+    ["schemas", t.schemas], ["tables", t.tables], ["mat. views", t.materialized_views],
+    ["metrics", t.metrics], ["insights", t.insights ?? 0],
+    ["schema commits", t.schema_commits], ["context versions", t.context_versions],
+  ];
+  for (const [label, n] of items) {
+    const s = el("div", "stat"); s.append(el("b", null, n), el("span", null, label)); wrap.append(s);
+  }
+}
+
+function renderTimeline(events) {
+  const wrap = $("#timeline"); wrap.innerHTML = "";
+  if (!events.length) { wrap.append(el("div", "empty", "No history yet.")); return; }
+  for (const e of events) {
+    const isSchema = e.type === "schema-commit";
+    const item = el("div", "tl-item " + (isSchema ? "schema" : "context"));
+    const card = el("div", "tl-card");
+    card.append(el("div", "when", day(e.date)));
+    card.append(el("div", "title", esc(e.title)));
+
+    if (isSchema) {
+      const specs = (e.specs||[]).map(s => `<span class="pill spec">${esc(s)}</span>`).join("");
+      card.append(el("div", null, specs));
+      card.append(el("div", "ref", esc(e.ref) + " · " + esc(e.author)));
+    } else {
+      const c = e.counts || {};
+      const pills = el("div");
+      if (c.added) pills.append(el("span", "pill added", `+${c.added} added`));
+      if (c.updated) pills.append(el("span", "pill updated", `~${c.updated} updated`));
+      if (c.contradiction) pills.append(el("span", "pill contradiction", `!${c.contradiction} contradiction${c.contradiction>1?"s":""}`));
+      card.append(pills);
+      if (e.changes && e.changes.length) {
+        const toggle = el("span", "toggle", "▸ show diff (" + e.changes.length + ")");
+        const diff = el("div", "diff");
+        for (const ch of e.changes) {
+          const row = el("div", "diff-row");
+          row.append(el("span", "k " + ch.kind, ch.kind[0].toUpperCase()));
+          const body = el("div");
+          body.innerHTML = (ch.path ? `<code>${esc(ch.path)}</code> ` : "") +
+                           (ch.reason ? `<span class="reason">${esc(ch.reason)}</span>` : "");
+          row.append(body); diff.append(row);
+        }
+        toggle.onclick = () => { diff.classList.toggle("open"); toggle.textContent = (diff.classList.contains("open")?"▾ hide diff":"▸ show diff (" + e.changes.length + ")"); };
+        card.append(toggle, diff);
+      }
+      if (e.source) card.append(el("div", "ref", "source: " + esc(e.source)));
+    }
+    item.append(card); wrap.append(item);
+  }
+}
+
+function renderSchemas(schemas) {
+  const wrap = $("#schemas"); wrap.innerHTML = "";
+  if (!schemas.length) { wrap.append(el("div", "empty", "No schemas generated yet.")); return; }
+  for (const s of schemas) {
+    const box = el("div", "schema");
+    const head = el("div", "schema-head");
+    head.append(el("span", "chev", "▶"), el("span", "name", esc(s.spec_name)));
+    const badges = el("div", "badges");
+    const c = s.counts;
+    badges.innerHTML =
+      `<span class="badge"><b>${c.tables}</b> tables</span>` +
+      `<span class="badge"><b>${c.materialized_views}</b> MV</span>` +
+      `<span class="badge"><b>${c.skip_indexes}</b> idx</span>` +
+      `<span class="badge"><b>${c.metrics}</b> metrics</span>` +
+      `<span class="badge"><b>${c.insights ?? 0}</b> insights</span>` +
+      `<span class="badge"><b>${s.revisions}</b> rev</span>`;
+    head.append(badges);
+    const body = el("div", "schema-body");
+    body.innerHTML = schemaBody(s);
+    head.onclick = () => box.classList.toggle("open");
+    box.append(head, body); wrap.append(box);
+  }
+}
+
+function schemaBody(s) {
+  const h = s.header || {}, p = s.properties || {};
+  let out = "";
+
+  // header meta
+  const rows = [];
+  for (const [k, v] of Object.entries(h)) rows.push(`<div class="key">${esc(k)}</div><div class="val">${esc(v)}</div>`);
+  if (s.first_seen) rows.push(`<div class="key">first_seen</div><div class="val">${day(s.first_seen)}</div>`);
+  if (s.last_changed) rows.push(`<div class="key">last_changed</div><div class="val">${day(s.last_changed)}</div>`);
+  if (rows.length) out += `<div class="kv">${rows.join("")}</div>`;
+
+  // objects
+  if (s.objects && s.objects.length) {
+    out += `<div class="prop"><span class="lbl">DDL objects</span><div>` +
+      s.objects.map(o => `<span class="obj ${o.kind}">${esc(o.name)}</span>`).join("") + `</div></div>`;
+  }
+  // key props
+  if (p.order_by) out += `<div class="prop"><span class="lbl">ORDER BY</span><code>${esc(p.order_by)}</code></div>`;
+  if (p.partition_by) out += `<div class="prop"><span class="lbl">PARTITION BY</span><code>${esc(p.partition_by)}</code></div>`;
+  if (p.ttl) out += `<div class="prop"><span class="lbl">TTL</span><code>${esc(p.ttl)}</code></div>`;
+  if (p.skip_indexes && p.skip_indexes.length) {
+    out += `<div class="prop"><span class="lbl">Data-skipping indexes</span><div>` +
+      p.skip_indexes.map(i => `<span class="idx"><b>${esc(i.name)}</b> · ${esc(i.type)}</span>`).join("<br>") + `</div></div>`;
+  }
+  // deviations
+  if (s.deviations && s.deviations.length) {
+    out += `<div class="prop"><span class="lbl">Deviations</span>` +
+      s.deviations.map(d => `<div class="dev">${esc(d)}</div>`).join("") + `</div>`;
+  }
+  // metrics
+  if (s.metrics && s.metrics.length) {
+    out += `<div class="prop"><span class="lbl">Metrics (${s.metrics.length})</span>`;
+    for (const met of s.metrics) {
+      const tags = [];
+      if (met.serving_mv) tags.push(`<span class="tag mv">MV</span>`); else tags.push(`<span class="tag">query-time</span>`);
+      if (met.cross_spec) tags.push(`<span class="tag cross">cross-spec${met.joins_spec ? " · "+esc(met.joins_spec):""}</span>`);
+      if (met.confirmed_by_user) tags.push(`<span class="tag conf">confirmed</span>`);
+      out += `<div class="metric">` +
+        `<div class="mname">${esc(met.name)}</div>` +
+        (met.pm_question ? `<div class="q">“${esc(met.pm_question)}”</div>` : "") +
+        (met.formula ? `<div class="f">${esc(met.formula)}</div>` : "") +
+        `<div class="tags">${tags.join("")}</div>` +
+      `</div>`;
+    }
+    out += `</div>`;
+  }
+  // insights (agent-generated) for this schema
+  if (s.insights && s.insights.length) {
+    const meta = s.insights_meta || {};
+    out += `<div class="prop"><span class="lbl">Agent insights (${s.insights.length})` +
+      (meta.trace_url ? ` · <a href="${esc(meta.trace_url)}" target="_blank" rel="noopener" style="color:var(--accent)">trace ↗</a>` : "") +
+      `</span>`;
+    for (const ins of s.insights) out += insightCard(ins, false);
+    if (meta.data_caveats) out += `<div class="caveat">caveat: ${esc(meta.data_caveats)}</div>`;
+    out += `</div>`;
+  }
+
+  // history
+  if (s.history && s.history.length) {
+    out += `<div class="prop"><span class="lbl">Git history</span><div class="hist">` +
+      s.history.map(x => `<div class="h"><code>${esc(x.sha)}</code> ${day(x.date)} · ${esc(x.status)} · ${esc(x.subject)}</div>`).join("") +
+      `</div></div>`;
+  }
+  return out;
+}
+
+const confClass = l => ({High:"high",Medium:"medium",Low:"low"}[l] || "");
+
+function insightCard(ins, showSpec) {
+  const cl = confClass(ins.confidence_label);
+  const score = (typeof ins.confidence === "number") ? ins.confidence : null;
+  const pct = score != null ? Math.round(score * 100) : null;
+  const dir = ins.direction ? `<span class="dir ${esc(ins.direction)}">${ins.direction==="positive"?"▲":ins.direction==="negative"?"▼":"◆"}</span>` : "";
+  const ki = (ins.related_known_issues||[]).map(k => `<span class="ki-chip">${esc(k)}</span>`).join(" ");
+  const segs = (ins.segments||[]).map(s =>
+    `<div class="segline"><b>${esc(s.segment)}</b> — ${esc(s.value)}${esc(s.unit||"")}${s.n!=null?` <span style="opacity:.7">(n=${esc(s.n)})</span>`:""}</div>`
+  ).join("");
+  return `<div class="ins ${cl}">
+    <div class="top">${dir}
+      ${showSpec ? `<span class="spec">${esc(ins.spec_name||"")}</span>` : ""}
+      <span class="conf-chip ${cl}" style="margin-left:auto">${esc(ins.confidence_label||"?")}</span>
+    </div>
+    <h3>${esc(ins.headline)}</h3>
+    ${score!=null ? `<div class="confbar"><div class="track"><div class="fill ${cl}" style="width:${pct}%"></div></div><span class="num">${pct}%</span></div>` : ""}
+    ${ins.confidence_reason ? `<div class="row"><span class="lbl">confidence</span>${esc(ins.confidence_reason)}</div>` : ""}
+    ${ins.evidence ? `<div class="row"><span class="lbl">evidence</span>${esc(ins.evidence)}</div>` : ""}
+    ${segs ? `<div class="row">${segs}</div>` : ""}
+    ${ins.why ? `<div class="row why"><span class="lbl">why</span>${esc(ins.why)}</div>` : ""}
+    ${ins.suggested_next_step ? `<div class="row"><span class="lbl">next step</span>${esc(ins.suggested_next_step)}</div>` : ""}
+    <div class="foot">
+      ${ki}
+      ${(ins.related_metrics||[]).map(mn=>`<span class="tag conf">${esc(mn)}</span>`).join(" ")}
+      ${ins.trace_url ? `<a href="${esc(ins.trace_url)}" target="_blank" rel="noopener" style="margin-left:auto">Langfuse trace ↗</a>` : ""}
+    </div>
+  </div>`;
+}
+
+function renderInsights(block) {
+  const sumEl = $("#ins-summary"), wrap = $("#insights");
+  sumEl.innerHTML = ""; wrap.innerHTML = "";
+  if (!block || !block.count) {
+    wrap.innerHTML = `<div class="empty">No agent-generated insights yet.<br>
+      <span style="font-size:12px">The Analytics Agent writes <code>Atlys/schemas/&lt;spec&gt;.insights.json</code> in pipeline mode (see <code>atlys-feature-insight</code> Step 8). This panel lights up as soon as one lands.</span></div>`;
+    return;
+  }
+  const cd = block.confidence_distribution || {};
+  const parts = [`<b style="color:var(--fg)">${block.count}</b> insights`];
+  if (cd.High) parts.push(`<span class="conf-chip high">${cd.High} High</span>`);
+  if (cd.Medium) parts.push(`<span class="conf-chip medium">${cd.Medium} Medium</span>`);
+  if (cd.Low) parts.push(`<span class="conf-chip low">${cd.Low} Low</span>`);
+  const ki = Object.keys(block.known_issues_cited || {});
+  if (ki.length) parts.push(`known issues: ` + ki.sort().map(k=>`<span class="ki-chip">${esc(k)}</span>`).join(" "));
+  sumEl.innerHTML = parts.join(" &nbsp; ");
+
+  const grid = el("div", "ins-grid");
+  // highest-confidence first
+  const sorted = [...block.insights].sort((a,b)=>(b.confidence??0)-(a.confidence??0));
+  grid.innerHTML = sorted.map(i => insightCard(i, true)).join("");
+  wrap.append(grid);
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+/**
+ * useDLUpdate<%= className %> Hook
+ *
+ * Updates an existing <%= name %>.
+ */
+
+import type { ApiMutationDescriptor } from '@open-zentra/foundation-data-model';
+import {
+  useDLUpdate,
+  type MutationDescriptorArgs,
+  type MutationDescriptorData,
+  type UseDLUpdateOptions,
+} from '@open-zentra/foundation-data-layer';
+import { <%= propertyName %>Keys } from './<%= fileName %>-keys';
+
+type <%= className %>UpdateArgs = Readonly<Record<string, unknown>> & {
+  readonly <%= idField %>: string;
+};
+
+export const default<%= className %>UpdateMutation: ApiMutationDescriptor<
+  <%= className %>UpdateArgs
+> = {
+  method: 'PATCH',
+  path: (args) => `<%= endpoint %>/${String(args.<%= idField %>)}`,
+  body: (args) => {
+    const { <%= idField %>, ...payload } = args;
+    return payload;
+  },
+};
+
+/**
+ * Options for useDLUpdate<%= className %>
+ */
+export type UseDLUpdate<%= className %>Options<
+  TMutation extends ApiMutationDescriptor<<%= className %>UpdateArgs> = typeof default<%= className %>UpdateMutation
+> = Omit<
+  UseDLUpdateOptions<TMutation, MutationDescriptorData<TMutation>, MutationDescriptorArgs<TMutation>>,
+  'mutation' | 'table' | 'getEntityId'
+> & {
+  readonly mutation?: TMutation;
+  readonly getEntityId?: (variables: MutationDescriptorArgs<TMutation>) => string;
+};
+
+/**
+ * Update an existing <%= name %>
+ */
+export function useDLUpdate<%= className %><
+  TMutation extends ApiMutationDescriptor<<%= className %>UpdateArgs> = typeof default<%= className %>UpdateMutation
+>(
+  options: UseDLUpdate<%= className %>Options<TMutation>
+) {
+  const {
+    mutation = default<%= className %>UpdateMutation as TMutation,
+    getEntityId = (variables: MutationDescriptorArgs<TMutation>) =>
+      String((variables as <%= className %>UpdateArgs).<%= idField %>),
+    ...rest
+  } = options;
+
+  return useDLUpdate<TMutation, MutationDescriptorData<TMutation>, MutationDescriptorArgs<TMutation>>({
+    ...rest,
+    mutation,
+    table: '<%= propertyName %>s',
+    getEntityId,
+    listQueryKey: options.listQueryKey ?? <%= propertyName %>Keys.list(),
+    itemQueryKey: options.itemQueryKey ?? ((id: string) => <%= propertyName %>Keys.detail(id)),
+  });
+}

@@ -1,0 +1,108 @@
+{
+  "call_id": "CALL-03-EASY",
+  "category": "Easy",
+  "title": "Total Revenue, AOV, and Discounts by Currency",
+  "question": "What is the total realized revenue, order volume, Average Order Value (AOV), and total discount amounts across currencies in purchase_completed?",
+  "database": "default",
+  "target_tables": "purchase_completed",
+  "timestamp": "2026-08-02T00:14:29.767734+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 240.43,
+    "row_count": 9,
+    "columns_count": 6,
+    "columns": [
+      "currency",
+      "order_count",
+      "gross_revenue",
+      "average_order_value",
+      "total_discounts_granted",
+      "insurance_attach_orders"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_easy_03",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/07148f6e41ccd6cade2e925c138b595f",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    currency,\n    count() AS order_count,\n    round(sum(value), 2) AS gross_revenue,\n    round(avg(value), 2) AS average_order_value,\n    round(sum(discount_amount), 2) AS total_discounts_granted,\n    countIf(insurance_added = 1) AS insurance_attach_orders\nFROM default.purchase_completed\nGROUP BY currency\nORDER BY gross_revenue DESC",
+  "result_sample": [
+    {
+      "currency": "INR",
+      "order_count": 3791,
+      "gross_revenue": 19089149.0,
+      "average_order_value": 5035.39,
+      "total_discounts_granted": 322729.0,
+      "insurance_attach_orders": 834
+    },
+    {
+      "currency": "AED",
+      "order_count": 1163,
+      "gross_revenue": 356131.9,
+      "average_order_value": 306.22,
+      "total_discounts_granted": 105928.0,
+      "insurance_attach_orders": 237
+    },
+    {
+      "currency": "SAR",
+      "order_count": 212,
+      "gross_revenue": 63554.9,
+      "average_order_value": 299.79,
+      "total_discounts_granted": 20142.0,
+      "insurance_attach_orders": 54
+    },
+    {
+      "currency": "USD",
+      "order_count": 961,
+      "gross_revenue": 42710.3,
+      "average_order_value": 44.44,
+      "total_discounts_granted": 88159.0,
+      "insurance_attach_orders": 211
+    },
+    {
+      "currency": "QAR",
+      "order_count": 152,
+      "gross_revenue": 29950.8,
+      "average_order_value": 197.04,
+      "total_discounts_granted": 7055.0,
+      "insurance_attach_orders": 29
+    },
+    {
+      "currency": "AUD",
+      "order_count": 277,
+      "gross_revenue": 18225.2,
+      "average_order_value": 65.79,
+      "total_discounts_granted": 24635.0,
+      "insurance_attach_orders": 67
+    },
+    {
+      "currency": "GBP",
+      "order_count": 293,
+      "gross_revenue": 17231.6,
+      "average_order_value": 58.81,
+      "total_discounts_granted": 32162.0,
+      "insurance_attach_orders": 79
+    },
+    {
+      "currency": "OMR",
+      "order_count": 119,
+      "gross_revenue": 8175.5,
+      "average_order_value": 68.7,
+      "total_discounts_granted": 7951.0,
+      "insurance_attach_orders": 23
+    },
+    {
+      "currency": "SGD",
+      "order_count": 86,
+      "gross_revenue": 2852.8,
+      "average_order_value": 33.17,
+      "total_discounts_granted": 6030.0,
+      "insurance_attach_orders": 22
+    }
+  ],
+  "full_results_count": 9,
+  "summary": "Query executed successfully against ClickHouse default database in 240.43ms, returning 9 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Single-table financial aggregation on purchase_completed (7,054 rows). Validates currency segmentation, sum, avg, and insurance attach counters."
+}

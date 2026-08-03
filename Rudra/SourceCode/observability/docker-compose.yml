@@ -1,0 +1,19 @@
+# ClickStack OpenTelemetry collector. Apps send OTLP to :4317 (gRPC) / :4318 (HTTP);
+# the collector writes telemetry to ClickHouse (auto-creates the otel_* tables),
+# where HyperDX / ClickStack reads them.
+services:
+  otel-collector:
+    container_name: clickstack-otel-collector
+    image: clickhouse/clickstack-otel-collector:latest
+    environment:
+      CLICKHOUSE_ENDPOINT: ${CLICKHOUSE_ENDPOINT}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    restart: unless-stopped
+    # Lets OTEL apps on the host reach a local ClickHouse if CLICKHOUSE_ENDPOINT
+    # points at http://host.docker.internal:8123. No effect for Cloud.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

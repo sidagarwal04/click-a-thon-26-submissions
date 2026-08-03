@@ -1,0 +1,62 @@
+# evidence: runbook_validation
+# what: every number in docs/review/validation_runbook_filled.md not already covered by an existing artifact
+# run_utc: 2026-08-01 14:54:08
+# git: 0ef547d-dirty
+# host: ss-cric
+# row_count: 960851
+# event_watermark: 2026-08-01 13:20:21.559
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 14:54:08   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+test	metric	value
+8	content_rows_bare	33464
+8	content_rows_final	33464
+8	content_uniq_ids	33464
+9	content_dup_groups	0
+10	unmatched_event_rows	0
+11	missing_required_fields	0
+12	duplicate_groups	3413
+12	excess_rows	4210
+13	multiple_starts	13
+13	multiple_ends	14
+13	missing_start	0
+13	missing_end	0
+14	multi_platform_sessions	95
+14	multi_user_sessions	120
+14	multi_content_sessions	1
+17	invalid_intervals	385
+17	beyond_90s_tolerance	336
+17	offending_sessions	21
+17	overshoot_median_s	760
+17	overshoot_max_s	2171
+17	sessions_with_events_after_last_end	239
+17	peak_all_sessions	2829
+17	peak_excluding_offenders_UPPER_BOUND	2827
+19	overlapping_runs	0
+20	max_runs_per_session_minute	1
+21	session_net_delta	0
+22	user_net_delta	0
+23	session_min_peak	0/2829
+24	user_min_peak	0/2749
+28	minutes_lacking_a_delta_row	928
+28	reference_query_average_BIASED_LOW	87.82
+28	independent_locf_average	88.2
+28	independent_locf_denominator	1440
+30	benchmark_peak_average_sql_average	246.98
+30	serving_peak_average_sql_average	88.2
+30	serving_denominator	1440
+29	benchmark_concurrency_sql_first_minute	2026-07-26 00:10:00
+29	benchmark_concurrency_sql_last_minute	2026-07-26 11:32:00
+29	benchmark_concurrency_sql_rows	683
+29	benchmark_concurrency_sql_average	185.95
+33	video_types	|live|vod
+33	countries	india
+37	serving_query_tables	phoenix.concurrency_deltas
+37	serving_query_read_rows	26904
+40	sign_negative_rows	1498
+40	sign_positive_rows	20647
+47	tables_with_ttl	0

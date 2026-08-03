@@ -1,0 +1,41 @@
+[project]
+name = "atlys-agents"
+version = "0.1.0"
+description = "Agentic analytics on ClickHouse: instrument, analyze, explain."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "clickhouse-connect>=0.8.0",
+    "langfuse>=3.0.0",
+    "anthropic>=0.40.0",
+    "pydantic>=2.9.0",
+    "python-dotenv>=1.0.1",
+    "orjson>=3.10.0",
+    "rich>=13.9.0",
+    "streamlit>=1.40.0",
+    "pandas>=2.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3.0"]
+mcp = ["mcp[cli]>=1.6.0", "uvicorn>=0.30.0", "starlette>=0.38.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Explicit, not auto-discovered: this directory also holds non-package output
+# dirs (out/, artifacts/, deploy/) that setuptools' flat-layout autodiscovery
+# correctly refuses to guess about. Every real package/module is listed here;
+# add new ones to this list, not to autodiscovery.
+[tool.setuptools]
+py-modules = [
+    "contracts", "ch", "llm", "tracing", "profile", "mapping", "ddl",
+    "report", "bakeoff", "legacy", "metric_policy", "evalharness",
+    "grounding", "confidence", "run_pipeline", "ask", "bootstrap_db",
+]
+
+[tool.setuptools.packages.find]
+include = ["agents", "agents.*", "queries", "queries.*", "contextlayer", "contextlayer.*", "atlys_mcp", "atlys_mcp.*", "ui", "ui.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,59 @@
+# evidence: frozen_slice_stability
+# what: frozen-slice metric set run twice with live ingest in between; identical means the isolation predicate holds
+# run_utc: 2026-08-01 21:59:02
+# git: 954b20d-dirty
+# host: ss-cric
+# row_count: 1965984
+# event_watermark: 2026-08-01 21:58:40.804
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 21:58:41   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+frozen_before	2026-08-01
+settle_seconds	120
+raw_events_before	1857724
+raw_events_after	1965984
+rows_ingested_between_runs	108260
+metrics_compared	34
+differing_lines	0
+verdict	PASS
+#
+# run 1 payload, verbatim:
+# deltas.concurrency_deltas.minutes	1531
+# deltas.user_concurrency_deltas.minutes	1485
+# intervals.positive_length	345220
+# intervals.zero_length	253532
+# invariant.closure.session_deltas	0
+# invariant.closure.user_deltas	0
+# invariant.intervals_inverted	0
+# invariant.max_assertions_of_one_run	1
+# invariant.max_runs_per_session_minute	1
+# invariant.runs_inverted	0
+# rows.foreground_intervals	598752
+# rows.raw_events	905558
+# runs.session_minute_runs.asserted	17585
+# runs.user_minute_runs.asserted	16582
+# serving.avg_active_minutes	36.59
+# serving.avg_all_minutes	7.87
+# serving.min_concurrency	0
+# serving.minutes_in_span	17028
+# serving.minutes_with_audience	3663
+# serving.peak_concurrency	2828
+# serving.peak_minute	2026-07-26 10:56:00
+# serving.user_avg_active_minutes	35.54
+# serving.user_avg_all_minutes	7.65
+# serving.user_min_concurrency	0
+# serving.user_minutes_with_audience	3663
+# serving.user_peak_concurrency	2748
+# serving.user_peak_minute	2026-07-26 10:56:00
+# span.first_event	2026-07-14 15:43:58.144
+# span.last_event	2026-07-26 11:30:04.847
+# uniq.contents	3357
+# uniq.event	47
+# uniq.event_type	7
+# uniq.sessions	10866
+# uniq.users	9618

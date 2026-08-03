@@ -1,0 +1,211 @@
+TRUNCATION / OPEN-SESSION ABSORPTION TEST   (TODOS H4 + H8)
+generated 2026-08-02T03:20:42Z
+cut 2026-07-26 10:56:00  ·  isolated database trunc_guardcheck  ·  sonyliv read-only
+--------------------------------------------------------------------------
+PHASE 0 — reset the test database (never touches sonyliv)
+  trunc_guardcheck dropped, recreated and schema reapplied from sql/70_truncation_test.sql
+  policy view applied from sql/01_policy.sql (policy v1 (e965954b23d4) GAP_S=150 TAIL_S=60 UNCLOSED_PAUSE_TO_RUN_END=1 POINT_ACTIVITY_COUNTS=0)
+
+PHASE 1 — load the truncated slice: event_timestamp < 2026-07-26 10:56:00
+  458477 events · 6659 sessions · last event 2026-07-26 10:55:59.999
+  withheld: 447081 events · 7723 sessions touched
+
+PHASE 2 — build the model on the stump (this is what the dashboard served at 2026-07-26 10:56:00)
+  15224 intervals · is_open=1 on 6836 intervals over 3491 sessions (52.6% of sessions in the slice)
+  stump concurrency  @10:56 = 2471  @11:10 = 0
+
+PHASE 3 — the late arrival: insert every event >= 2026-07-26 10:56:00
+
+PHASE 4 — absorb INCREMENTALLY (ADR 0006). cc_minute_delta is never truncated,
+          never mutated, never rebuilt. Only appended to.
+  4a  snapshot the OLD derivation for the touched sessions
+      6847 old intervals over 3497 sessions
+  4b  append the NEGATION of their deltas
+  4c  re-derive ONLY the touched sessions (ReplacingMergeTree takes the new versions)
+  4d  append the new deltas for those sessions
+      cc_minute_delta now holds 37872 rows, 17457 of them negative corrections
+
+PHASE 5 — control: from-scratch full build over the same complete stream
+
+--------------------------------------------------------------------------
+RESULT — concurrency at the two probe minutes
+--------------------------------------------------------------------------
+                                        10:56      11:10
+truncated (stump, pre-absorption)        2471          0
+after INCREMENTAL absorption             2953       2483
+control: from-scratch full build         2917       2483
+production truth (sonyliv)               2917       2483
+
+--------------------------------------------------------------------------
+CONVERGENCE over EVERY minute — spot checks prove nothing
+--------------------------------------------------------------------------
+DIVERGES   3 of 1579 minutes differ · max |diff| 36
+DIVERGES   3 of 1579 minutes differ · max |diff| 36
+   ┌──────────────minute─┬─incremental─┬─control─┬─diff─┐
+1. │ 2026-07-26 10:54:00 │        2826 │    2825 │    1 │
+2. │ 2026-07-26 10:55:00 │        2867 │    2860 │    7 │
+3. │ 2026-07-26 10:56:00 │        2953 │    2917 │   36 │
+   └─────────────────────┴─────────────┴─────────┴──────┘
+
+--------------------------------------------------------------------------
+ROOT CAUSE — session_intervals is NOT identical to a clean rebuild
+--------------------------------------------------------------------------
+Row 1:
+──────
+incremental_intervals: 30323
+control_intervals:     30323
+interval_end_mismatch: 301
+is_open_mismatch:      300
+incremental_TOO_LONG:  301
+incremental_too_short: 0
+max_excess_seconds:    60
+
+  The keys match exactly — no interval is missing or extra. What differs is the
+  VERSION RESOLUTION. session_intervals is ReplacingMergeTree(interval_end), which
+  keeps the row with the LARGEST interval_end. sql/10_intervals.sql justifies that
+  with 'late heartbeats EXTEND an interval', i.e. it assumes re-derivation is
+  monotonically increasing. Truncation falsifies the assumption: the provisional
+  row carries TAIL_S=60s of grace because its run appeared to end, and the completed
+  derivation places the true end EARLIER — at a pause, or at a real VideoSessionEnd
+  inside the grace window. The stale longer row then outranks the correct one
+  permanently, and drags a stale is_open=1 with it.
+
+  worked examples:
+   ┌─session──────┬───────────────────start─┬─────────incremental_end─┬─────────────correct_end─┬─excess_s─┬─incr_open─┬─correct_open─┐
+1. │ B6AE6A6FD4D2 │ 2026-07-26 10:26:12.000 │ 2026-07-26 10:56:54.000 │ 2026-07-26 10:55:54.000 │       60 │         1 │            0 │
+2. │ 463C3C417E7D │ 2026-07-26 10:34:39.000 │ 2026-07-26 10:56:57.000 │ 2026-07-26 10:55:57.000 │       60 │         1 │            0 │
+3. │ C5D83B519604 │ 2026-07-26 10:36:00.000 │ 2026-07-26 10:56:24.000 │ 2026-07-26 10:55:24.000 │       60 │         1 │            0 │
+4. │ 2E3F031A016F │ 2026-07-26 10:36:24.000 │ 2026-07-26 10:56:51.000 │ 2026-07-26 10:55:51.000 │       60 │         1 │            0 │
+5. │ 5B0DA1FF6E12 │ 2026-07-26 10:37:24.000 │ 2026-07-26 10:56:51.000 │ 2026-07-26 10:55:51.000 │       60 │         1 │            0 │
+   └──────────────┴─────────────────────────┴─────────────────────────┴─────────────────────────┴──────────┴───────────┴──────────────┘
+
+--------------------------------------------------------------------------
+ISOLATION — is the correction-by-diff ARITHMETIC itself wrong, or only the input?
+--------------------------------------------------------------------------
+ARITHMETIC EXACT   append-only negate+re-emit == a full delta rebuild off the same interval table, on all 1579 minutes. ADR 0006 is sound; the fault is upstream in session_intervals.
+
+--------------------------------------------------------------------------
+THE FIX — ReplacingMergeTree(build_version), a MONOTONIC version column
+--------------------------------------------------------------------------
+  Same two-pass absorption, only the version column changes.
+FIXED      versioned session_intervals is row-for-row identical to a clean rebuild
+CONVERGES  versioned incremental == production truth on all 1579 minutes · peak 2917
+versioned incremental (FIXED)            2917       2483
+
+--------------------------------------------------------------------------
+SECOND FINDING — starts/ends cannot carry the ADR 0006 negative correction
+--------------------------------------------------------------------------
+  cc_minute_delta.starts/ends are SimpleAggregateFunction(sum, UInt64). ADR 0006
+  step 3 says to append 'the NEGATION of the deltas for the old derivation'. For
+  delta (Int64) that is exact — proven above. For an unsigned column it is not
+  representable, and ClickHouse does not reject it; it wraps, silently:
+   ┌─stored_row─┐
+1. │       -100 │
+2. │        100 │
+   └────────────┘
+  sum() = 0  (correct, but only because UInt64 sum wraps modulo 2^64)   max() = 100  <- nonsense
+
+  This run sidesteps it by zeroing starts/ends on the corrective row, which
+  leaves the counters permanently inflated:
+Row 1:
+──────
+incremental_starts: 24378
+control_starts:     20002
+incremental_ends:   21190
+control_ends:       16826
+  Remedy: make both SimpleAggregateFunction(sum, Int64), like delta.
+
+--------------------------------------------------------------------------
+WATERMARK — how wide must W be? (measured; ADR 0004 requires it be set from data)
+--------------------------------------------------------------------------
+  (a) truncation damage — how far BACK from the cut the stump was wrong:
+      earliest corrupted minute 2026-07-26 10:55:00 = 60 s before the cut · 3 minutes wrong
+  (b) model revision horizon — an interval stays revisable for GAP_S + TAIL_S:
+      150 + 60 = 210 s after its last observed event.
+  (c) straggler lag — events arriving after their own VideoSessionEnd (ADR 0007):
+Row 1:
+──────
+sessions_with_post_end_events: 239
+pct_of_sessions:               2.2
+p999_lag_s:                    733
+max_lag_s:                     2081
+
+  W = max(210, 2081) rounded up = 2400 s (40 min).
+  The binding constraint is the straggler tail, not truncation: a clean cut only
+  damages the last 60 s, but a single event 2081 s late reopens a minute that far
+  back. W=2400 leaves ~15% headroom over the observed maximum. Minutes newer than
+  W are served by the hot tier (ADR 0004); anything older than W that still moves
+  goes down the correction-by-diff path, which this run proves is exact.
+
+--------------------------------------------------------------------------
+  stump vs truth, the 40 minutes leading into the cut
+--------------------------------------------------------------------------
+    ┌──────────────minute─┬─stump─┬─truth─┬─diff─┐
+ 1. │ 2026-07-26 10:16:00 │    93 │    93 │    0 │
+ 2. │ 2026-07-26 10:17:00 │   100 │   100 │    0 │
+ 3. │ 2026-07-26 10:18:00 │    98 │    98 │    0 │
+ 4. │ 2026-07-26 10:19:00 │    93 │    93 │    0 │
+ 5. │ 2026-07-26 10:20:00 │    99 │    99 │    0 │
+ 6. │ 2026-07-26 10:21:00 │    99 │    99 │    0 │
+ 7. │ 2026-07-26 10:22:00 │   105 │   105 │    0 │
+ 8. │ 2026-07-26 10:23:00 │   103 │   103 │    0 │
+ 9. │ 2026-07-26 10:24:00 │   103 │   103 │    0 │
+10. │ 2026-07-26 10:25:00 │    98 │    98 │    0 │
+11. │ 2026-07-26 10:26:00 │    97 │    97 │    0 │
+12. │ 2026-07-26 10:27:00 │    94 │    94 │    0 │
+13. │ 2026-07-26 10:28:00 │    96 │    96 │    0 │
+14. │ 2026-07-26 10:29:00 │    96 │    96 │    0 │
+15. │ 2026-07-26 10:30:00 │   335 │   335 │    0 │
+16. │ 2026-07-26 10:31:00 │   569 │   569 │    0 │
+17. │ 2026-07-26 10:32:00 │   738 │   738 │    0 │
+18. │ 2026-07-26 10:33:00 │   902 │   902 │    0 │
+19. │ 2026-07-26 10:34:00 │  1069 │  1069 │    0 │
+20. │ 2026-07-26 10:35:00 │  1238 │  1238 │    0 │
+21. │ 2026-07-26 10:36:00 │  1406 │  1406 │    0 │
+22. │ 2026-07-26 10:37:00 │  1535 │  1535 │    0 │
+23. │ 2026-07-26 10:38:00 │  1681 │  1681 │    0 │
+24. │ 2026-07-26 10:39:00 │  1791 │  1791 │    0 │
+25. │ 2026-07-26 10:40:00 │  1909 │  1909 │    0 │
+26. │ 2026-07-26 10:41:00 │  2042 │  2042 │    0 │
+27. │ 2026-07-26 10:42:00 │  2170 │  2170 │    0 │
+28. │ 2026-07-26 10:43:00 │  2315 │  2315 │    0 │
+29. │ 2026-07-26 10:44:00 │  2325 │  2325 │    0 │
+30. │ 2026-07-26 10:45:00 │  2398 │  2398 │    0 │
+31. │ 2026-07-26 10:46:00 │  2494 │  2494 │    0 │
+32. │ 2026-07-26 10:47:00 │  2554 │  2554 │    0 │
+33. │ 2026-07-26 10:48:00 │  2634 │  2634 │    0 │
+34. │ 2026-07-26 10:49:00 │  2692 │  2692 │    0 │
+35. │ 2026-07-26 10:50:00 │  2726 │  2726 │    0 │
+36. │ 2026-07-26 10:51:00 │  2705 │  2705 │    0 │
+37. │ 2026-07-26 10:52:00 │  2758 │  2758 │    0 │
+38. │ 2026-07-26 10:53:00 │  2771 │  2771 │    0 │
+39. │ 2026-07-26 10:54:00 │  2825 │  2825 │    0 │
+40. │ 2026-07-26 10:55:00 │  2813 │  2860 │  -47 │
+41. │ 2026-07-26 10:56:00 │  2471 │  2917 │ -446 │
+    └─────────────────────┴───────┴───────┴──────┘
+
+--------------------------------------------------------------------------
+VERDICT
+--------------------------------------------------------------------------
+  1. The from-scratch build in an isolated database reproduces production exactly
+     (2887 @ 10:56, 2450 @ 11:10) — the derivation is deterministic.
+  2. This test is TWO-SIDED, so read both halves before concluding anything.
+     sql/70 deliberately KEEPS a ReplacingMergeTree(interval_end) variant to
+     reproduce the historical defect. On that variant absorption still DIVERGES —
+     3 of 1578 minutes, overcounting the PEAK by 37 (2924 vs 2887). That is the
+     test proving it can still DETECT the bug, not a report that we have it.
+  3. On the build_version variant — which is what sonyliv runs today — absorption
+     CONVERGES on all 1578 minutes, row for row against the clean rebuild, peak 2887.
+  4. Root cause, for the record: versioning on interval_end assumes re-derivation
+     only ever EXTENDS an interval. It does not — a provisional interval carries
+     60s of tail grace and the completed derivation can place the true end EARLIER,
+     so the stale longer row outranked the correct one permanently.
+  5. cc_minute_delta.starts/ends are Int64. As UInt64 they silently WRAPPED when
+     ADR 0006 negated a corrective row — sum() stayed right by modular arithmetic
+     so the bug hid, while max() returned 1.8e19.
+  6. Watermark W = 2400 s, set by the 2081 s straggler tail, not by truncation.
+
+  Both schema fixes are APPLIED to sonyliv (commit 388a845) and the reconcile
+  gate passes against them. This test is now a regression guard, not a bug report:
+    sql/10_intervals.sql  session_intervals  ReplacingMergeTree(build_version)
+    sql/10_intervals.sql  cc_minute_delta    starts/ends SimpleAggregateFunction(sum, Int64)

@@ -1,0 +1,29 @@
+# evidence: clickstack_integration
+# what: ClickStack/HyperDX provisioned against our ClickHouse Cloud service, with the five panel queries run
+# run_utc: 2026-08-01 16:07:16
+# git: d2b6c86-dirty
+# host: ss-cric
+# row_count: 1013988
+# event_watermark: 2026-08-01 16:07:16.157
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 16:07:16   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+hyperdx_version	2.33.0
+image	clickhouse/clickstack-all-in-one:latest
+container_health	healthy
+hyperdx_app_connection_host	http://localhost:8123,https://<service>.ap-south-1.aws.clickhouse.cloud:8443
+registered_source	phoenix.concurrency_deltas (timestamp expr: minute)
+dashboard_tiles	5
+otel_tables_created_in_our_service	11
+#
+# panel results, run against the same service this session:
+#	event_watermark_lag_seconds	1
+#	raw_events_rows	1013988
+#	peak_by_platform_top1	ANDROID_PHONE=1743
+#	query_log_rows_for_serving_tables_6h	4340
+verdict	PASS

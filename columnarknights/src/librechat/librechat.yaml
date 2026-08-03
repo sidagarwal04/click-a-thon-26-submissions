@@ -1,0 +1,40 @@
+version: 1.3.5
+cache: true
+
+# Both MCP servers are private/internal (same docker-compose network), which
+# default SSRF protection blocks unless explicitly exempted.
+mcpSettings:
+  allowedAddresses:
+    - "rca-mcp:8001"
+    - "clickhouse-mcp:8000"
+
+endpoints:
+  custom:
+    - name: "Gemini"
+      apiKey: "${GEMINI_API_KEY}"
+      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+      models:
+        default: ["gemini-flash-lite-latest", "gemini-flash-latest"]
+        fetch: false
+      titleConvo: true
+      titleModel: "gemini-flash-lite-latest"
+      modelDisplayLabel: "Gemini"
+
+# Two MCP servers, both grounding chat answers in real ClickHouse data instead
+# of letting the model invent numbers:
+#   - clickhouse: the official ClickHouse MCP server (its own container, see
+#     ../docker-compose.yml) for ad-hoc SQL exploration beyond what's pre-built.
+#   - rca-investigator: this project's own pipeline (rca/mcp_server.py, its
+#     own container running `rca mcp-serve`) for the validated, traced
+#     scan/investigate root-cause tools — the same ones the CLI/dashboard use.
+mcpServers:
+  clickhouse:
+    type: streamable-http
+    url: http://clickhouse-mcp:8000/mcp
+    serverInstructions: true
+    timeout: 30000
+  rca-investigator:
+    type: streamable-http
+    url: http://rca-mcp:8001/mcp
+    serverInstructions: true
+    timeout: 60000

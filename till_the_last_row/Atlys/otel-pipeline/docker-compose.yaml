@@ -1,0 +1,31 @@
+# ============================================================
+# Docker Compose — Atlys OTEL Parquet → ClickHouse pipeline
+# ============================================================
+# Usage:
+#   cp .env.example .env        # fill in CH_* credentials
+#   docker compose up           # start collector
+#   python emit.py              # in another terminal
+# ============================================================
+
+services:
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.103.0
+    container_name: atlys-otelcol
+    command: ["--config=/etc/otelcol/collector-config.yaml"]
+    volumes:
+      - ./collector-config.yaml:/etc/otelcol/collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC  — Python emitter sends here
+      - "4318:4318"   # OTLP HTTP  — alternative
+      - "8888:8888"   # Prometheus metrics (collector self-telemetry)
+    environment:
+      - CH_ENDPOINT=${CH_ENDPOINT}
+      - CH_USER=${CH_USER}
+      - CH_PASSWORD=${CH_PASSWORD}
+      - CH_DATABASE=${CH_DATABASE:-default}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

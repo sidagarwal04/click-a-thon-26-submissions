@@ -1,0 +1,302 @@
+name: why-did-it-move
+
+networks:
+  why-did-it-move-net:
+    name: why-did-it-move-net
+    driver: bridge
+
+volumes:
+  clickhouse-data:
+    name: why-did-it-move-clickhouse-data
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # CENTRAL DATA STORE - always on, no profile
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3
+    container_name: ch-clickhouse
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-default}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+      CLICKHOUSE_READONLY_USER: ${CLICKHOUSE_READONLY_USER}
+      CLICKHOUSE_READONLY_PASSWORD: ${CLICKHOUSE_READONLY_PASSWORD}
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./volumes/clickhouse/logs:/var/log/clickhouse-server
+      - ./configs/clickhouse/00-init-db.sh:/docker-entrypoint-initdb.d/00-init-db.sh:ro
+      - ./configs/clickhouse/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./data/inmobi:/data/inmobi:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - why-did-it-move-net
+
+  # SHARED SUPPORTING INFRASTRUCTURE for Langfuse
+  postgres:
+    image: postgres:16-alpine
+    container_name: ch-postgres
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      LANGFUSE_POSTGRES_DB: ${LANGFUSE_POSTGRES_DB:-langfuse}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+      - ./configs/postgres/init-langfuse-db.sh:/docker-entrypoint-initdb.d/init-langfuse-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - why-did-it-move-net
+
+  redis:
+    image: redis:7.4.1-alpine
+    container_name: ch-redis
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./volumes/redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - why-did-it-move-net
+
+  minio:
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: ch-minio
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ./volumes/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - why-did-it-move-net
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    container_name: ch-minio-init
+    profiles: ["langfuse"]
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set localminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
+      mc mb -p localminio/${MINIO_LANGFUSE_BUCKET:-langfuse} &&
+      echo 'MinIO bucket ready.'
+      "
+    networks:
+      - why-did-it-move-net
+
+  # LANGFUSE v3 - profile: langfuse
+  langfuse-web:
+    image: langfuse/langfuse:3
+    container_name: ch-langfuse-web
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment: &langfuse-common-env
+      HOSTNAME: "0.0.0.0"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${LANGFUSE_POSTGRES_DB:-langfuse}
+      NEXTAUTH_URL: ${LANGFUSE_NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      SALT: ${LANGFUSE_SALT}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: ${REDIS_PASSWORD}
+      REDIS_TLS_ENABLED: "false"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${MINIO_LANGFUSE_BUCKET:-langfuse}
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-ai-org}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-ai Investigation Org}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-ai-project}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-ai Investigation}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Admin}
+    ports:
+      - "${LANGFUSE_WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/public/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - ./volumes/langfuse-web:/tmp
+    networks:
+      - why-did-it-move-net
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: ch-langfuse-worker
+    profiles: ["langfuse"]
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-common-env
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${LANGFUSE_WORKER_PORT:-3030}:3030"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3030/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - ./volumes/langfuse-worker:/tmp
+    networks:
+      - why-did-it-move-net
+
+  # PROBLEM-SPECIFIC BACKEND - always on, no profile (this is the actual deliverable)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ch-backend
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      CLICKHOUSE_HTTP_URL: http://clickhouse:8123
+      CLICKHOUSE_READONLY_USER: ${CLICKHOUSE_READONLY_USER}
+      CLICKHOUSE_READONLY_PASSWORD: ${CLICKHOUSE_READONLY_PASSWORD}
+      CLICKHOUSE_ADMIN_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_ADMIN_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      ACTIVE_LLM_PROVIDER: ${ACTIVE_LLM_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_WEB_PUBLIC_URL: http://localhost:${LANGFUSE_WEB_PORT:-3000}
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    volumes:
+      - ./backend:/app
+    networks:
+      - why-did-it-move-net
+
+  # CUSTOM FRONTEND - always on, no profile
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ch-frontend
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8001}
+      VITE_LANGFUSE_URL: http://localhost:${LANGFUSE_WEB_PORT:-3000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - why-did-it-move-net

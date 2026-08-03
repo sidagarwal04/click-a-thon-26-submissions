@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "Component",
+  "title": "OpenZentra Design System Component Generator",
+  "description": "Generate a new OpenZentra design system component with variants, modifiers, and slots",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the component (e.g., Button, Input, Badge)",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What is the component name?",
+      "x-priority": "important"
+    },
+    "variants": {
+      "type": "string",
+      "description": "Comma-separated list of variants in format 'variantName:value1,value2' (e.g., 'intent:primary,secondary,danger size:sm,md,lg')",
+      "x-prompt": "What variants should this component have? (e.g., 'intent:primary,secondary size:sm,md,lg')"
+    },
+    "modifiers": {
+      "type": "string",
+      "description": "Comma-separated list of boolean modifiers (e.g., 'disabled,loading,fullWidth')",
+      "x-prompt": "What boolean modifiers should this component have? (e.g., 'disabled,loading')"
+    },
+    "slots": {
+      "type": "string",
+      "description": "Comma-separated list of slots (e.g., 'startIcon,endIcon,content')",
+      "x-prompt": "What slots should this component have? (e.g., 'icon,label')"
+    },
+    "rootElement": {
+      "type": "string",
+      "description": "The default HTML element for the component root",
+      "default": "div",
+      "enum": [
+        "div",
+        "span",
+        "button",
+        "input",
+        "label",
+        "a",
+        "section",
+        "article",
+        "header",
+        "footer",
+        "nav",
+        "aside",
+        "main"
+      ]
+    },
+    "useBaseUI": {
+      "type": "boolean",
+      "description": "Whether this component should wrap a Base UI primitive",
+      "default": false
+    },
+    "baseUIPrimitive": {
+      "type": "string",
+      "description": "The Base UI primitive to use (e.g., 'Checkbox', 'Switch', 'Select')"
+    },
+    "isCompound": {
+      "type": "boolean",
+      "description": "Whether this is a compound component with sub-components",
+      "default": false
+    },
+    "isPublic": {
+      "type": "boolean",
+      "description": "Whether this component should be exported from the public API",
+      "default": true
+    },
+    "supportsPolymorphism": {
+      "type": "boolean",
+      "description": "Whether this component supports the 'component' prop for polymorphism",
+      "default": true
+    },
+    "directory": {
+      "type": "string",
+      "description": "Subdirectory within components folder (e.g., 'form' for form components)"
+    },
+    "skipTests": {
+      "type": "boolean",
+      "description": "Skip generating test file",
+      "default": false
+    },
+    "skipStory": {
+      "type": "boolean",
+      "description": "Skip generating Storybook story file",
+      "default": false
+    }
+  },
+  "required": ["name"]
+}

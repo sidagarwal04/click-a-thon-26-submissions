@@ -1,0 +1,339 @@
+{
+  "table_name": "f_express_checkout_events",
+  "columns": [
+    {
+      "name": "id",
+      "type": "String",
+      "json_path": "id",
+      "codec": "ZSTD(1)",
+      "default": null,
+      "comment": "32-char hex string, not UUID-parseable; legacy tables wrongly type this UUID"
+    },
+    {
+      "name": "event",
+      "type": "LowCardinality(String)",
+      "json_path": "event",
+      "codec": null,
+      "default": null,
+      "comment": "discriminator, 5 values"
+    },
+    {
+      "name": "timestamp",
+      "type": "DateTime64(3)",
+      "json_path": "timestamp",
+      "codec": "Delta, ZSTD(1)",
+      "default": null,
+      "comment": null
+    },
+    {
+      "name": "user_id",
+      "type": "String",
+      "json_path": "user_id",
+      "codec": "ZSTD(1)",
+      "default": null,
+      "comment": "entity key, 100% coverage"
+    },
+    {
+      "name": "application_id",
+      "type": "String",
+      "json_path": "application_id",
+      "codec": "ZSTD(1)",
+      "default": null,
+      "comment": "secondary key, 100% coverage"
+    },
+    {
+      "name": "device_type",
+      "type": "LowCardinality(String)",
+      "json_path": "device_type",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "os",
+      "type": "LowCardinality(String)",
+      "json_path": "os",
+      "codec": null,
+      "default": "''",
+      "comment": "93.1% coverage; missing = unknown OS, not analytically distinct from empty, so DEFAULT '' not Nullable"
+    },
+    {
+      "name": "geoip_country_code",
+      "type": "LowCardinality(String)",
+      "json_path": "geoip_country_code",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "city",
+      "type": "LowCardinality(String)",
+      "json_path": "city",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "destination",
+      "type": "LowCardinality(String)",
+      "json_path": "destination",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "app_version",
+      "type": "LowCardinality(String)",
+      "json_path": "app_version",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "client_lib",
+      "type": "LowCardinality(String)",
+      "json_path": "client_lib",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "currency",
+      "type": "LowCardinality(String)",
+      "json_path": "currency",
+      "codec": null,
+      "default": "''",
+      "comment": "only on express_checkout_shown (30% coverage = 1/E-ish, event-scoped)"
+    },
+    {
+      "name": "shown_amount",
+      "type": "Decimal(18, 4)",
+      "json_path": "shown_amount",
+      "codec": null,
+      "default": "0",
+      "comment": "currency-denominated amount shown, scoped to express_checkout_shown"
+    },
+    {
+      "name": "eligible",
+      "type": "UInt8",
+      "json_path": "eligible",
+      "codec": null,
+      "default": "0",
+      "comment": "boolean flag on express_checkout_shown"
+    },
+    {
+      "name": "saved_method_type",
+      "type": "LowCardinality(String)",
+      "json_path": "saved_method_type",
+      "codec": null,
+      "default": "''",
+      "comment": "card/upi/wallet, scoped to express_checkout_selected"
+    },
+    {
+      "name": "otp_attempts",
+      "type": "UInt8",
+      "json_path": "otp_attempts",
+      "codec": null,
+      "default": "0",
+      "comment": "small int, max observed 3, scoped to otp_entered"
+    },
+    {
+      "name": "otp_success",
+      "type": "UInt8",
+      "json_path": "otp_success",
+      "codec": null,
+      "default": "0",
+      "comment": "boolean flag, scoped to otp_entered"
+    },
+    {
+      "name": "payment_amount",
+      "type": "Decimal(18, 4)",
+      "json_path": "payment.amount",
+      "codec": null,
+      "default": "0",
+      "comment": "summed currency value, scoped to express_payment_confirmed"
+    },
+    {
+      "name": "payment_currency",
+      "type": "LowCardinality(String)",
+      "json_path": "payment.currency",
+      "codec": null,
+      "default": "''",
+      "comment": null
+    },
+    {
+      "name": "payment_latency_ms",
+      "type": "UInt32",
+      "json_path": "payment.latency_ms",
+      "codec": null,
+      "default": "0",
+      "comment": "milliseconds, fits UInt32; scoped to express_payment_confirmed"
+    }
+  ],
+  "engine": "MergeTree",
+  "order_by": [
+    "event",
+    "timestamp",
+    "user_id"
+  ],
+  "partition_by": "toYYYYMM(timestamp)",
+  "ttl": "toDateTime(timestamp) + INTERVAL 18 MONTH",
+  "settings": {
+    "ratio_of_defaults_for_sparse_serialization": 0.8333
+  },
+  "materialized_views": [
+    {
+      "name": "mv_express_checkout_funnel_daily",
+      "target_table": "agg_express_checkout_funnel_daily",
+      "select_sql": "SELECT toDate(timestamp) AS day, event, device_type, os, geoip_country_code, destination, saved_method_type, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state FROM f_express_checkout_events GROUP BY day, event, device_type, os, geoip_country_code, destination, saved_method_type",
+      "justification": "Every PM question here is a segment cut on step counts/distinct users: conversion lift, adoption by segment, OTP/confirmation rate by device/os/geo. This rollup answers all four with a single AggregatingMergeTree scan instead of windowFunnel over raw rows filtered by 6 segment dims. At the observed volume (1,650 shown events -> ~836 confirmed over 20 days across up to 4 device_type x 4 os x 7 geo x 14 destination x 3 saved_method_type combinations) the theoretical key space is large, but real combinations are far fewer since not all segments co-occur; measured reduction must be checked post-load per house rule 7 keep/drop gate.",
+      "serves_questions": [
+        "Does Express lift checkout -> success conversion vs standard checkout, and by how much?",
+        "Is there a platform where OTP / payment fails more (e.g. iOS)? Cut otp_success / confirmation rate by device_type / os / geoip_country_code.",
+        "Which segments adopt Express most (device, geo, saved-method type)?"
+      ],
+      "measured_source_rows": 5507,
+      "measured_target_rows": 4693,
+      "reduction_factor": 1.17,
+      "kept": false
+    },
+    {
+      "name": "mv_express_checkout_payment_perf_daily",
+      "target_table": "agg_express_checkout_payment_perf_daily",
+      "select_sql": "SELECT toDate(timestamp) AS day, device_type, os, geoip_country_code, avgStateIf(payment_latency_ms, event = 'express_payment_confirmed') AS latency_avg_state, sumStateIf(payment_amount, event = 'express_payment_confirmed') AS payment_amount_sum_state, countIfState(event = 'express_payment_confirmed') AS confirmed_count_state, avgStateIf(otp_success, event = 'otp_entered') AS otp_success_rate_state, countIfState(event = 'otp_entered') AS otp_entered_count_state FROM f_express_checkout_events GROUP BY day, device_type, os, geoip_country_code",
+      "justification": "Answers 'how much faster is Express' (payment.latency_ms) and the OTP-failure-by-platform question without re-scanning event-scoped sparse columns (payment_latency_ms is non-default on only 15.2% of rows, otp_success on 18.3%) across the full raw table every time. Uses -If combinators so the mixed-grain wide table (one row per event type) still yields correct conditional aggregates without a self-join.",
+      "serves_questions": [
+        "How much faster is Express (payment.latency_ms, time from shown -> confirmed)?",
+        "Is there a platform where OTP / payment fails more (e.g. iOS)? Cut otp_success / confirmation rate by device_type / os / geoip_country_code."
+      ],
+      "measured_source_rows": 5507,
+      "measured_target_rows": 506,
+      "reduction_factor": 10.88,
+      "kept": true
+    }
+  ],
+  "semantics": {
+    "feature_slug": "express_checkout",
+    "table_fqn": "atlys.f_express_checkout_events",
+    "event_column": "event",
+    "event_types": [
+      "express_checkout_shown",
+      "express_checkout_selected",
+      "saved_method_used",
+      "otp_entered",
+      "express_payment_confirmed"
+    ],
+    "entity_key": "user_id",
+    "entity_key_confidence": 0.8,
+    "secondary_keys": [
+      "application_id"
+    ],
+    "ordered_steps": [
+      "express_checkout_shown",
+      "express_checkout_selected",
+      "saved_method_used",
+      "otp_entered",
+      "express_payment_confirmed"
+    ],
+    "step_order_source": "spec",
+    "segment_dims": [
+      "device_type",
+      "os",
+      "geoip_country_code",
+      "destination",
+      "saved_method_type",
+      "city",
+      "app_version",
+      "client_lib"
+    ],
+    "measures": [
+      {
+        "column": "shown_amount",
+        "kind": "money",
+        "scoped_to_events": [
+          "express_checkout_shown"
+        ],
+        "unit": "currency"
+      },
+      {
+        "column": "payment_amount",
+        "kind": "money",
+        "scoped_to_events": [
+          "express_payment_confirmed"
+        ],
+        "unit": "currency"
+      },
+      {
+        "column": "payment_latency_ms",
+        "kind": "duration_ms",
+        "scoped_to_events": [
+          "express_payment_confirmed"
+        ],
+        "unit": "ms"
+      },
+      {
+        "column": "otp_attempts",
+        "kind": "count",
+        "scoped_to_events": [
+          "otp_entered"
+        ],
+        "unit": "attempts"
+      }
+    ],
+    "flags": [
+      "eligible",
+      "otp_success"
+    ],
+    "disconnected_event_types": [],
+    "partial_identity_columns": [],
+    "cross_reference_hints": [
+      {
+        "from_column": "app_version",
+        "matches": "shared_key",
+        "targets": [
+          "destination_card_clicked"
+        ],
+        "join_key": "app_version",
+        "evidence": "3 shared app_version values with destination_card_clicked, plus toDate(timestamp); no shared identity column across the 8 legacy tables"
+      },
+      {
+        "from_column": "city",
+        "matches": "shared_key",
+        "targets": [
+          "destination_card_clicked"
+        ],
+        "join_key": "city",
+        "evidence": "7 shared city values with destination_card_clicked, plus toDate(timestamp)"
+      },
+      {
+        "from_column": "client_lib",
+        "matches": "shared_key",
+        "targets": [
+          "destination_card_clicked"
+        ],
+        "join_key": "client_lib",
+        "evidence": "2 shared client_lib values with destination_card_clicked, plus toDate(timestamp)"
+      }
+    ]
+  },
+  "rationale": {
+    "order_by": "ORDER BY (event, timestamp, user_id) not (id, timestamp, user_id). id is unique per row (5,507 distinct over 5,507 rows) so an id-first index prunes nothing; every PM question here filters/groups by event type and time window and funnels by user_id (100% coverage, 1,650 distinct values, entity key confidence 0.80 vs application_id tie). event leads because E=5 is low-cardinality and nearly every question ('cut otp_success by device/os/geo', conversion lift) filters or groups by event first; timestamp second because all four PM questions are time-windowed; user_id last to co-locate each user's 5-step sequence for windowFunnel.\n\nBake-off on t02_funnel_overall: chosen ORDER BY (event, timestamp, user_id) read 220,508 B / 5,509 rows; straw-man ORDER BY (timestamp, user_id) read 220,508 B / 5,509 rows. At sample volume (5,509 rows) both layouts read the same bytes -- the table fits in a handful of granules, so primary-key pruning cannot discriminate. Event-first retained per house_rules \u00a72 (event prune + sparse serialization); straw-man dropped. Re-run at projected_annual_rows to price the gap.",
+    "partition_by": "toYYYYMM(timestamp), matching all 8 existing tables so cross-table segment joins (app_version/city/client_lib vs destination_card_clicked) prune on the same partition boundaries. At ~5,507 rows over 20 days (projected ~100k rows/year at this rate), daily partitions would produce thousands of tiny parts for a table this size and slow merges for no pruning benefit monthly doesn't already give.",
+    "types": "Single wide table across E=5 event types. An event-scoped column (e.g. payment_latency_ms, present on only express_payment_confirmed = 836/5507 = 15.2% of rows, i.e. ~84.8% default) sits right at the edge: with E balanced event types the naive default ratio is (1-1/E) = 0.80, under the 0.9375 sparse threshold, so it would NOT auto-sparsify. We therefore set ratio_of_defaults_for_sparse_serialization = min(0.9, 1-1/(E+1)) = min(0.9, 1-1/6) = min(0.9, 0.8333) = 0.8333, below the true ~0.80-0.85 default ratios measured on otp_attempts/otp_success (18.3% coverage -> 81.7% default), shown_amount/currency/eligible (30% coverage -> 70% default), and payment_* fields (15.2% coverage -> 84.8% default), so these columns get sparse serialization at this table's actual default rates. id is String not UUID: the raw id is a 32-char hex string with no dashes ('f105934b4c083002827058f3' truncated sample is 25 chars but format is non-dashed hex), which UUID parsing rejects; the 8 legacy tables declare id UUID and would fail to load this exact field. timestamp is DateTime64(3) because the source carries millisecond precision ('2026-06-08T06:00:00.000'); DateTime would silently truncate it, breaking the latency-from-shown-to-confirmed question. Money fields (shown_amount, payment_amount) use Decimal(18,4) since they are currency-denominated and will be summed for revenue-per-conversion-style rollups; payment_latency_ms is UInt32 (ms values up to a few thousand, well under 4B); otp_attempts is UInt8 (observed max 3).",
+    "nullable": "No Nullable columns, unlike the legacy tables (30-35 Nullable of ~33-38 columns each). Every segment/id column defaults to '' or 0: os has 93.1% coverage but 'missing OS' is not a tri-state fact worth a null-map cost on a hot group-by column used in the OTP-failure-by-platform question, so DEFAULT '' is used. Because identity/segment columns default to '' rather than NULL, uniq(user_id) would count '' as a distinct user if any partial-identity rows existed; here user_id and application_id are both 100% covered across all 5 event types (spec's 'events with a partial envelope: none'), so partial_identity_columns is empty and no uniqIf guard is strictly required for correctness -- but the funnel MV still uses uniqStateIf(user_id, user_id != '') defensively since it is the house-rule default for any AggregatingMergeTree distinct-user state.",
+    "ttl": "TTL toDateTime(timestamp) + INTERVAL 18 MONTH on the raw table, paired with two unbounded-retention agg_ rollups (agg_express_checkout_funnel_daily, agg_express_checkout_payment_perf_daily) so segment-level conversion and latency trend queries beyond 18 months keep working on the pre-aggregated state columns after raw rows expire, at a fraction of the row count.",
+    "mvs": "Two MVs, each targeting a distinct cluster of the 4 PM questions rather than one copy-of-raw MV. mv_express_checkout_funnel_daily (event x segment x day, countState/uniqStateIf) answers conversion-lift, adoption-by-segment, and OTP/confirmation-rate-by-platform by grouping on the same columns PMs already asked to cut by (device_type, os, geoip_country_code, destination, saved_method_type) instead of scanning 5,507+ raw rows and re-deriving per-user step sequences each time. mv_express_checkout_payment_perf_daily isolates the two genuinely sparse, expensive-to-scan measures (payment_latency_ms at 15.2% coverage, otp_success at 18.3% coverage) with -If aggregate combinators so latency and OTP-failure trends don't require re-filtering the wide table's mostly-default columns on every query. Both use AggregatingMergeTree with uniqState/avgState/sumState/countState (never plain count()/avg(), which cannot be merged correctly across partitions for an AggregatingMergeTree target). Per house rule 7, actual keep/drop must be decided post-load by comparing measured row counts on this ~5,507-row / 20-day sample projected to ~700K applications/year run-rate company-wide (this feature's own annual volume is far smaller since it's a checkout-stage feature, not every applicant), not on the sample volume itself, which is too small to show a convincing reduction factor by construction.",
+    "contrast_with_legacy": "The 8 existing tables are one-table-per-event with ORDER BY (id, timestamp, user_id) and 30-35/33-38 Nullable columns -- instrumentation_notes.md calls this an SDK template artifact, not a design choice. This feature's headline questions ('does Express lift conversion', 'cut OTP failure by device/os/geo') are within-feature funnels across all 5 event types for the same user, which a single wide table answers with one windowFunnel/GROUP BY; five event-per-table tables would need a 5-way join on user_id per question. Naming as f_express_checkout_events / agg_express_checkout_* / mv_express_checkout_* avoids the exact collision risk called out for this context layer: other feature specs' drop_step/event values can literally match legacy table names (e.g. pay_now_clicked), so the f_/agg_/mv_ prefix is a correctness guard, not cosmetic.",
+    "generation_log": "attempt 0: lint clean, dry run OK",
+    "order_by_measured_chosen_bytes": "220508",
+    "order_by_measured_straw_bytes": "220508",
+    "order_by_measured_ratio": "1.00"
+  },
+  "ddl_sql": [
+    "CREATE TABLE IF NOT EXISTS f_express_checkout_events\n(\n    `id` String COMMENT 'json_path=id; 32-char hex string, not UUID-parseable; legacy tables wrongly type this UUID' CODEC(ZSTD(1)),\n    `event` LowCardinality(String) COMMENT 'json_path=event; discriminator, 5 values',\n    `timestamp` DateTime64(3) COMMENT 'json_path=timestamp' CODEC(Delta, ZSTD(1)),\n    `user_id` String COMMENT 'json_path=user_id; entity key, 100% coverage' CODEC(ZSTD(1)),\n    `application_id` String COMMENT 'json_path=application_id; secondary key, 100% coverage' CODEC(ZSTD(1)),\n    `device_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=device_type',\n    `os` LowCardinality(String) DEFAULT '' COMMENT 'json_path=os; 93.1% coverage; missing = unknown OS, not analytically distinct from empty, so DEFAULT '''' not Nullable',\n    `geoip_country_code` LowCardinality(String) DEFAULT '' COMMENT 'json_path=geoip_country_code',\n    `city` LowCardinality(String) DEFAULT '' COMMENT 'json_path=city',\n    `destination` LowCardinality(String) DEFAULT '' COMMENT 'json_path=destination',\n    `app_version` LowCardinality(String) DEFAULT '' COMMENT 'json_path=app_version',\n    `client_lib` LowCardinality(String) DEFAULT '' COMMENT 'json_path=client_lib',\n    `currency` LowCardinality(String) DEFAULT '' COMMENT 'json_path=currency; only on express_checkout_shown (30% coverage = 1/E-ish, event-scoped)',\n    `shown_amount` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=shown_amount; currency-denominated amount shown, scoped to express_checkout_shown',\n    `eligible` UInt8 DEFAULT 0 COMMENT 'json_path=eligible; boolean flag on express_checkout_shown',\n    `saved_method_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=saved_method_type; card/upi/wallet, scoped to express_checkout_selected',\n    `otp_attempts` UInt8 DEFAULT 0 COMMENT 'json_path=otp_attempts; small int, max observed 3, scoped to otp_entered',\n    `otp_success` UInt8 DEFAULT 0 COMMENT 'json_path=otp_success; boolean flag, scoped to otp_entered',\n    `payment_amount` Decimal(18, 4) DEFAULT 0 COMMENT 'json_path=payment.amount; summed currency value, scoped to express_payment_confirmed',\n    `payment_currency` LowCardinality(String) DEFAULT '' COMMENT 'json_path=payment.currency',\n    `payment_latency_ms` UInt32 DEFAULT 0 COMMENT 'json_path=payment.latency_ms; milliseconds, fits UInt32; scoped to express_payment_confirmed'\n)\nENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nORDER BY (event, timestamp, user_id)\nTTL toDateTime(timestamp) + INTERVAL 18 MONTH\nSETTINGS ratio_of_defaults_for_sparse_serialization = 0.8333",
+    "CREATE TABLE IF NOT EXISTS agg_express_checkout_funnel_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, event, device_type, os, geoip_country_code, destination, saved_method_type)\nEMPTY AS\nSELECT toDate(timestamp) AS day, event, device_type, os, geoip_country_code, destination, saved_method_type, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state FROM f_express_checkout_events GROUP BY day, event, device_type, os, geoip_country_code, destination, saved_method_type",
+    "CREATE TABLE IF NOT EXISTS agg_express_checkout_payment_perf_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, device_type, os, geoip_country_code)\nEMPTY AS\nSELECT toDate(timestamp) AS day, device_type, os, geoip_country_code, avgStateIf(payment_latency_ms, event = 'express_payment_confirmed') AS latency_avg_state, sumStateIf(payment_amount, event = 'express_payment_confirmed') AS payment_amount_sum_state, countIfState(event = 'express_payment_confirmed') AS confirmed_count_state, avgStateIf(otp_success, event = 'otp_entered') AS otp_success_rate_state, countIfState(event = 'otp_entered') AS otp_entered_count_state FROM f_express_checkout_events GROUP BY day, device_type, os, geoip_country_code",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_express_checkout_funnel_daily\nTO agg_express_checkout_funnel_daily AS\nSELECT toDate(timestamp) AS day, event, device_type, os, geoip_country_code, destination, saved_method_type, countState() AS events_state, uniqStateIf(user_id, user_id != '') AS users_state FROM f_express_checkout_events GROUP BY day, event, device_type, os, geoip_country_code, destination, saved_method_type",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_express_checkout_payment_perf_daily\nTO agg_express_checkout_payment_perf_daily AS\nSELECT toDate(timestamp) AS day, device_type, os, geoip_country_code, avgStateIf(payment_latency_ms, event = 'express_payment_confirmed') AS latency_avg_state, sumStateIf(payment_amount, event = 'express_payment_confirmed') AS payment_amount_sum_state, countIfState(event = 'express_payment_confirmed') AS confirmed_count_state, avgStateIf(otp_success, event = 'otp_entered') AS otp_success_rate_state, countIfState(event = 'otp_entered') AS otp_entered_count_state FROM f_express_checkout_events GROUP BY day, device_type, os, geoip_country_code"
+  ]
+}

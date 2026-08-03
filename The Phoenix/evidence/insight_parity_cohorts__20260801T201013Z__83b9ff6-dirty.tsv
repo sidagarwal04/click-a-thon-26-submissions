@@ -1,0 +1,27 @@
+# evidence: insight_parity_cohorts
+# what: cohorts: independent ground truth in clickhouse local against the phoenix_next serving table
+# run_utc: 2026-08-01 20:10:13
+# git: 83b9ff6-dirty
+# host: ss-cric
+# row_count: 2203618
+# event_watermark: 2026-08-01 20:06:20.800
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 20:06:20   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+insight	cohorts
+database	phoenix_next
+reference_kind	server-side reference: sql/insights/validation/cohorts_reference.sql (already-validated table)
+ground_truth_rows	8530
+optimized_rows	8530	(frozen slice: sessions whose every event precedes frozen_before)
+differing_rows	0	(required 0)
+missing_keys	0	(required 0)
+unexpected_keys	0	(required 0)
+keys_in_common	8530
+rows_actually_compared	8530	(required equal to keys_in_common and greater than 0)
+columns_compared	9	(required greater than 1)
+verdict	PASS

@@ -1,0 +1,82 @@
+{
+  "call_id": "CALL-02-EASY",
+  "category": "Easy",
+  "title": "Application Starts Distribution by Device and OS",
+  "question": "What is the volume and percentage distribution of visa application starts by device type and operating system?",
+  "database": "default",
+  "target_tables": "application_started",
+  "timestamp": "2026-08-02T00:14:29.308326+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 239.9,
+    "row_count": 8,
+    "columns_count": 4,
+    "columns": [
+      "device_type",
+      "os",
+      "total_application_starts",
+      "volume_share_pct"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_easy_02",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/6978fec88ee738c3f267efe7beca484e",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    device_type,\n    os,\n    count() AS total_application_starts,\n    round(count() * 100.0 / sum(count()) OVER (), 2) AS volume_share_pct\nFROM default.application_started\nGROUP BY device_type, os\nORDER BY total_application_starts DESC",
+  "result_sample": [
+    {
+      "device_type": "ios",
+      "os": "iOS",
+      "total_application_starts": 63520,
+      "volume_share_pct": 41.14
+    },
+    {
+      "device_type": "android",
+      "os": "Android",
+      "total_application_starts": 40720,
+      "volume_share_pct": 26.37
+    },
+    {
+      "device_type": "web-user-b2c",
+      "os": "Windows",
+      "total_application_starts": 19044,
+      "volume_share_pct": 12.33
+    },
+    {
+      "device_type": "web-user-b2c",
+      "os": "Mac OS X",
+      "total_application_starts": 10396,
+      "volume_share_pct": 6.73
+    },
+    {
+      "device_type": "android",
+      "os": null,
+      "total_application_starts": 8907,
+      "volume_share_pct": 5.77
+    },
+    {
+      "device_type": "Desktop",
+      "os": "Windows",
+      "total_application_starts": 7428,
+      "volume_share_pct": 4.81
+    },
+    {
+      "device_type": "Desktop",
+      "os": "Mac OS X",
+      "total_application_starts": 3227,
+      "volume_share_pct": 2.09
+    },
+    {
+      "device_type": "web-user-b2c",
+      "os": "Linux",
+      "total_application_starts": 1171,
+      "volume_share_pct": 0.76
+    }
+  ],
+  "full_results_count": 8,
+  "summary": "Query executed successfully against ClickHouse default database in 239.9ms, returning 8 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Single-table group-by aggregation with window percent-of-total on application_started (154k rows). Validates multi-dimensional slicing."
+}

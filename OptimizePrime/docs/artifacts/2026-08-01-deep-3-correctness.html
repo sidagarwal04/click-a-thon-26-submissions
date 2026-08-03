@@ -1,0 +1,253 @@
+<title>Deep dive 3/4 — Correctness, and the limits of it</title>
+<style>
+  :root{
+    --ground:#E9ECEF; --surface:#FDFDFE; --sunk:#DFE3E8;
+    --ink:#12181F; --muted:#5A6675; --rule:#C3CBD4;
+    --active:#147D5A; --paused:#B26A00; --gone:#7C8794; --flag:#A8322B; --naive:#4A5A6E;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{--ground:#0F1419;--surface:#161C23;--sunk:#0A0E12;--ink:#DCE3EA;--muted:#8896A6;--rule:#2A3441;--active:#3FBE8C;--paused:#E0A046;--gone:#6E7C8C;--flag:#E0685E;--naive:#8FA3BC}}
+  :root[data-theme="dark"]{--ground:#0F1419;--surface:#161C23;--sunk:#0A0E12;--ink:#DCE3EA;--muted:#8896A6;--rule:#2A3441;--active:#3FBE8C;--paused:#E0A046;--gone:#6E7C8C;--flag:#E0685E;--naive:#8FA3BC}
+  :root[data-theme="light"]{--ground:#E9ECEF;--surface:#FDFDFE;--sunk:#DFE3E8;--ink:#12181F;--muted:#5A6675;--rule:#C3CBD4;--active:#147D5A;--paused:#B26A00;--gone:#7C8794;--flag:#A8322B;--naive:#4A5A6E}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:62rem;margin:0 auto;padding:2.5rem 1.5rem 6rem;display:flex;flex-direction:column;gap:2.6rem}
+  .series{display:flex;gap:1px;background:var(--rule);border:1px solid var(--rule);font-family:var(--mono);font-size:.68rem}
+  .series span{background:var(--surface);padding:.5rem .8rem;color:var(--muted);flex:1;text-align:center}
+  .series span.on{background:var(--ink);color:var(--ground);font-weight:700}
+  header{display:flex;flex-direction:column;gap:.8rem;border-bottom:2px solid var(--ink);padding-bottom:1.4rem}
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.08;margin:0;font-weight:800;letter-spacing:-.03em;text-wrap:balance}
+  .sub{color:var(--muted);max-width:60ch;margin:0;font-size:.93rem}
+  figure{margin:0;display:flex;flex-direction:column;gap:.8rem}
+  figcaption{display:flex;gap:.7rem;align-items:baseline;border-bottom:1px solid var(--rule);padding-bottom:.45rem}
+  .num{font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.1em;color:var(--muted);flex:none}
+  .cap{font-weight:700;font-size:1rem;letter-spacing:-.01em}
+  .note{color:var(--muted);font-size:.85rem;max-width:66ch;margin:0}
+  .panel{background:var(--surface);border:1px solid var(--rule);padding:1.1rem;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:.75rem}
+  th,td{text-align:left;padding:.42rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .yes{color:var(--active);font-weight:700} .no{color:var(--flag);font-weight:700} .warn{color:var(--paused);font-weight:700}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .split>div{background:var(--surface);padding:.9rem 1rem}
+  .split h4{margin:0 0 .5rem;font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .flow{display:flex;flex-direction:column;gap:.35rem;font-family:var(--mono);font-size:.74rem}
+  .fbox{background:var(--sunk);padding:.6rem .8rem;border-left:3px solid var(--naive)}
+  .fbox.a{border-left-color:var(--active)} .fbox.f{border-left-color:var(--flag)}
+  .fbox b{font-weight:700} .fbox em{font-style:normal;color:var(--muted);display:block;font-size:.7rem;margin-top:.12rem}
+  .arrow{text-align:center;color:var(--muted);font-family:var(--mono);font-size:.78rem}
+  .bars{display:flex;flex-direction:column;gap:.4rem}
+  .bar{display:grid;grid-template-columns:13rem 1fr 6rem;gap:.7rem;align-items:center;font-family:var(--mono);font-size:.74rem}
+  .btrack{background:var(--sunk);height:1.35rem}
+  .bfill{height:100%}
+  .bval{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .flagbox{border:1px solid var(--rule);border-left:3px solid var(--flag);background:var(--surface);padding:.85rem 1rem;display:flex;flex-direction:column;gap:.3rem}
+  .flagbox h3{margin:0;font-size:.88rem;font-weight:700}
+  .flagbox p{margin:0;font-size:.82rem;color:var(--muted)}
+  .lv{display:grid;grid-template-columns:2.4rem 1fr;gap:.9rem;align-items:start;padding:.75rem 0}
+  .lv+.lv{border-top:1px solid var(--rule)}
+  .lvn{font-family:var(--mono);font-weight:700;font-size:.72rem;background:var(--ink);color:var(--ground);display:flex;align-items:center;justify-content:center;height:2.4rem}
+  .lvn.ok{background:var(--active)} .lvn.bad{background:var(--flag)}
+  .lvb h4{margin:0 0 .2rem;font-size:.9rem}
+  .lvb p{margin:0;font-size:.82rem;color:var(--muted)}
+  @media(max-width:640px){.split{grid-template-columns:1fr}.bar{grid-template-columns:1fr}}
+  footer{border-top:1px solid var(--rule);padding-top:1rem;font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+</style>
+
+<div class="wrap">
+
+<div class="series"><span>1 · DATA</span><span>2 · MODEL</span><span class="on">3 · CORRECTNESS</span><span>4 · SCALE &amp; OPS</span></div>
+
+<header>
+  <div class="eyebrow">Deep dive 3 of 4</div>
+  <h1>Correctness, and the limits of it</h1>
+  <p class="sub">“Are we correct?” has three different answers. Conflating them is how a team gets surprised by a private answer key.</p>
+</header>
+
+<figure>
+  <figcaption><span class="num">3.1</span><span class="cap">Three meanings of correct</span></figcaption>
+  <div class="panel">
+    <div class="lv"><div class="lvn ok">1</div><div class="lvb"><h4>Is our arithmetic self-consistent? <span class="yes">Exactly yes.</span></h4><p>The serving layer equals an independent recomputation on every minute we have.</p></div></div>
+    <div class="lv"><div class="lvn ok">2</div><div class="lvb"><h4>Does our gate prove that? <span class="yes">Now yes — it did not.</span></h4><p>It once reported PASS having compared zero rows. Found by rehearsing on a day it had never seen.</p></div></div>
+    <div class="lv"><div class="lvn bad">3</div><div class="lvb"><h4>Do we match the private key? <span class="no">Unknown, with a measured envelope.</span></h4><p>Four definitional forks, none of which any test we own can detect.</p></div></div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.2</span><span class="cap">How the gate works — and why it is not self-confirming</span></figcaption>
+  <div class="panel">
+    <div class="split" style="border:0">
+      <div style="padding-left:0">
+        <h4>The model's path</h4>
+        <div class="flow">
+          <div class="fbox">ev_raw</div>
+          <div class="arrow">▼ arraySplit over a sorted array</div>
+          <div class="fbox">session_intervals</div>
+          <div class="arrow">▼ hour-clipped ±1</div>
+          <div class="fbox a">cc_minute_delta → running sum</div>
+        </div>
+      </div>
+      <div>
+        <h4>The gate's path</h4>
+        <div class="flow">
+          <div class="fbox">ev_raw</div>
+          <div class="arrow">▼ lagInFrame + running sum of run breaks</div>
+          <div class="fbox">segments, computed inline</div>
+          <div class="arrow">▼ uniqExact over a dense minute spine</div>
+          <div class="fbox a">truth</div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:.9rem">A <b>different algorithm on the same source</b>: window functions rather than array splitting. An error in either implementation shows up as a disagreement instead of cancelling out. The gate never reads <span style="font-family:var(--mono)">session_intervals</span> or <span style="font-family:var(--mono)">cc_minute_delta</span> to build its truth.</p>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.3</span><span class="cap">The gate that passed on nothing</span></figcaption>
+  <div class="panel">
+    <div class="flow">
+      <div class="fbox f"><b>sql/90_reconcile.sql hard-coded five 2026-07-26 timestamps</b></div>
+      <div class="arrow">▼ run it on any other day</div>
+      <div class="fbox f"><b>ZERO ROWS returned</b></div>
+      <div class="arrow">▼ tools/reconcile.sh decides with <span style="font-family:var(--mono)">grep -q MISMATCH</span></div>
+      <div class="fbox f"><b>no MISMATCH string → exit 0 → “reconcile PASSED”</b><em>minutes actually compared: 0</em></div>
+    </div>
+    <table style="margin-top:1rem">
+      <tr><th>and it degraded partially too</th><th></th></tr>
+      <tr><td>on a one-day 07-26 file it returned</td><td class="n no">4 rows instead of 5</td></tr>
+      <tr><td>because the 2026-07-14 target does not exist in a one-day load</td><td class="n">— and nothing asserted the row count</td></tr>
+    </table>
+    <table style="margin-top:.8rem">
+      <tr><th>fixed</th><th></th></tr>
+      <tr><td>target minutes</td><td class="n yes">derived from ev_raw — re-targets itself on any day</td></tr>
+      <tr><td>idle minutes</td><td class="n yes">dense spine — compared as 0 = 0</td></tr>
+      <tr><td>coverage assertion</td><td class="n yes">SUMMARY row carries minutes_compared; zero or missing = fail</td></tr>
+      <tr><td>coverage on production</td><td class="n yes">5 minutes → <b>17,028</b></td></tr>
+    </table>
+  </div>
+  <p class="note">This was found by running the pipeline on a holdout day, not by reading code. A gate that cannot see the data reporting success is the single sharpest lesson in this project.</p>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.4</span><span class="cap">Proving the gate can fail</span></figcaption>
+  <div class="panel">
+    <table>
+      <tr><th>negative test</th><th>before the fix</th><th>after</th></tr>
+      <tr><td>inject one bad delta row</td><td class="n yes">exit 1</td><td class="n yes">exit 1</td></tr>
+      <tr><td>fabricate 500 viewers at an <b>idle</b> minute</td><td class="n no">PASS — invisible</td><td class="n yes">25 mismatched minutes, max_abs_diff 500</td></tr>
+      <tr><td>flip the unclosed-pause constant in the model only</td><td class="n">—</td><td class="n yes">240 mismatched, max_abs_diff 156</td></tr>
+      <tr><td>empty or malformed evidence file</td><td class="n">—</td><td class="n yes">treated as failure</td></tr>
+    </table>
+  </div>
+  <p class="note">That third row matters: the gate shares the <b>spec</b> with the model but not the <b>code</b>, so flipping a rule in one place and not the other is caught. 207 of a holdout day's 1,364 minutes are idle — precisely the ones the old shape could not see.</p>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.5</span><span class="cap">The test suite, and what each test can actually prove</span></figcaption>
+  <div class="panel">
+    <table>
+      <tr><th>test</th><th>proves</th><th>state</th></tr>
+      <tr><td>/reconcile — THE GATE</td><td>serving layer = truth recomputed from ev_raw</td><td class="n yes">17,028 min · 0 mismatched</td></tr>
+      <tr><td>model reconciliation, every rebuild</td><td>delta layer = interval expansion on every minute</td><td class="n yes">3,725 min · 0</td></tr>
+      <tr><td>hour tier vs minute tier</td><td>the cube is not a fragment of a curve</td><td class="n yes">98 hours · 0</td></tr>
+      <tr><td>truncation / absorption</td><td>a mid-stream cut + 447,081 late events converge on the from-scratch answer</td><td class="n yes">1,578 min · 0</td></tr>
+      <tr><td>dedup proof</td><td>duplicates are inert — run twice, dedup as the only variable</td><td class="n yes">0 of 3,725 differ</td></tr>
+      <tr><td>window views vs brute force</td><td>rolling and tumbling against a self-join</td><td class="n yes">0 mismatches</td></tr>
+      <tr><td>tie-break determinism</td><td>same answer at max_threads 1 / 8 / 32</td><td class="n yes">identical hashes</td></tr>
+      <tr><td>load guard</td><td>a second load is refused, not silently doubled</td><td class="n yes">27 assertions</td></tr>
+      <tr><td>/bench</td><td>latency AND bytes read on the benchmark shapes</td><td class="n yes">13-query reconstruction (official set never released) · largest read 814 KiB · ev_raw never touched</td></tr>
+      <tr><td>tail-sensitivity sweep</td><td>how far the answer moves across defensible tunables</td><td class="n yes">measured by the cross-model audit — see 3.7</td></tr>
+    </table>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.6</span><span class="cap">Bugs the tests caught that review did not</span></figcaption>
+  <div class="panel">
+    <table>
+      <tr><th>bug</th><th>how it presented</th><th>cost had it shipped</th></tr>
+      <tr><td>ReplacingMergeTree versioned on interval_end</td><td>incremental absorption did not converge</td><td class="n no">+37 on the peak · 315 intervals stuck open</td></tr>
+      <tr><td>starts/ends as UInt64</td><td>a negated corrective row wrapped to 2^64−n</td><td class="n no">max() returned 1.8e19; sum() stayed right, hiding it</td></tr>
+      <tr><td>any() picking a sentinel</td><td>silent, and non-deterministic across threads</td><td class="n no">73.5% of attributions wrong at the peak minute</td></tr>
+      <tr><td>gate targeting fixed dates</td><td>PASS on zero rows</td><td class="n no">every claim unbacked on the graded day</td></tr>
+      <tr><td>gate blind to idle minutes</td><td>500 fabricated viewers → PASS</td><td class="n no">undetectable corruption</td></tr>
+      <tr><td>cc_user_minute never truncated</td><td>uniqExact accumulates across rebuilds</td><td class="n no">user peak read 2,953 vs a true 2,844</td></tr>
+      <tr><td>same-second pause/resume tie</td><td>strict &gt; skipped a resume in the same truncated second</td><td class="n no">2,697 pauses · 41.5 h over-excluded</td></tr>
+      <tr><td>CSV reload doubled the data</td><td>no error at all</td><td class="n no">a plausible, completely wrong curve</td></tr>
+    </table>
+  </div>
+  <p class="note">Every one of these produces a <b>plausible number</b>, not a crash. That is the argument for a gate that recomputes from source rather than a suite that asserts against the serving layer.</p>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.7</span><span class="cap">What the gate structurally cannot see</span></figcaption>
+  <div class="panel">
+    <div class="bars">
+      <div class="bar"><span>minute membership (doubts/09)</span><div class="btrack"><div class="bfill" style="width:100%;background:var(--flag)"></div></div><span class="bval">−14.1%</span></div>
+      <div class="bar"><span>resume semantics</span><div class="btrack"><div class="bfill" style="width:68%;background:var(--flag)"></div></div><span class="bval">9.6%</span></div>
+      <div class="bar"><span>heartbeat cadence 40 vs 60 s</span><div class="btrack"><div class="bfill" style="width:61%;background:var(--flag)"></div></div><span class="bval">≤8.6%</span></div>
+      <div class="bar"><span>unclosed-pause rule <em style="font-style:normal;color:var(--muted)">(pre-0009 measurement)</em></span><div class="btrack"><div class="bfill" style="width:32%;background:var(--paused)"></div></div><span class="bval">+131 pk</span></div>
+      <div class="bar"><span>minute-boundary tie</span><div class="btrack"><div class="bfill" style="width:3%;background:var(--gone)"></div></div><span class="bval">1 viewer</span></div>
+    </div>
+  </div>
+  <div class="flagbox">
+    <h3>Why no test can catch these</h3>
+    <p>The gate recomputes truth from <span style="font-family:var(--mono)">ev_raw</span> using <b>the same definition it is testing</b>. Change the rule in both places and it agrees with itself. The biggest fork — does "concurrent at minute M" mean <em>any overlap</em> (shipped) or <em>present at the instant M:00</em>, how a sampled gauge reads? — moves the peak <b>2,917 → 2,507, −14.1%</b> (doubts/09) and passes every test we own, on every run, silently. The unclosed-pause spread (+131 peak) was measured pre-ADR-0009 and its permissive arm has not been re-run — quoted as historical. These are mentor questions, not engineering work.</p>
+  </div>
+  <p class="note">The tunable sweep makes the envelope concrete: across gap ∈ {120, 150, 180} × tail ∈ {0, 60, 150} the peak spans <b>2,756 → 3,132</b>, a 13.6% range. Our shipped point is 150/60 → 2,917.</p>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.8</span><span class="cap">Absorption — proving incremental equals rebuild</span></figcaption>
+  <div class="panel">
+    <div class="flow">
+      <div class="fbox">cut the stream at the global peak, 2026-07-26 10:56<em>3,516 sessions genuinely mid-flight · 52.6% of sessions open</em></div>
+      <div class="arrow">▼</div>
+      <div class="fbox">build the whole model on the stump — “what the dashboard believed at 10:56”</div>
+      <div class="arrow">▼ insert the withheld 447,081 events as a late arrival</div>
+      <div class="fbox">absorb by correction-by-diff: append −deltas(old) + deltas(new)<em>cc_minute_delta is never truncated, never mutated</em></div>
+      <div class="arrow">▼ compare against a from-scratch build on EVERY minute</div>
+      <div class="fbox a"><b>converges — 1,578 minutes, 0 differing</b></div>
+    </div>
+    <p class="note" style="margin-top:.9rem">Spot-checking two probe minutes would have passed while the model was wrong. The all-minutes comparison is what exposed the +37 divergence that the version column caused.</p>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><span class="num">3.9</span><span class="cap">What we can and cannot claim</span></figcaption>
+  <div class="split">
+    <div>
+      <h4 style="color:var(--active)">Backed by evidence</h4>
+      <table>
+        <tr><td>17,028 minutes gated, 0 mismatched</td><td class="n yes">✓</td></tr>
+        <tr><td>incremental = rebuild on 1,578 minutes</td><td class="n yes">✓</td></tr>
+        <tr><td>duplicates inert for the headline</td><td class="n yes">✓</td></tr>
+        <tr><td>peak not summable: +2.0% / +53.6%</td><td class="n yes">✓</td></tr>
+        <tr><td>sort key 17.3×</td><td class="n yes">✓</td></tr>
+        <tr><td>row ceiling holds at 100×</td><td class="n yes">✓</td></tr>
+        <tr><td>the gate can fail — negative-tested 4 ways</td><td class="n yes">✓</td></tr>
+        <tr><td>bench: 13 shapes ≤ 814 KiB read, 7–45 ms server</td><td class="n yes">✓</td></tr>
+        <tr><td>publisher maintains all 4 tiers = rebuild (scratch)</td><td class="n yes">✓</td></tr>
+      </table>
+    </div>
+    <div>
+      <h4 style="color:var(--flag)">Not yet</h4>
+      <table>
+        <tr><td>matches the private ground truth</td><td class="n no">unprovable</td></tr>
+        <tr><td>the official benchmark query set</td><td class="n no">never released — ours is a reconstruction</td></tr>
+        <tr><td>a committed publisher run on the graded DB</td><td class="n no">schema installed, zero runs — still batch-rebuilt</td></tr>
+        <tr><td>dedup inert at 7-dimension filter grain</td><td class="n no">6 attributions change</td></tr>
+        <tr><td>safe under crash / concurrent publishers</td><td class="n no">by inspection only</td></tr>
+        <tr><td>gate's peak-minute pick tie-broken (ADR 0014)</td><td class="n no">reconcile still bare argMax</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="note">The honest sentence: <b>the batch-built curve is internally exact against an independent raw derivation on all 17,028 observed minutes under documented assumptions</b> — and every word of that is load-bearing.</p>
+</figure>
+
+<footer>Measured 2026-08-01 · evidence regenerable from <span style="font-family:var(--mono)">evidence/</span> · continues in <b>4 · SCALE &amp; OPS</b></footer>
+
+</div>

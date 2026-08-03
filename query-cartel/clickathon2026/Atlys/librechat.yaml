@@ -1,0 +1,67 @@
+# LibreChat config — mounted as a volume into the LibreChat container.
+# ENGINEERING.md §6.1: Z.ai (GLM) as the ONLY LLM + the Atlys orchestrator
+# MCP server over SSE.
+#
+# MCP URL: uses the Docker-internal hostname `fastapi` so no external tunnel
+# is needed when both services run in docker-compose (D13 fallback is now the
+# default). If running FastAPI locally (outside Docker), replace with your
+# tunnel URL: https://<tunnel>.ngrok-free.app/mcp/sse
+version: '1.3.13'
+cache: true
+
+# Required for FastAPI's POST /api/proxy/chat → /api/agents/v1/chat/completions.
+# That route authenticates via Agents API keys (not login JWTs).
+interface:
+  remoteAgents:
+    use: true
+    create: true
+
+# LibreChat v0.8+: custom OpenAI-compatible endpoints live under `endpoints.custom`
+# (the old top-level `customEndpoints` key is rejected by config validation).
+endpoints:
+  agents:
+    disableBuilder: false
+    remoteApi:
+      auth:
+        apiKey:
+          enabled: true
+  custom:
+    - name: "ZAI"
+      apiKey: "${ZAI_API_KEY}"
+      baseURL: "https://api.z.ai/api/paas/v4"
+      models:
+        # Latest flagship first; flash kept as a free fallback / title model.
+        default: ["glm-5.2", "glm-4.7-flash"]
+        fetch: false
+      titleConvo: true
+      titleModel: "glm-4.7-flash"
+      modelDisplayLabel: "Z.ai GLM"
+      # Context windows + USD rates per 1M tokens (docs.z.ai pricing / overview).
+      # Used by LibreChat context-usage gauge, pruning budget, and cost display.
+      tokenConfig:
+        glm-5.2:
+          prompt: 1.4
+          completion: 4.4
+          context: 1000000
+          cacheRead: 0.26
+        glm-4.7-flash:
+          prompt: 0
+          completion: 0
+          context: 200000
+          cacheRead: 0
+
+
+mcpServers:
+  atlys-orchestrator:
+    type: sse
+    url: http://fastapi:8000/mcp/sse
+    # Forward the Agents API conversationId on every MCP tools/call POST so
+    # FastAPI can scope progress chips + tool budgets per chat (two tabs OK).
+    headers:
+      X-Atlys-Conversation-Id: "{{LIBRECHAT_BODY_CONVERSATIONID}}"
+
+# Allowed domains/IPs for MCP server connections (resolves SSRF Domain is not allowed error)
+mcpSettings:
+  allowedAddresses:
+    - "fastapi:8000"
+    - "host.docker.internal:8000"

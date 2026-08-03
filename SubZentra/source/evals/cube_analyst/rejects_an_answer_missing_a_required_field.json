@@ -1,0 +1,70 @@
+{
+  "name": "rejects_an_answer_missing_a_required_field",
+  "agent": "cube_analyst",
+  "catalog": {
+    "measures": [
+      {
+        "name": "Commerce.refundAmount",
+        "type": "sum",
+        "format": "currency"
+      },
+      {
+        "name": "Commerce.orderCount",
+        "type": "countDistinct"
+      },
+      {
+        "name": "Commerce.refundRate",
+        "type": "number",
+        "format": "percent"
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "Commerce.orderedAt",
+        "type": "time"
+      },
+      {
+        "name": "Commerce.region",
+        "type": "string"
+      },
+      {
+        "name": "Commerce.refundReason",
+        "type": "string"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "Commerce.orderedAt.month": "2026-06-01T00:00:00.000",
+      "Commerce.refundAmount": "20.00"
+    },
+    {
+      "Commerce.orderedAt.month": "2026-07-01T00:00:00.000",
+      "Commerce.refundAmount": "260.00"
+    }
+  ],
+  "state": {
+    "question": "Why did EU refunds increase from June to July 2026?"
+  },
+  "model_responses": [
+    {
+      "reasoning": "Compare governed EU refunds month over month.",
+      "query": {
+        "measures": [
+          "Commerce.refundAmount"
+        ],
+        "dimensions": [],
+        "time_dimensions": [],
+        "filters": []
+      }
+    },
+    {
+      "metrics": [],
+      "confidence": 0.8,
+      "sample_size": 240
+    }
+  ],
+  "expect": {
+    "raises": "KeyError"
+  }
+}

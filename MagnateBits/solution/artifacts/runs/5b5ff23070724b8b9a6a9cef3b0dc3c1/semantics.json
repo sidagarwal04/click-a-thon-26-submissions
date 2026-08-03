@@ -1,0 +1,102 @@
+{
+  "feature_slug": "instant_forex",
+  "table_fqn": "atlys.f_instant_forex_events",
+  "event_column": "event",
+  "event_types": [
+    "forex_offer_shown",
+    "currency_selected",
+    "amount_entered",
+    "forex_added_to_cart",
+    "forex_purchased"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "forex_offer_shown",
+    "currency_selected",
+    "amount_entered",
+    "forex_added_to_cart",
+    "forex_purchased"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "destination",
+    "device_type",
+    "geoip_country_code",
+    "to_currency",
+    "city",
+    "app_version"
+  ],
+  "measures": [
+    {
+      "column": "addon_value_inr",
+      "kind": "money",
+      "scoped_to_events": [
+        "forex_added_to_cart",
+        "forex_purchased"
+      ],
+      "unit": "INR"
+    },
+    {
+      "column": "amount",
+      "kind": "other",
+      "scoped_to_events": [
+        "amount_entered",
+        "forex_added_to_cart",
+        "forex_purchased"
+      ],
+      "unit": "to_currency (varies, 13 distinct) -- not summable across rows without a currency cut, unlike addon_value_inr"
+    },
+    {
+      "column": "fx_rate",
+      "kind": "rate",
+      "scoped_to_events": [
+        "forex_offer_shown"
+      ],
+      "unit": "to_currency per from_currency"
+    }
+  ],
+  "flags": [],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "user_id",
+      "matches": "shared_key",
+      "targets": [
+        "destination_card_clicked",
+        "application_started",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "user_id",
+      "evidence": "relationship.destination_card_clicked_user_id: 'destination_card_clicked.user_id -> all tables (user_id)'. instant_forex user_id has 100% coverage (5/5 event types, 2,900 distinct in sample), so the forex add-on funnel can be joined onto the main purchase funnel to see whether forex attach correlates with overall conversion."
+    },
+    {
+      "from_column": "application_id",
+      "matches": "shared_key",
+      "targets": [
+        "application_started",
+        "document_uploaded",
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "application_id",
+      "evidence": "relationship.application_started_application_id join key used by the checkout-adjacent existing tables. instant_forex application_id has 100% coverage here (offer is shown at checkout, after application_started), unlike destination_card_clicked/search_typed where application_id can be empty per relationship.supporting_tables_search_typed."
+    },
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked",
+        "application_started",
+        "purchase_completed"
+      ],
+      "join_key": "destination",
+      "evidence": "entity.destination: ISO-2 code shared across funnel tables. instant_forex destination sample values (GR, TH, ID, FR, ...) are drawn from the same 14-value domain, letting forex attach be cut by the same destination/region taxonomy (e.g. known_issue K4 Schengen summer softness) used elsewhere."
+    }
+  ]
+}

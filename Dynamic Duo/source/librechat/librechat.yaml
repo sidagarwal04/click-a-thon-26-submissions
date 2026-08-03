@@ -1,0 +1,52 @@
+# LibreChat config for the RCA Analyst stack. The two MCP servers are the whole
+# integration: rca (custom — incidents + live drill-downs) and clickhouse (official —
+# read-only follow-up SQL). Both speak streamable HTTP inside the compose network.
+version: 1.2.1
+cache: true
+
+# The compose-internal MCP hosts must be allow-listed or LibreChat's SSRF
+# protection refuses them ("Domain ... is not allowed" — they resolve to private
+# docker-network IPs).
+mcpSettings:
+  allowedDomains:
+    - "http://rca-mcp:8100"
+    - "http://mcp-clickhouse:8001"
+
+interface:
+  customWelcome: >-
+    RCA Analyst — ask "what incidents are there?", drill into one ("why did fill
+    rate drop June 23–25?"), or probe anything ("something feels off with rewarded
+    ads Tuesday"). Every number traces to a logged ClickHouse query.
+  modelSelect: true
+  agents: true
+
+# New chats default to the RCA Analyst agent so nobody can send into the Agents
+# endpoint with no agent selected ("agent_id is required in request body").
+modelSpecs:
+  enforce: false
+  prioritize: true
+  list:
+    - name: "rca-analyst"
+      label: "RCA Analyst"
+      default: true
+      description: "Incidents + root-cause drill-downs over ClickHouse"
+      preset:
+        endpoint: "agents"
+        agent_id: "agent_U5CoxKfHPKskEUfPOvzpN"
+
+mcpServers:
+  rca:
+    type: streamable-http
+    url: http://rca-mcp:8100/mcp
+    timeout: 150000        # investigations run ~10 queries + one LLM call
+    serverInstructions: true
+  clickhouse:
+    type: streamable-http
+    url: http://mcp-clickhouse:8001/mcp
+    timeout: 60000
+    serverInstructions: true
+
+endpoints:
+  agents:
+    recursionLimit: 25
+    capabilities: ["execute_code", "file_search", "actions", "tools"]

@@ -1,0 +1,127 @@
+{
+  "call_id": "CALL-13-HARD",
+  "category": "Hard",
+  "title": "Known Issue K1 Diagnostic: iOS WebKit OTP Checkout Drop-off in GCC",
+  "question": "Is there statistical evidence of Known Issue K1 (iOS WebKit OTP autofill regression) causing elevated checkout drop-off for iOS users in Gulf/GCC geos across H1 2026?",
+  "database": "default",
+  "target_tables": "pay_now_clicked, purchase_completed",
+  "timestamp": "2026-08-02T00:14:34.788137+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 239.79,
+    "row_count": 25,
+    "columns_count": 7,
+    "columns": [
+      "calendar_month",
+      "os",
+      "geographic_region",
+      "checkout_attempts",
+      "completed_payments",
+      "checkout_dropoff_pct",
+      "checkout_success_pct"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_hard_13",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/fad7c953f5bdd48d3eaaa09e62fb418b",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    toMonth(pay.timestamp) AS calendar_month,\n    pay.os,\n    if(pay.geoip_country_code IN ('AE', 'SA', 'QA', 'KW', 'OM', 'BH'), 'GCC_Gulf', 'Rest_of_World') AS geographic_region,\n    count() AS checkout_attempts,\n    count(pur.application_id) AS completed_payments,\n    round((1.0 - count(pur.application_id) * 1.0 / count()) * 100.0, 2) AS checkout_dropoff_pct,\n    round(count(pur.application_id) * 100.0 / count(), 2) AS checkout_success_pct\nFROM default.pay_now_clicked pay\nLEFT JOIN default.purchase_completed pur ON pay.application_id = pur.application_id\nWHERE pay.os IN ('iOS', 'Android')\nGROUP BY calendar_month, pay.os, geographic_region\nORDER BY calendar_month ASC, geographic_region DESC, pay.os ASC",
+  "result_sample": [
+    {
+      "calendar_month": 1,
+      "os": "Android",
+      "geographic_region": "Rest_of_World",
+      "checkout_attempts": 479,
+      "completed_payments": 221,
+      "checkout_dropoff_pct": 53.86,
+      "checkout_success_pct": 46.14
+    },
+    {
+      "calendar_month": 1,
+      "os": "iOS",
+      "geographic_region": "Rest_of_World",
+      "checkout_attempts": 710,
+      "completed_payments": 355,
+      "checkout_dropoff_pct": 50.0,
+      "checkout_success_pct": 50.0
+    },
+    {
+      "calendar_month": 1,
+      "os": "Android",
+      "geographic_region": "GCC_Gulf",
+      "checkout_attempts": 108,
+      "completed_payments": 53,
+      "checkout_dropoff_pct": 50.93,
+      "checkout_success_pct": 49.07
+    },
+    {
+      "calendar_month": 1,
+      "os": "iOS",
+      "geographic_region": "GCC_Gulf",
+      "checkout_attempts": 175,
+      "completed_payments": 125,
+      "checkout_dropoff_pct": 28.57,
+      "checkout_success_pct": 71.43
+    },
+    {
+      "calendar_month": 2,
+      "os": "Android",
+      "geographic_region": "Rest_of_World",
+      "checkout_attempts": 459,
+      "completed_payments": 208,
+      "checkout_dropoff_pct": 54.68,
+      "checkout_success_pct": 45.32
+    },
+    {
+      "calendar_month": 2,
+      "os": "iOS",
+      "geographic_region": "Rest_of_World",
+      "checkout_attempts": 705,
+      "completed_payments": 322,
+      "checkout_dropoff_pct": 54.33,
+      "checkout_success_pct": 45.67
+    },
+    {
+      "calendar_month": 2,
+      "os": "Android",
+      "geographic_region": "GCC_Gulf",
+      "checkout_attempts": 133,
+      "completed_payments": 60,
+      "checkout_dropoff_pct": 54.89,
+      "checkout_success_pct": 45.11
+    },
+    {
+      "calendar_month": 2,
+      "os": "iOS",
+      "geographic_region": "GCC_Gulf",
+      "checkout_attempts": 182,
+      "completed_payments": 127,
+      "checkout_dropoff_pct": 30.22,
+      "checkout_success_pct": 69.78
+    },
+    {
+      "calendar_month": 3,
+      "os": "Android",
+      "geographic_region": "Rest_of_World",
+      "checkout_attempts": 535,
+      "completed_payments": 265,
+      "checkout_dropoff_pct": 50.47,
+      "checkout_success_pct": 49.53
+    },
+    {
+      "calendar_month": 3,
+      "os": "iOS",
+      "geographic_region": "Rest_of_World",
+      "checkout_attempts": 782,
+      "completed_payments": 339,
+      "checkout_dropoff_pct": 56.65,
+      "checkout_success_pct": 43.35
+    }
+  ],
+  "full_results_count": 25,
+  "summary": "Query executed successfully against ClickHouse default database in 239.79ms, returning 25 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Known-issue K1 causal validation query: Multi-table JOIN with month extraction, OS comparison (iOS vs Android), and conditional region segregation (GCC vs RoW)."
+}

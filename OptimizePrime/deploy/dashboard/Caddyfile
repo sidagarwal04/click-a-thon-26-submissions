@@ -1,0 +1,51 @@
+{$DASHBOARD_HOSTNAME} {
+  encode zstd gzip
+  reverse_proxy dashboard:8080
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    -Server
+  }
+
+  log {
+    output stdout
+    format console
+  }
+}
+
+# Cloudflare may be configured in Flexible mode and reach the origin over
+# HTTP. Serve that hop directly instead of Caddy's automatic HTTP->HTTPS
+# redirect, which would otherwise become an edge redirect loop. Client traffic
+# is still HTTPS at Cloudflare; the origin also has a valid certificate for
+# switching the zone to Full (strict) when the settings permission is added.
+http://{$DASHBOARD_HOSTNAME} {
+  encode zstd gzip
+  reverse_proxy dashboard:8080
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    -Server
+  }
+}
+
+# Direct-origin diagnostic route. It is HTTP-only and carries no administrative
+# surface; the public hostname above is the supported entry point.
+http://{$DASHBOARD_ORIGIN_IP} {
+  encode zstd gzip
+  reverse_proxy dashboard:8080
+  header -Server
+}
+
+{$LIBRECHAT_HOSTNAME} {
+  encode zstd gzip
+  reverse_proxy librechat:3080
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    -Server
+  }
+
+  log {
+    output stdout
+    format console
+  }
+}

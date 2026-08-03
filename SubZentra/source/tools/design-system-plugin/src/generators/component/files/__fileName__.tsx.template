@@ -1,0 +1,73 @@
+import React from 'react';
+
+import { createThemeConfig } from '../../theme/create-theme-config';
+import { useTheme } from '../../theme/use-theme';
+import { RawComponentRef } from '../../types/polymorphic';
+import { cn } from '../../utils/cn';
+import {
+  <%= className %>Component,
+  <%= className %>Modifiers,
+  <%= className %>Props,
+  <%= className %>Slots,
+  <%= className %>Variants,
+} from './<%= fileName %>';
+
+const <%= propertyName %>ThemeConfig = createThemeConfig(
+  '<%= propertyName %>',
+  <%= className %>Variants,
+  <%= className %>Modifiers,
+  <%= className %>Slots,
+);
+
+/**
+ * <%= className %> component
+ *
+ * @example
+ * ```tsx
+ * <<%= className %>>Content</<%= className %>>
+ * ```
+ */
+export const <%= className %> = React.forwardRef(function <%= className %><
+  T extends React.ElementType = '<%= rootElement %>',
+>(
+  {
+    component,
+    className,
+    children,
+    ozid,
+<% for (const v of variants) { %>
+    <%= v.name %> = '<%= v.values[0] %>',
+<% } %>
+<% for (const m of modifiers) { %>
+    <%= m %>,
+<% } %>
+    ...rest
+  }: <%= className %>Props<T>,
+  ref: RawComponentRef<T>,
+) {
+  const theme = useTheme('<%= propertyName %>', <%= propertyName %>ThemeConfig);
+  const Element = component || '<%= rootElement %>';
+
+  const rootClassName = theme.root({
+    className,
+<% for (const v of variants) { %>
+    <%= v.name %>,
+<% } %>
+<% for (const m of modifiers) { %>
+    <%= m %>,
+<% } %>
+  });
+
+  return (
+    <Element
+      ref={ref}
+      className={cn(rootClassName)}
+      data-ozid={ozid}
+      {...rest}
+    >
+      {children}
+    </Element>
+  );
+}) as <%= className %>Component;
+
+<%= className %>.displayName = '<%= className %>';

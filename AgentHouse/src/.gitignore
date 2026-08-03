@@ -1,0 +1,212 @@
+# =============================================================================
+# AgentHouse root .gitignore (covers repo + /frontend LibreChat)
+# =============================================================================
+
+# ----- Python / AgentHouse -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+**/.venv/
+**/venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ----- Dependencies (anywhere, including frontend/packages/charts) -----
+node_modules/
+**/node_modules/
+bower_components/
+
+# ----- Build outputs (anywhere, including charts/api/client packages) -----
+dist/
+**/dist/
+build/
+**/build/
+.turbo/
+.rollup.cache/
+**/.rollup.cache/
+test_bundle/
+
+# ----- Coverage / caches / tooling noise -----
+coverage/
+**/.nyc_output/
+.cache/
+**/.cache/
+.parcel-cache/
+lib-cov/
+.grunt/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----- DBs -----
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+
+# ----- Env / secrets -----
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.test.example
+my.secrets
+*.pem
+*.cert
+.npmrc
+
+# ----- OS / IDE -----
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+*.swp
+*.swo
+*.code-workspace
+.vscode/settings.json
+**/.vscode/settings.json
+.idx
+monospace.json
+
+# ----- AgentHouse local -----
+conversation_agent/tmp/
+out/
+uv.lock
+
+# ----- AI assistants -----
+.clineignore
+.cursor/
+.aider*
+.bg-shell/
+.claude/
+.codex/
+.copilot/
+.openai/
+.tabnine/
+.codeium/
+.pi/
+*.local.md
+.swarm/
+.hive-mind/
+.claude-flow/
+.mcp.json
+claude-flow.config.json
+claude-flow
+hive-mind-prompt-*.txt
+.gsd
+codedb.snapshot
+
+# Floobits
+.floo
+.floobit
+.flooignore
+
+# =============================================================================
+# Frontend (LibreChat under /frontend) — ignore local/runtime junk only.
+# Source under frontend/ IS tracked by this repo.
+# =============================================================================
+
+# Docker volume / local data
+/frontend/data-node/
+/frontend/meili_data*/
+/frontend/meili_data/
+/frontend/data.ms/
+/frontend/data/
+/frontend/logs/
+/frontend/uploads/
+/frontend/images/
+/frontend/release/
+/frontend/pids/
+/frontend/*.pid
+/frontend/*.seed
+/frontend/dump.rdb
+/frontend/test-image*
+
+# Local config (librechat.yaml + docker-compose.override.yml are committed for AgentHouse)
+/frontend/cache.json
+/frontend/auth.json
+/frontend/owner.yml
+/frontend/archive/
+/frontend/api/data/
+/frontend/config.local.ts
+/frontend/src/style - official.css
+/frontend/junit.xml
+/frontend/**/junit.xml
+/frontend/**/storageState.json
+
+# Meilisearch binaries
+/frontend/meilisearch
+/frontend/meilisearch.exe
+
+# Client public build copies
+/frontend/public/main.js
+/frontend/public/main.js.map
+/frontend/public/main.js.LICENSE.txt
+/frontend/client/public/images/
+/frontend/client/public/main.js
+/frontend/client/public/main.js.map
+/frontend/client/public/main.js.LICENSE.txt
+
+# i18n generated noise
+/frontend/config/translations/stores/*
+/frontend/client/src/localization/languages/*_missing_keys.json
+
+# E2E / Playwright
+/frontend/e2e/specs/.test-results/
+/frontend/e2e/.generated/
+/frontend/e2e/playwright-report/
+/frontend/playwright/.cache/
+/frontend/.playwright-mcp/*
+/frontend/e2e/recordings/**/TRACE.zip
+
+# Azurite
+/frontend/__azurite**
+/frontend/__blobstorage__/**/*
+
+# Packages not used / generated
+/frontend/packages/ux-shared/
+
+# Charts package — deps + build (source IS tracked)
+/frontend/packages/charts/node_modules/
+/frontend/packages/charts/dist/
+/frontend/packages/charts/.rollup.cache/
+
+# Explicit package build/deps dirs (belt + suspenders with global dist/node_modules)
+/frontend/packages/*/node_modules/
+/frontend/packages/*/dist/
+/frontend/client/node_modules/
+/frontend/client/dist/
+/frontend/api/node_modules/
+
+# Helm
+/frontend/helm/librechat/Chart.lock
+/frontend/helm/**/charts/
+/frontend/helm/**/.values.yaml
+
+# Keep Data settings tab (not the /frontend/data volume)
+!/frontend/client/src/components/Nav/SettingsTabs/Data/
+
+# Keep committed ambient types
+!/frontend/client/src/@types/i18next.d.ts
+!/frontend/client/src/@types/react.d.ts
+!/frontend/**/vite-env.d.ts
+
+# Claude-flow leftovers under frontend
+/frontend/memory/
+/frontend/coordination/
+/frontend/CLAUDE.md
+/frontend/hive-mind-prompt-*.txt
+/frontend/.gsd
+/frontend/codedb.snapshot

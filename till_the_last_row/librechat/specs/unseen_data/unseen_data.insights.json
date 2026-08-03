@@ -1,0 +1,202 @@
+{
+  "spec_name": "unseen_data",
+  "context_version": 7,
+  "generated_at": "2026-08-07T12:00:00Z",
+  "trace_url": null,
+  "trace_url_note": "Langfuse trace URL not programmatically obtainable from this agent runtime; set to null per protocol.",
+  "data_window": {
+    "from": "2026-06-08",
+    "to": "2026-06-28",
+    "total_base_rows": 5363,
+    "funnel_agg_rows": 2728,
+    "discount_agg_rows": 1118,
+    "source": "ClickHouse atlys.promo_coupon_checkout (base), atlys.coupon_funnel_daily_agg, atlys.coupon_discount_daily_agg — all populated with live data",
+    "unique_users": 2100,
+    "event_types": ["coupon_field_shown", "coupon_entered", "coupon_applied", "coupon_rejected", "discount_shown", "checkout_with_coupon"],
+    "event_counts": {
+      "coupon_field_shown": 2100,
+      "checkout_with_coupon": 987,
+      "coupon_entered": 848,
+      "coupon_applied": 580,
+      "discount_shown": 580,
+      "coupon_rejected": 268
+    }
+  },
+  "data_caveats": "device_type values are inconsistent (ios/android/Desktop/web-user-b2c) — normalized via lower() in queries. 1:1 event-to-user ratio across all event types suggests each user fires each event at most once. FREESHIP has discount_amount=0 (shipping benefit, not price discount). The context contradiction doc (coupon-reject-designed-not-observed.md) claimed zero coupon_rejected rows — that claim is now stale; 268 rejection events are present in the populated data. M3 (conversion lift) computed via base-table self-join on user_id per documented contradiction (coupon-conversion-lift-single-table-gap.md); user_id is not in ORDER BY so the join is a full partition scan.",
+  "insights": [
+    {
+      "id": "I1",
+      "headline": "Coupon apply rate is 27.6% — healthy but with room to grow, since 40% of users enter a code but 31.6% of attempts are rejected",
+      "metric_id": "M1",
+      "metric_name": "coupon_apply_rate",
+      "metric_formula": "uniqExact(user_id WHERE event='coupon_applied') / uniqExact(user_id WHERE event='coupon_field_shown')",
+      "evidence": {
+        "time_window": "2026-06-08 to 2026-06-28 (21 days)",
+        "users_shown_coupon_field": 2100,
+        "users_entered_code": 848,
+        "users_applied_successfully": 580,
+        "users_rejected": 268,
+        "users_checked_out": 987,
+        "apply_rate": 0.2762,
+        "entry_rate": 0.4038,
+        "rejection_rate_of_entries": 0.316,
+        "checkout_rate_from_field": 0.47
+      },
+      "why": "The coupon funnel shows strong top-of-funnel engagement: 40.4% of users who see the coupon field attempt to enter a code. However, 31.6% of those who enter are rejected (268 of 848), dragging the net apply rate down to 27.6%. This gap between intent (entry) and success (apply) represents recoverable conversion — improving rejection UX or relaxing entry barriers could push apply rate above 35%. The 47% checkout rate from coupon-field-shown users (987/2100) indicates the checkout flow itself converts well regardless of coupon outcome.",
+      "confidence": 0.9,
+      "confidence_label": "High",
+      "confidence_reason": "Exact uniqExact counts from 5,363-row base table; all 2,100 users have 1:1 event ratio. Metric formula matches context doc (coupon-apply-rate.md). Large sample (2,100 users over 21 days).",
+      "related_known_issues": ["K6"],
+      "related_metrics": ["coupon-apply-rate"],
+      "segment_cuts": {
+        "by_device": {
+          "ios": {"shown": 874, "applied": 254, "apply_rate": 0.2906},
+          "android": {"shown": 688, "applied": 174, "apply_rate": 0.2529},
+          "web-user-b2c": {"shown": 379, "applied": 108, "apply_rate": 0.285},
+          "desktop": {"shown": 159, "applied": 44, "apply_rate": 0.2767}
+        },
+        "by_country_top5": {
+          "IN": {"shown": 1275, "apply_rate": 0.2831},
+          "SG": {"shown": 217, "apply_rate": 0.2581},
+          "AE": {"shown": 192, "apply_rate": 0.2656},
+          "US": {"shown": 139, "apply_rate": 0.2518},
+          "GB": {"shown": 103, "apply_rate": 0.2913}
+        }
+      },
+      "suggested_next_step": "Reduce rejection rate to lift apply rate. Focus on the two actionable reject reasons (min_cart_not_met, already_used) — see I2. Set up daily coupon_apply_rate tile on the PM dashboard using coupon_funnel_daily_agg."
+    },
+    {
+      "id": "I2",
+      "headline": "EXPIRED5 code generates 56% of all rejections — retire it or fix it; 'min_cart_not_met' is the #1 reject reason, a pure UX problem",
+      "metric_id": "M2",
+      "metric_name": "coupon_reject_mix",
+      "metric_formula": "count(event='coupon_rejected') GROUP BY reject_reason, coupon_code",
+      "evidence": {
+        "time_window": "2026-06-08 to 2026-06-28",
+        "total_rejections": 268,
+        "reject_reason_breakdown": {
+          "min_cart_not_met": {"count": 80, "pct": 29.9},
+          "already_used": {"count": 75, "pct": 28.0},
+          "expired": {"count": 60, "pct": 22.4},
+          "invalid_code": {"count": 53, "pct": 19.8}
+        },
+        "rejection_by_code": {
+          "EXPIRED5": {"total": 149, "pct_of_all_rejects": 55.6},
+          "WELCOME": {"total": 27, "pct": 10.1},
+          "ATLYS15": {"total": 28, "pct": 10.4},
+          "FIRST10": {"total": 22, "pct": 8.2},
+          "FREESHIP": {"total": 24, "pct": 9.0},
+          "SUMMER20": {"total": 18, "pct": 6.7}
+        },
+        "desktop_reject_rate": 0.3973,
+        "android_reject_rate": 0.3409,
+        "ios_reject_rate": 0.3022,
+        "web_reject_rate": 0.2653
+      },
+      "why": "EXPIRED5 is clearly a defunct/test code that users are still finding and entering — it accounts for 149 of 268 rejections (55.6%) with all four reject reasons represented equally, suggesting the code triggers multiple validation failures depending on user context. This is pure waste in the funnel. Among the remaining codes, 'min_cart_not_met' is the leading reason — users apply a valid code to a cart below the minimum threshold without knowing the threshold exists. Desktop users have the highest reject rate (39.7%), possibly because desktop checkout shows the coupon field more prominently without context about eligibility. The context contradiction (coupon-reject-designed-not-observed.md) claimed zero coupon_rejected rows — this is now stale; 268 rejection events are confirmed present.",
+      "confidence": 0.85,
+      "confidence_label": "High",
+      "confidence_reason": "Exact counts from base table. All 268 rejection events have populated reject_reason and coupon_code. EXPIRED5 dominance is unambiguous (149/268). Context contradiction surfaced and resolved.",
+      "related_known_issues": [],
+      "related_metrics": ["coupon-reject-mix"],
+      "contradiction_surfaced": "Context doc coupon-reject-designed-not-observed.md (severity: low) claimed zero coupon_rejected rows. This was true at the time of context generation (pre-ingest) but is now stale — 268 rejection events exist. Recommend updating status to 'resolved'.",
+      "suggested_next_step": "1) Remove or hide EXPIRED5 from all user-facing surfaces — it generates 56% of rejections with zero successful applies. 2) Add inline validation showing minimum cart requirement BEFORE code entry ('Coupons available for orders above ₹X'). 3) For 'already_used': display a contextual message ('You used this code on [date]'). 4) Update contradiction doc to resolved."
+    },
+    {
+      "id": "I3",
+      "headline": "Coupon users convert at 1.54× the rate of non-coupon users (63.1% vs 40.9%) — the strongest lift is on Android at 1.77×",
+      "metric_id": "M3",
+      "metric_name": "coupon_conversion_lift",
+      "metric_formula": "cohort_cvr = uniqExact(user_id where applied>0 AND checked_out>0) / uniqExact(user_id where applied>0 AND saw_field>0); baseline_cvr = same for applied=0; lift = cohort_cvr / baseline_cvr",
+      "evidence": {
+        "time_window": "2026-06-08 to 2026-06-28",
+        "method": "Base-table self-join on user_id (per contradiction doc: agg cannot express per-user sequencing)",
+        "coupon_cohort": {"total": 580, "converted": 366, "cvr": 0.631},
+        "baseline_cohort": {"total": 1520, "converted": 621, "cvr": 0.4086},
+        "overall_lift_ratio": 1.544,
+        "absolute_lift_pp": 22.2,
+        "by_device": {
+          "ios": {"coupon_cvr": 0.6102, "baseline_cvr": 0.4387, "lift": 1.39},
+          "android": {"coupon_cvr": 0.6782, "baseline_cvr": 0.3833, "lift": 1.77},
+          "web-user-b2c": {"coupon_cvr": 0.6111, "baseline_cvr": 0.3838, "lift": 1.59},
+          "desktop": {"coupon_cvr": 0.6136, "baseline_cvr": 0.4174, "lift": 1.47}
+        }
+      },
+      "why": "The 22.2pp lift is substantial and consistent across all four device types, suggesting genuine coupon-driven conversion rather than a device-specific artifact. Android shows the strongest lift (1.77×) — baseline Android conversion is the lowest at 38.3%, so coupons have the most room to push users over the purchase threshold on that platform. iOS baseline is already higher (43.9%), so the coupon's marginal lift is smaller (1.39×). Caveat: this is observational, not causal — coupon users may be higher-intent to begin with (selection bias). An A/B test with coupon field visibility randomization would establish causation.",
+      "confidence": 0.75,
+      "confidence_label": "Medium",
+      "confidence_reason": "Exact user-level cohort computation from base table via self-join. Selection bias caveat applies — coupon users self-select, so observed lift overstates causal effect. Per-device cuts have adequate sample sizes (44–254 coupon users). Computed per documented M3 formula and contradiction guidance.",
+      "related_known_issues": ["K1"],
+      "related_metrics": ["coupon-conversion-lift"],
+      "contradiction_surfaced": "Used base-table self-join for M3 as required by contradiction doc coupon-conversion-lift-single-table-gap.md — the funnel agg's per-stage uniqMerge cannot express per-user sequencing needed for cohort/anti-cohort definitions.",
+      "suggested_next_step": "Run an A/B test: randomly hide the coupon field for a holdout group to measure causal conversion lift. Android's high lift (1.77×) suggests targeted coupon campaigns for Android users could be high-ROI. Monitor iOS coupon conversion for K1 (OTP autofill regression) effects — if iOS coupon CVR drops while baseline holds, K1 may be interacting with coupon checkout flow."
+    },
+    {
+      "id": "I4",
+      "headline": "SUMMER20 drives ₹338,623 in discount cost (42% of total) at a 20% margin erosion rate — controllable since it's one time-bounded campaign",
+      "metric_id": "M4",
+      "metric_name": "coupon_margin_cost",
+      "metric_formula": "sumMerge(discount_amount_state) GROUP BY coupon_code; erosion = discount / cart_value",
+      "evidence": {
+        "time_window": "2026-06-08 to 2026-06-28",
+        "source_table": "coupon_discount_daily_agg (sumMerge combinators)",
+        "total_couponed_discount": 813317,
+        "total_couponed_cart_value": 6344375,
+        "by_coupon_code": {
+          "SUMMER20": {"events": 321, "total_discount": 338623, "avg_discount": 1054.90, "discount_pct_of_cart": 20.0},
+          "ATLYS15": {"events": 295, "total_discount": 234310, "avg_discount": 794.27, "discount_pct_of_cart": 15.0},
+          "FIRST10": {"events": 308, "total_discount": 162384, "avg_discount": 527.22, "discount_pct_of_cart": 10.0},
+          "WELCOME": {"events": 260, "total_discount": 78000, "avg_discount": 300.00, "discount_pct_of_cart": 5.4},
+          "FREESHIP": {"events": 342, "total_discount": 0, "avg_discount": 0, "discount_pct_of_cart": 0}
+        },
+        "no_coupon_baseline": {"events": 621, "discount": 0, "cart_value": 3252389}
+      },
+      "why": "Margin cost is concentrated and controllable. SUMMER20 alone accounts for 42% of total discount spend (₹338,623) at a fixed 20% rate — consistent with the K6 known-issue documenting the Q2 SUMMER20 campaign. When the campaign ends, this cost drops to zero. ATLYS15 is the second-largest driver (₹234,310, 15% rate) and appears to be a standing promo rather than time-bounded — this is the code to watch for margin discipline. WELCOME (₹300 flat per use at ~5.4% of cart) is low-cost acquisition. FREESHIP is margin-neutral in direct discount terms (₹0 discount_amount), though the operational shipping cost is not captured in this metric.",
+      "confidence": 0.9,
+      "confidence_label": "High",
+      "confidence_reason": "Exact sumMerge/countMerge from coupon_discount_daily_agg. Discount percentages match coupon naming (SUMMER20=20%, ATLYS15=15%, FIRST10=10%). Large sample across all codes. FREESHIP ₹0 discount confirmed — it's shipping-only.",
+      "related_known_issues": ["K6"],
+      "related_metrics": ["coupon-margin-cost"],
+      "suggested_next_step": "1) Set a margin cost alert: if total discount_amount exceeds ₹50K/day, escalate. 2) As SUMMER20 winds down (K6 campaign end), monitor whether ATLYS15 usage increases (substitution effect). 3) Evaluate WELCOME's ROI: ₹300 flat discount × 260 uses = ₹78K — is the new-user LTV payback positive? 4) Consider destination-level caps for high-erosion destinations (TH at 8.7%, AU at 8.0%)."
+    },
+    {
+      "id": "I5",
+      "headline": "iOS leads volume, Android leads conversion lift, desktop has the worst rejection rate — each platform needs a tailored coupon strategy",
+      "metric_id": "M5",
+      "metric_name": "coupon_segment_performance",
+      "metric_formula": "apply_rate, reject_rate, conversion_lift, margin_cost GROUP BY device_type, geoip_country_code, destination",
+      "evidence": {
+        "time_window": "2026-06-08 to 2026-06-28",
+        "by_device_summary": {
+          "ios": {"users": 874, "apply_rate": 0.2906, "reject_rate": 0.3022, "coupon_cvr": 0.6102, "discount_pct": 6.54},
+          "android": {"users": 688, "apply_rate": 0.2529, "reject_rate": 0.3409, "coupon_cvr": 0.6782, "discount_pct": 7.78},
+          "web-user-b2c": {"users": 379, "apply_rate": 0.285, "reject_rate": 0.2653, "coupon_cvr": 0.6111, "discount_pct": 7.43},
+          "desktop": {"users": 159, "apply_rate": 0.2767, "reject_rate": 0.3973, "coupon_cvr": 0.6136, "discount_pct": 7.56}
+        },
+        "by_geo_top3": {
+          "IN": {"users": 1275, "apply_rate": 0.2831, "pct_of_total": 60.7},
+          "SG": {"users": 217, "apply_rate": 0.2581},
+          "AE": {"users": 192, "apply_rate": 0.2656}
+        },
+        "by_destination_top3_margin_cost": {
+          "TH": {"events": 164, "discount_pct": 8.72},
+          "SG": {"events": 148, "discount_pct": 8.11},
+          "AU": {"events": 172, "discount_pct": 8.02}
+        },
+        "by_destination_top3_apply_rate": {
+          "AU": {"apply_rate": 0.3152},
+          "GB": {"apply_rate": 0.3151},
+          "GR": {"apply_rate": 0.3125}
+        },
+        "lowest_apply_rate_destination": {"TR": {"apply_rate": 0.226, "checkout_rate": 0.3699}}
+      },
+      "why": "iOS has the most users (874, 41.6%) and a solid apply rate (29.1%), but its conversion lift is the lowest (1.39×) — iOS users are higher-intent at baseline, so the marginal coupon effect is smaller. Android has the strongest conversion lift (1.77×) but the second-highest rejection rate (34.1%), suggesting Android users attempt more speculative codes. Desktop's 39.7% reject rate is the worst — the desktop coupon field may be too prominent without sufficient eligibility guidance. Geographically, India (60.7% of users) tracks the platform average; GB/AU show slightly elevated apply rates (~31.5%), possibly reflecting higher coupon awareness in those markets. Thailand has the highest margin erosion per destination (8.72% of cart value), likely due to higher-value visa applications attracting percentage-based discounts (SUMMER20).",
+      "confidence": 0.8,
+      "confidence_label": "High",
+      "confidence_reason": "Multi-dimensional cuts from both base table and agg tables with adequate sample sizes per segment (minimum 44 users for desktop coupon cohort). Device/geo/destination patterns are consistent across metrics. Turkey's low apply rate (22.6%) is directional only (146 users).",
+      "related_known_issues": ["K1", "K6"],
+      "related_metrics": ["coupon-segment-performance", "coupon-apply-rate", "coupon-conversion-lift", "coupon-margin-cost"],
+      "suggested_next_step": "1) Android: highest lift platform — run targeted coupon push notifications to Android users. 2) Desktop: investigate why rejection rate is 40% — add inline eligibility hints. 3) Turkey: lowest apply rate (22.6%) and checkout rate (37%) — evaluate if coupon codes are being distributed in TR market. 4) Thailand: highest margin cost destination (8.7%) — consider destination-level discount caps. 5) Monitor iOS for K1 interaction — if OTP autofill regression hits coupon checkout, iOS coupon CVR may degrade."
+    }
+  ]
+}

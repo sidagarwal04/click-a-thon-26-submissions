@@ -1,0 +1,31 @@
+# ClickStack (OpenTelemetry -> HyperDX) for RootCauseOS. The 4th integration leg.
+#
+# ══ GUARDRAIL — READ BEFORE EDITING ══════════════════════════════════════════
+# This container ships its OWN BUNDLED ClickHouse. It must NEVER read the
+# CLICKHOUSE_* credentials (host / user / password) from the repo `.env`.
+# If it does, it creates otel_traces / otel_logs / otel_metrics_* tables INSIDE
+# the graded competition database.
+# Therefore: no `env_file:`, no `environment:` creds, no ${CLICKHOUSE_*} anywhere
+# in this file. Keep it that way. Compose also resolves `.env` relative to THIS
+# directory, not the repo root, so the root `.env` is never loaded here.
+# ═════════════════════════════════════════════════════════════════════════════
+#
+#   docker compose -f integrations/clickstack/docker-compose.yml up -d
+#
+# LOCAL mode image on purpose: the auth/all-in-one image does not open 4317/4318
+# until a first user is created — it looks like a broken image and costs ~30 min.
+# Local mode needs no signup and no API key. UI + OTLP answer ~10 s after start.
+
+services:
+  clickstack:
+    image: clickhouse/clickstack-local:latest
+    container_name: rcos-clickstack
+    ports:
+      # Host 8081, NOT 8080: Tailscale holds 8080 on this machine (a Funnel listener on
+      # 100.x/fd7a:115c:a1e0). The bind fails silently — lima logs "failed to set up
+      # forwarding tcp port 8080 ... negligible if already forwarded" and the UI is just
+      # unreachable. Container side stays 8080. Change both sides together if you remap.
+      - "8081:8080"   # HyperDX UI          (CLICKSTACK_URL=http://localhost:8081)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP           (CLICKSTACK_OTLP=http://localhost:4318)
+    restart: unless-stopped

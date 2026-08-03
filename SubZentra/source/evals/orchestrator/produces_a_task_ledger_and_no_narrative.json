@@ -1,0 +1,46 @@
+{
+  "name": "produces_a_task_ledger_and_no_narrative",
+  "agent": "orchestrator",
+  "enabled_roles": [
+    "cube_analyst",
+    "evaluator",
+    "insight"
+  ],
+  "state": {
+    "question": "Why did EU refunds increase from June to July 2026?"
+  },
+  "model_responses": [
+    {
+      "tasks": [
+        {
+          "role": "cube_analyst",
+          "objective": "Quantify the movement."
+        },
+        {
+          "role": "evaluator",
+          "objective": "Recheck the movement."
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "outcome_kind": "validation",
+    "fields": {
+      "tasks": [
+        {
+          "role": "cube_analyst",
+          "objective": "Quantify the movement."
+        },
+        {
+          "role": "evaluator",
+          "objective": "Recheck the movement."
+        }
+      ]
+    },
+    "field_absent": [
+      "headline",
+      "summary",
+      "contradictions"
+    ]
+  }
+}

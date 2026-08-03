@@ -1,0 +1,101 @@
+== 0 · rebuild rca-mcp (image bakes agent/ + detector/ at build time)
+ Image rca-librechat-rca-mcp Building 
+ Image rca-librechat-rca-mcp Built 
+ Container rca-librechat-mcp-clickhouse-1 Running 
+ Container rca-librechat-clickhouse-1 Running 
+ Container rca-librechat-rca-mcp-1 Running 
+ Container rca-librechat-librechat-1 Running 
+ Container rca-librechat-mongodb-1 Running 
+ Container rca-librechat-clickhouse-1 Waiting 
+ Container rca-librechat-clickhouse-1 Healthy 
+== 1 · profiler + sweep (full timeline, all datasets)
+profiled 384 series
+  flat_robust      235
+  stl_168          126
+  not_applicable   12
+  not_monitored    9
+  stl_24           2
+
+global series:
+  ctr          model=flat_robust  fft= 956.0 s24=0.06 s168=0.18 trend=-0.47%/wk vol/h=8482
+  ecpm         model=flat_robust  fft= 478.0 s24=0.08 s168=0.16 trend=-1.18%/wk vol/h=8482
+  fill_rate    model=flat_robust  fft= 319.0 s24=0.03 s168=0.25 trend=-0.37%/wk vol/h=11070
+  render_rate  model=flat_robust  fft=  10.0 s24=0.08 s168=0.18 trend=+0.00%/wk vol/h=8667
+  requests     model=stl_168      fft=  24.0 s24=0.97 s168=0.96 trend=+2.53%/wk vol/h=11070
+  revenue      model=stl_168      fft=  24.0 s24=0.97 s168=0.95 trend=+0.83%/wk vol/h=11070
+incident_id                                  status               grain       z      pct corr
+inc_20260609T00_ctr_country_JP               ruled_out_seasonal   day      -3.9   -20.5% 4
+inc_20260610T00_ctr_region_APAC              ruled_out_seasonal   day       7.3     7.2% 7
+inc_20260613T00_revenue_global               ruled_out_seasonal   day      -4.3   -17.5% 129
+inc_20260617T00_ctr_region_NAM               ruled_out_seasonal   day      -4.5   -11.5% 8
+inc_20260617T00_ctr_country_FR               dismissed            day       3.4    21.9% 0
+inc_20260619T00_ecpm_os_version_iOS_17_5     dismissed            day      -5.2    -3.0% 14
+inc_20260619T10_revenue_category_finance     detected             hour     -3.2   -22.3% 6
+inc_20260621T00_revenue_global               detected             hour    -13.3   -35.8% 263
+inc_20260621T00_fill_rate_country_FR         dismissed            day      -3.8    -1.9% 15
+inc_20260623T00_fill_rate_global             detected             day      -8.8    -4.4% 98
+inc_20260623T00_fill_rate_publisher_tier_tier_3 dismissed            hour     -3.8    -5.0% 5
+inc_20260625T00_requests_campaign_type__none_ ruled_out_seasonal   day       3.8    16.6% 3
+inc_20260627T00_revenue_global               ruled_out_seasonal   day      -4.2   -16.1% 118
+inc_20260628T00_fill_rate_os_version_iOS_18_1 detected             day     -26.3   -12.5% 15
+inc_20260629T00_ctr_device_model_Galaxy_A54  ruled_out_seasonal   day       3.2     9.4% 1
+inc_20260704T00_requests_global              ruled_out_seasonal   day      -4.0   -17.9% 38
+inc_20260704T08_revenue_category_ecommerce   detected             hour      3.2    21.1% 0
+inc_20260705T00_revenue_campaign_type_CPM    detected             hour      6.8    30.1% 52
+inc_20260705T02_revenue_region_LATAM         detected             hour     -3.1   -36.4% 0
+inc_20260705T12_revenue_country_AR           detected             hour     -4.7   -31.7% 3
+inc_20260706T00_fill_rate_ad_format_native   ruled_out_seasonal   day       3.1     1.6% 0
+inc_20260706T01_fill_rate_category_gaming    ruled_out_seasonal   hour     -4.1    -3.8% 7
+inc_20260706T03_revenue_category_ecommerce   detected             hour     -7.2   -49.5% 10
+inc_20260706T04_revenue_country_ID           detected             hour      7.4    42.9% 60
+inc_20260707T07_fill_rate_category_finance   detected             hour      3.7     8.3% 0
+inc_20260708T00_fill_rate_global             detected             day     -13.6    -6.7% 275
+inc_20260708T00_requests_region_APAC         ruled_out_seasonal   day       3.2    40.4% 11
+inc_20260710T00_fill_rate_category_ecommerce detected             day      18.0     9.0% 4
+inc_20260710T00_revenue_os_version_iOS_17_5  ruled_out_seasonal   day       3.3   111.8% 7
+inc_20260710T19_revenue_category_ecommerce   detected             hour      5.8  -353.4% 34
+inc_20260710T21_revenue_country_AR           detected             hour     -5.2   -18.8% 5
+
+wrote 31 incidents + detect steps (run_id sweep_20260802T034155)
+== 2 · investigate, one pass per dataset (chronological)
+-- dataset=main  windows 2026-06-01 .. 2026-07-05  baselines from: main
+pre-filling 20 incident(s), chronologically
+[tracing] export to http://otel-collector:4318/v1/traces failed (<urlopen error [Errno -2] Name or service not known>); continuing with ClickHouse-only trace
+  2026-06-09 00:00:00  inc_20260609T00_ctr_country_JP                       PEER_OUTLIER         verified=True [ 2.4s gpt-5-nano-2025-08-07]
+  2026-06-10 00:00:00  inc_20260610T00_ctr_region_APAC                      PEER_OUTLIER         verified=True [ 2.9s gpt-5-nano-2025-08-07]
+  2026-06-13 00:00:00  inc_20260613T00_revenue_global                       PEER_OUTLIER         verified=True [ 4.0s gpt-5-nano-2025-08-07]
+  2026-06-17 00:00:00  inc_20260617T00_ctr_country_FR                       CAUSE_CONFIRMED      verified=True [ 3.4s gpt-5-nano-2025-08-07]
+  2026-06-17 00:00:00  inc_20260617T00_ctr_region_NAM                       INTERACTION          verified=True [ 3.2s gpt-5-nano-2025-08-07]
+  2026-06-19 00:00:00  inc_20260619T00_ecpm_os_version_iOS_17_5             INTERACTION          verified=True [ 3.2s gpt-5-nano-2025-08-07]
+  2026-06-19 10:00:00  inc_20260619T10_revenue_category_finance             INTERACTION          verified=True [ 2.8s gpt-5-nano-2025-08-07]
+  2026-06-21 00:00:00  inc_20260621T00_fill_rate_country_FR                 CAUSE_CONFIRMED      verified=True [ 3.0s gpt-5-nano-2025-08-07]
+  2026-06-21 00:00:00  inc_20260621T00_revenue_global                       GLOBAL_MOVEMENT      verified=True [ 4.6s gpt-5-nano-2025-08-07]
+  2026-06-23 00:00:00  inc_20260623T00_fill_rate_global                     CAUSE_CONFIRMED      verified=True [ 2.9s gpt-5-nano-2025-08-07]
+  2026-06-23 00:00:00  inc_20260623T00_fill_rate_publisher_tier_tier_3      INTERACTION          verified=True [ 3.4s gpt-5-nano-2025-08-07]
+  2026-06-25 00:00:00  inc_20260625T00_requests_campaign_type__none_        GLOBAL_MOVEMENT      verified=True [ 3.0s gpt-5-nano-2025-08-07]
+  2026-06-27 00:00:00  inc_20260627T00_revenue_global                       SEASONAL_CONFIRMED   verified=True [ 3.6s gpt-5-nano-2025-08-07]
+  2026-06-28 00:00:00  inc_20260628T00_fill_rate_os_version_iOS_18_1        CAUSE_CONFIRMED      verified=True [ 2.8s gpt-5-nano-2025-08-07]
+  2026-06-29 00:00:00  inc_20260629T00_ctr_device_model_Galaxy_A54          INTERACTION          verified=True [ 4.0s gpt-5-nano-2025-08-07]
+  2026-07-04 00:00:00  inc_20260704T00_requests_global                      SEASONAL_CONFIRMED   verified=True [ 3.0s gpt-5-nano-2025-08-07]
+  2026-07-04 08:00:00  inc_20260704T08_revenue_category_ecommerce           DISAGREEMENT         verified=True [ 3.3s gpt-5-nano-2025-08-07]
+  2026-07-05 00:00:00  inc_20260705T00_revenue_campaign_type_CPM            DISAGREEMENT         verified=True [ 3.1s gpt-5-nano-2025-08-07]
+  2026-07-05 02:00:00  inc_20260705T02_revenue_region_LATAM                 DISAGREEMENT         verified=True [ 3.7s gpt-5-nano-2025-08-07]
+  2026-07-05 12:00:00  inc_20260705T12_revenue_country_AR                   CAUSE_CONFIRMED      verified=True [ 3.1s gpt-5-nano-2025-08-07]
+done: 20 investigated, 0 already stored — every listed incident now has a diagnosis + trace to present
+-- dataset=unseen  windows 2026-07-06 .. 2026-07-10  baselines from: main,unseen
+pre-filling 11 incident(s), chronologically
+[tracing] export to http://otel-collector:4318/v1/traces failed (<urlopen error [Errno -2] Name or service not known>); continuing with ClickHouse-only trace
+  2026-07-06 00:00:00  inc_20260706T00_fill_rate_ad_format_native           INTERACTION          verified=True [ 4.4s gpt-5-nano-2025-08-07]
+  2026-07-06 01:00:00  inc_20260706T01_fill_rate_category_gaming            INTERACTION          verified=True [ 4.7s gpt-5-nano-2025-08-07]
+  2026-07-06 03:00:00  inc_20260706T03_revenue_category_ecommerce           GLOBAL_MOVEMENT      verified=True [ 9.9s gpt-5-nano-2025-08-07]
+  2026-07-06 04:00:00  inc_20260706T04_revenue_country_ID                   GLOBAL_MOVEMENT      verified=True [ 3.4s gpt-5-nano-2025-08-07]
+  2026-07-07 07:00:00  inc_20260707T07_fill_rate_category_finance           INTERACTION          verified=True [ 3.6s gpt-5-nano-2025-08-07]
+  2026-07-08 00:00:00  inc_20260708T00_fill_rate_global                     INTERACTION          verified=True [ 3.2s gpt-5-nano-2025-08-07]
+  2026-07-08 00:00:00  inc_20260708T00_requests_region_APAC                 VOLUME_CANDIDATE     verified=True [ 3.3s gpt-5-nano-2025-08-07]
+  2026-07-10 00:00:00  inc_20260710T00_fill_rate_category_ecommerce         MIX_SHIFT            verified=True [ 3.8s gpt-5-nano-2025-08-07]
+  2026-07-10 00:00:00  inc_20260710T00_revenue_os_version_iOS_17_5          VOLUME_CANDIDATE     verified=True [ 3.5s gpt-5-nano-2025-08-07]
+  2026-07-10 19:00:00  inc_20260710T19_revenue_category_ecommerce           GLOBAL_MOVEMENT      verified=True [ 5.3s gpt-5-nano-2025-08-07]
+  2026-07-10 21:00:00  inc_20260710T21_revenue_country_AR                   GLOBAL_MOVEMENT      verified=True [ 3.7s gpt-5-nano-2025-08-07]
+done: 11 investigated, 0 already stored — every listed incident now has a diagnosis + trace to present
+== done — every incident has a diagnosis + trace. Submission report:
+   PYTHONPATH=. python3 tools/regress_edge_cases.py --report-only --since <date>

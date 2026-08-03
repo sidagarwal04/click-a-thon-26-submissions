@@ -1,0 +1,493 @@
+<title>RCA Pitch Deck — Click-a-thon 2026</title>
+<style>
+  @font-face {
+    font-family: 'DeckDisplay';
+    src: local('SF Pro Display'), local('Inter'), local('Segoe UI');
+    font-weight: 100 900;
+  }
+  @font-face {
+    font-family: 'DeckBody';
+    src: local('SF Pro Text'), local('Inter'), local('Segoe UI');
+    font-weight: 100 900;
+  }
+  @font-face {
+    font-family: 'DeckMono';
+    src: local('SF Mono'), local('Menlo'), local('Consolas');
+    font-weight: 400 700;
+  }
+
+  :root {
+    --bg: #0C0C0B;
+    --surface: #161615;
+    --surface2: #1E1E1C;
+    --border: #2A2A27;
+    --text: #ECECEA;
+    --muted: #9E9E96;
+    --accent: #F4F692;
+    --accent-dim: #B5B86E;
+    --blue: #7CB9E8;
+    --green: #7FD69B;
+    --orange: #F0A868;
+    --red: #FF7A7D;
+    --purple: #A99BE8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DeckBody', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── slide system ── */
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 40px 56px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ── nav ── */
+  .nav {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 28px; padding: 8px 20px; z-index: 100;
+    font-family: 'DeckMono', monospace; font-size: 13px; color: var(--muted);
+  }
+  .nav button {
+    background: none; border: none; color: var(--accent);
+    font-size: 18px; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px; line-height: 1;
+  }
+  .nav button:hover { background: var(--surface); }
+  .nav button:disabled { color: var(--border); cursor: default; }
+  .nav button:disabled:hover { background: none; }
+
+  .dots { display: flex; gap: 6px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: background .2s;
+  }
+  .dot.active { background: var(--accent); }
+  .dot:hover { background: var(--accent-dim); }
+
+  /* ── typography ── */
+  h1 {
+    font-family: 'DeckDisplay', sans-serif;
+    font-size: 52px; font-weight: 700;
+    letter-spacing: -0.03em; line-height: 1.1;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: 'DeckDisplay', sans-serif;
+    font-size: 36px; font-weight: 650;
+    letter-spacing: -0.02em; line-height: 1.2;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: 'DeckDisplay', sans-serif;
+    font-size: 22px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .eyebrow {
+    font-family: 'DeckMono', monospace;
+    font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 12px;
+  }
+  p, li { font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 64ch; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text); font-weight: 600; }
+  .highlight { color: var(--accent); }
+
+  /* ── slide 0: title ── */
+  .title-slide {
+    justify-content: center; align-items: center; text-align: center;
+    gap: 24px;
+  }
+  .title-slide .logo {
+    width: 64px; height: 64px; border-radius: 14px;
+    background: var(--accent); display: grid; place-items: center;
+    color: #0C0C0B; font-weight: 800; font-size: 28px;
+    font-family: 'DeckDisplay', sans-serif;
+  }
+  .title-slide h1 { font-size: 60px; }
+  .title-slide .sub {
+    font-size: 22px; color: var(--muted); max-width: 50ch;
+  }
+  .title-slide .team {
+    margin-top: 24px; font-size: 14px; color: var(--border);
+    font-family: 'DeckMono', monospace; letter-spacing: 0.04em;
+  }
+
+  /* ── cards grid ── */
+  .cards { display: grid; gap: 16px; margin-top: 24px; }
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+  }
+  .card h3 { margin-bottom: 10px; }
+  .card p, .card li { font-size: 15px; line-height: 1.5; }
+  .card ul { padding-left: 18px; }
+  .card .tag {
+    display: inline-block; font-family: 'DeckMono', monospace;
+    font-size: 11px; padding: 3px 8px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); margin-right: 4px; margin-bottom: 4px;
+  }
+
+  /* ── stat row ── */
+  .stats { display: flex; gap: 32px; margin: 16px 0; }
+  .stat .val {
+    font-family: 'DeckDisplay', sans-serif;
+    font-size: 34px; font-weight: 700; color: var(--accent);
+    line-height: 1;
+  }
+  .stat .label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── architecture diagram ── */
+  .arch-flow {
+    display: flex; align-items: center; gap: 0;
+    margin: 16px 0; flex-wrap: wrap;
+  }
+  .arch-box {
+    padding: 12px 16px; border-radius: 10px;
+    text-align: center; min-width: 110px;
+    font-size: 12px; font-weight: 600;
+  }
+  .arch-box small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .arch-arrow {
+    font-size: 20px; color: var(--border); padding: 0 6px;
+    flex-shrink: 0;
+  }
+  .ab-blue { background: rgba(124,185,232,0.12); border: 1px solid rgba(124,185,232,0.3); color: var(--blue); }
+  .ab-green { background: rgba(127,214,155,0.12); border: 1px solid rgba(127,214,155,0.3); color: var(--green); }
+  .ab-orange { background: rgba(240,168,104,0.12); border: 1px solid rgba(240,168,104,0.3); color: var(--orange); }
+  .ab-purple { background: rgba(169,155,232,0.12); border: 1px solid rgba(169,155,232,0.3); color: var(--purple); }
+  .ab-yellow { background: rgba(244,246,146,0.12); border: 1px solid rgba(244,246,146,0.3); color: var(--accent); }
+
+  /* ── anomaly table ── */
+  .anomaly-table {
+    width: 100%; border-collapse: collapse; margin-top: 16px;
+    font-size: 14px;
+  }
+  .anomaly-table th {
+    text-align: left; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: 'DeckMono', monospace;
+  }
+  .anomaly-table td {
+    padding: 10px 12px; border-bottom: 1px solid var(--surface2);
+    color: var(--text);
+  }
+  .anomaly-table tr:last-child td { border-bottom: none; }
+  .sev-crit { color: var(--red); font-weight: 600; }
+  .sev-high { color: var(--orange); font-weight: 600; }
+  .sev-med { color: var(--accent); }
+  .dir-down { color: var(--red); }
+  .dir-up { color: var(--green); }
+
+  /* ── split layout ── */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; flex: 1; align-items: start; }
+  .split-wide { grid-template-columns: 2fr 1fr; }
+
+  /* ── detector stack ── */
+  .detector-row {
+    display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;
+  }
+  .detector-chip {
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 160px;
+  }
+  .detector-chip .name {
+    font-family: 'DeckMono', monospace; font-size: 12px;
+    color: var(--accent); letter-spacing: 0.02em;
+  }
+  .detector-chip .desc { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+  /* ── slide content spacing ── */
+  .slide-body { flex: 1; display: flex; flex-direction: column; margin-top: 20px; }
+  .slide-body > p { margin-bottom: 16px; }
+
+  /* ── tech stack pills ── */
+  .tech-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .tech-pill {
+    padding: 10px 20px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 15px; font-weight: 500;
+  }
+  .tech-pill .role { font-size: 11px; color: var(--muted); display: block; margin-top: 2px;
+    font-family: 'DeckMono', monospace; }
+</style>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 0: Title -->
+  <div class="slide title-slide active" data-slide="0">
+    <div class="logo">CH</div>
+    <h1>Automated Root-Cause<br>Analyst</h1>
+    <div class="sub">Real-time anomaly detection and drilldown for ad-tech metrics — built entirely on ClickHouse.</div>
+    <div class="team">CLICK-A-THON 2026 · INMOBI PROBLEM · TEAM HOPE</div>
+  </div>
+
+  <!-- SLIDE 1: Problem -->
+  <div class="slide" data-slide="1">
+    <div class="eyebrow">The Problem</div>
+    <h2>Ad platforms generate millions of events per hour.<br>Anomalies hide in the noise.</h2>
+    <div class="slide-body">
+      <p>A fill-rate crash in one country, an eCPM collapse on a single OS version, a revenue dip across one ad format — these cost real money but stay invisible at the platform aggregate until it's too late.</p>
+      <div class="cards cards-3" style="margin-top:32px">
+        <div class="card">
+          <h3 style="color:var(--red)">Delayed detection</h3>
+          <p>Manual dashboards catch issues hours or days later. By then the revenue impact is already locked in.</p>
+        </div>
+        <div class="card">
+          <h3 style="color:var(--orange)">Hidden in segments</h3>
+          <p>A 30% fill-rate crash in Indonesia is invisible when the global average only dips 2%. Segment-blind monitors miss it entirely.</p>
+        </div>
+        <div class="card">
+          <h3 style="color:var(--accent)">Root cause unknown</h3>
+          <p>Even after spotting an anomaly, teams spend hours slicing data to find <em>which</em> segment, device, or region is responsible.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Solution overview -->
+  <div class="slide" data-slide="2">
+    <div class="eyebrow">Our Solution</div>
+    <h2>Detect, drill down, and explain — in seconds.</h2>
+    <div class="slide-body">
+      <p>An end-to-end anomaly detection pipeline that runs <strong>entirely inside ClickHouse</strong> — no external stats libraries, no Python, no Spark. All math (median, IQR, CUSUM, linear regression) executes as native SQL.</p>
+      <div class="stats">
+        <div class="stat"><div class="val">5</div><div class="label">Parallel detectors</div></div>
+        <div class="stat"><div class="val">9</div><div class="label">Dimension axes scanned</div></div>
+        <div class="stat"><div class="val">~3s</div><div class="label">Full detection cycle</div></div>
+        <div class="stat"><div class="val">4.5M</div><div class="label">Events analyzed</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0;align-items:center">
+        <div class="arch-box ab-blue" style="min-width:0">ad_events<small>4.5M rows</small></div>
+        <div class="arch-box ab-purple" style="min-width:0">Materialized Views<small>AggregatingMergeTree</small></div>
+        <div class="arch-box ab-green" style="min-width:0">Detection Engine<small>5 parallel detectors</small></div>
+        <div class="arch-box ab-orange" style="min-width:0">Drilldown<small>9-dim contribution</small></div>
+        <div class="arch-box ab-yellow" style="min-width:0">Incidents<small>with root cause</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: ClickHouse Architecture -->
+  <div class="slide" data-slide="3">
+    <div class="eyebrow">ClickHouse Architecture</div>
+    <h2>Materialized views as the computational backbone</h2>
+    <div class="slide-body">
+      <div class="split">
+        <div>
+          <p>Every insert into <strong>ad_events</strong> triggers materialized views that maintain pre-aggregated rollups using <strong>AggregatingMergeTree</strong> with <code style="color:var(--accent);font-family:'DeckMono',monospace;font-size:15px">-State</code> / <code style="color:var(--accent);font-family:'DeckMono',monospace;font-size:15px">-Merge</code> functions.</p>
+          <div class="cards cards-1" style="margin-top:20px;gap:12px">
+            <div class="card">
+              <h3 style="color:var(--purple)">daily_global_agg</h3>
+              <p>Platform-level daily rollup. ~40 rows total. Queried by z-score and CUSUM detectors for baseline computation. <strong>~5ms query time</strong> vs ~500ms on raw events.</p>
+            </div>
+            <div class="card">
+              <h3 style="color:var(--purple)">hourly_global_agg</h3>
+              <p>Hourly rollup for sub-day detection windows (1h, 6h). ~960 rows. Enables real-time anomaly detection.</p>
+            </div>
+            <div class="card">
+              <h3 style="color:var(--purple)">hourly_by_dimension</h3>
+              <p>Hourly rollup broken by <strong>9 dimensions</strong> via ARRAY JOIN + dictGet. ~69K rows. Powers segment-level detection without scanning raw events.</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 style="margin-bottom:16px">Aggregate Columns</h3>
+          <div class="card" style="font-family:'DeckMono',monospace;font-size:13px;line-height:2;color:var(--muted)">
+            <span style="color:var(--accent)">requests_s</span> → countState()<br>
+            <span style="color:var(--accent)">fills_s</span> → sumState(is_filled)<br>
+            <span style="color:var(--accent)">imps_s</span> → sumState(is_impression)<br>
+            <span style="color:var(--accent)">clicks_s</span> → sumState(is_click)<br>
+            <span style="color:var(--accent)">revenue_s</span> → sumState(revenue)
+          </div>
+          <h3 style="margin:20px 0 12px">Dictionaries</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="card" style="padding:12px 16px">
+              <span class="tag">apps_dict</span>
+              <span style="font-size:13px;color:var(--muted)">category, publisher_tier</span>
+            </div>
+            <div class="card" style="padding:12px 16px">
+              <span class="tag">advertisers_dict</span>
+              <span style="font-size:13px;color:var(--muted)">vertical, campaign_type</span>
+            </div>
+            <div class="card" style="padding:12px 16px">
+              <span class="tag">geo_dict</span>
+              <span style="font-size:13px;color:var(--muted)">region, country, device_model, os_version</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Detection Algorithms -->
+  <div class="slide" data-slide="4">
+    <div class="eyebrow">Detection Engine</div>
+    <h2>Five detectors run in parallel every cycle</h2>
+    <div class="slide-body">
+      <p>Each detector compares the current window against a <strong>same-day-of-week baseline</strong> (3-week lookback, minimum 3 observations). An anomaly requires <em>both</em> statistical significance AND real-world magnitude.</p>
+      <div class="detector-row">
+        <div class="detector-chip">
+          <div class="name">Detector A · Robust Z-Score</div>
+          <div class="desc"><strong>Metrics:</strong> fill_rate, eCPM, CTR<br><strong>Method:</strong> Median + IQR/1.35 for sigma<br><strong>Fires when:</strong> |z| &gt; 5 AND |Δ%| &gt; 3%</div>
+        </div>
+        <div class="detector-chip">
+          <div class="name">Detector B · Trend Volume</div>
+          <div class="desc"><strong>Metrics:</strong> requests (raw count)<br><strong>Method:</strong> Linear regression slope on baseline<br><strong>Fires when:</strong> volume deviates from trend</div>
+        </div>
+        <div class="detector-chip">
+          <div class="name">Detector C · CUSUM</div>
+          <div class="desc"><strong>Metrics:</strong> fill_rate, eCPM<br><strong>Method:</strong> Bidirectional cumulative sum<br><strong>Fires when:</strong> sustained shift (K=0.5σ, H=4σ)</div>
+        </div>
+      </div>
+      <div class="detector-row">
+        <div class="detector-chip">
+          <div class="name">Detector D · Segment Z-Score (region)</div>
+          <div class="desc"><strong>Metrics:</strong> fill_rate, eCPM per region<br><strong>Source:</strong> hourly_by_dimension rollup<br><strong>Catches:</strong> segment anomalies invisible at platform level</div>
+        </div>
+        <div class="detector-chip">
+          <div class="name">Detector E · Segment Z-Score (os_version)</div>
+          <div class="desc"><strong>Metrics:</strong> fill_rate, eCPM per OS version<br><strong>Source:</strong> hourly_by_dimension rollup<br><strong>Catches:</strong> device-specific degradations</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:inline-block">
+        <span style="font-size:13px;color:var(--muted)">Why robust z-score?</span>
+        <span style="font-size:14px;color:var(--text);margin-left:8px">Standard mean/stddev is skewed by the very outliers we're trying to detect. Median + IQR is resistant to them.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Tech Stack -->
+  <div class="slide" data-slide="5">
+    <div class="eyebrow">Tech Stack</div>
+    <h2>Lean, fast, ClickHouse-native</h2>
+    <div class="slide-body">
+      <div class="tech-pills">
+        <div class="tech-pill" style="border-color:var(--accent)">
+          <span style="color:var(--accent)">ClickHouse Cloud</span>
+          <span class="role">Storage + Compute + All statistical math</span>
+        </div>
+        <div class="tech-pill" style="border-color:#FF6B35">
+          <span style="color:#FF6B35">ClickStack (HyperDX)</span>
+          <span class="role">Managed observability — traces, logs, metrics</span>
+        </div>
+        <div class="tech-pill" style="border-color:var(--blue)">
+          <span style="color:var(--blue)">Go</span>
+          <span class="role">API server, detection orchestration</span>
+        </div>
+        <div class="tech-pill" style="border-color:var(--green)">
+          <span style="color:var(--green)">Vanilla JS + React</span>
+          <span class="role">Frontend dashboard, no build step</span>
+        </div>
+        <div class="tech-pill" style="border-color:var(--orange)">
+          <span style="color:var(--orange)">OpenTelemetry</span>
+          <span class="role">Instrumentation → ClickStack</span>
+        </div>
+        <div class="tech-pill" style="border-color:var(--purple)">
+          <span style="color:var(--purple)">Oracle Cloud + ngrok</span>
+          <span class="role">VM hosting + public tunnel</span>
+        </div>
+      </div>
+
+      <div class="cards cards-2" style="margin-top:32px">
+        <div class="card">
+          <h3>What makes it ClickHouse-native</h3>
+          <ul>
+            <li><strong>AggregatingMergeTree</strong> with -State/-Merge for incremental rollups</li>
+            <li><strong>Materialized Views</strong> as insert triggers — zero ETL</li>
+            <li><strong>COMPLEX_KEY_HASHED dictionaries</strong> for dimension joins</li>
+            <li><strong>All stats in SQL:</strong> quantile, IQR, median, linear regression — no Python, no external libs</li>
+            <li><strong>ClickStack (HyperDX)</strong> for end-to-end observability — traces from frontend through Go to ClickHouse</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Performance</h3>
+          <ul>
+            <li>MV rollup query: <strong>~5ms</strong> (vs ~500ms on raw 4.5M rows)</li>
+            <li>Full detection cycle (5 detectors): <strong>~3s</strong></li>
+            <li>Drilldown (11 parallel queries): <strong>~5s</strong></li>
+            <li>Total end-to-end: <strong>under 10 seconds</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Thank You -->
+  <div class="slide title-slide" data-slide="6">
+    <div class="logo">CH</div>
+    <h1>Thank you</h1>
+    <div class="sub">
+      Live demo → <span style="color:var(--accent)">math-mahogany-dish.ngrok-free.dev/dashboard</span>
+    </div>
+    <div class="sub" style="font-size:16px;margin-top:8px">
+      Source → <span style="color:var(--muted)">github.com/clickathon-hope/clickathon-solution-2026</span>
+    </div>
+    <div class="team">TEAM HOPE · CLICK-A-THON 2026</div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button id="prev" onclick="go(-1)">‹</button>
+  <div class="dots" id="dots"></div>
+  <button id="next" onclick="go(1)">›</button>
+  <span id="counter"></span>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.getElementById('dots');
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => show(i);
+    dots.appendChild(d);
+  });
+
+  function show(n) {
+    cur = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === cur));
+    dots.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+  }
+
+  function go(dir) { show(cur + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  });
+
+  show(0);
+</script>

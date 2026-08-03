@@ -1,0 +1,67 @@
+UNSEEN-DAY RUN
+generated 2026-08-01T17:06:32Z   commit 702b363
+target database sonyliv_unseen_q18   ·   raw data/unseen-synthetic-raw.csv   ·   content data/unseen-synthetic-content.csv
+--------------------------------------------------------------------------
+reset: DROP DATABASE sonyliv_unseen_q18 — re-loading without this DOUBLES ev_raw (measured; see the note in this script)
+preflight ok · server 26.2.1.525 · database sonyliv_unseen_q18 ready and empty
+raw CSV header matches the loader · 6887 data rows
+
+SQL fingerprint (sha256, first 12) — the exact model this run exercised:
+  4a8377de1e08  sql/00_schema.sql
+  de80eaf031af  sql/10_intervals.sql
+  4ffca75940bf  sql/20_views.sql
+  6ba8c21fb5f8  sql/30_build_intervals.sql
+  d1dfeb14c894  sql/40_deltas.sql
+  580d092fad9c  sql/45_user_concurrency.sql
+  884408b90f81  sql/50_hour_agg.sql
+  15525d8870b4  sql/80_content.sql
+  0e278f3516e3  sql/85_windows.sql
+  be6a7a4f2e0f  sql/90_reconcile.sql
+  fffb7ab3ea43  tools/load.sh
+  git 702b363 (sql+tools clean)
+
+--------------------------------------------------------------------------
+PHASE — 1 schema (00_schema, 10_intervals) — tables + the stateless MV
+--------------------------------------------------------------------------
+  objects: 6 created
+
+--------------------------------------------------------------------------
+PHASE — 2 load (tools/load.sh, unmodified)
+--------------------------------------------------------------------------
+target=cloud  database=sonyliv_unseen_q18  (from --database)  mode=refuse
+loading content_dim from /Users/barun/.superconductor/worktrees/clickathon-project/sc-trapped-phonon-18a1/data/unseen-synthetic-content.csv ...
+loading ev_raw from /Users/barun/.superconductor/worktrees/clickathon-project/sc-trapped-phonon-18a1/data/unseen-synthetic-raw.csv ...
+loaded into TARGET=cloud, database sonyliv_unseen_q18:
+   ┌─t───────────┬─before─┬─rows─┬─added─┐
+1. │ ev_raw      │      0 │ 6887 │  6887 │
+2. │ content_dim │      0 │   29 │    29 │
+   └─────────────┴────────┴──────┴───────┘
+  ev_raw 6887 = CSV data rows 6887
+  176 sessions · 174 users · 31 content ids · 2026-08-15 06:00:00.250 -> 2026-08-15 23:59:20.900
+  content_dim 29 rows
+  cc_minute_stateless 1457 rows (mv_stateless fired during the load)
+  data spans 2026-08-15 06:00:00 .. 2026-08-15 23:59:00  (1 calendar day(s))
+
+--------------------------------------------------------------------------
+PHASE — 3 intervals (30_build_intervals.sql)
+--------------------------------------------------------------------------
+  198 intervals over 176 sessions · 12 still open · 73.4 active hours
+
+--------------------------------------------------------------------------
+PHASE — 4 user tier (45_user_concurrency.sql)
+--------------------------------------------------------------------------
+  cc_user_minute 1581 rows
+
+--------------------------------------------------------------------------
+PHASE — 5 deltas (40_deltas.sql)
+--------------------------------------------------------------------------
+  157 delta rows · opens 218 · closes 198
+
+--------------------------------------------------------------------------
+PHASE — 6 views (20) + hour agg (50) + content (80) + windows (85)
+--------------------------------------------------------------------------
+
+=== FAILED: 6 views (20) + hour agg (50) + content (80) + windows (85) ===
+rendered file /var/folders/t_/jldctg2j6ld41g83gms5n7ww0000gn/T/tmp.6s54Yh8nr3/80_content.sql still names another database:
+32:--     dictGet('sonyliv.dict_content', 'title', tuple(content_id))
+68:-- reference is qualified to `sonyliv_trunc` ON PURPOSE and the file exists to

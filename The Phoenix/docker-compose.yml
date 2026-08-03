@@ -1,0 +1,121 @@
+# THE DEMO HOST. One published port, 80, and everything behind it.
+#
+#   docker compose up -d --build
+#   docker compose --profile chat up -d          # also bring up LibreChat for the v2 Ask tab
+#
+# WHAT RUNS AND WHY EACH ONE IS HERE:
+#
+#   proxy     nginx on 80. The only thing the host exposes.
+#   web       both consoles. / is v1, /v2 is the insight console.
+#   producer  continuous event generation into phoenix_next, so v2 is genuinely live rather than
+#             a recording. This is the "replay a live-event day" demo the problem statement
+#             suggests, running for real while a judge watches.
+#   ticker    the derive loop. Without it the producer writes forever and both consoles freeze,
+#             because nothing serves raw events by design.
+#
+# THE DIVISION OF LABOUR BETWEEN THE TWO CONSOLES:
+#   v1  reads the UNSEEN DAY as delivered, plus the original corpus behind the dataset switch.
+#       Static by intent: these are the graded answers and they must not move while being read.
+#   v2  reads phoenix_next, which the producer and ticker keep moving. This is where "the curve
+#       builds in near real time" is demonstrated.
+#
+# ClickHouse itself is NOT here. It is ClickHouse Cloud in ap-south-1, per the problem statement's
+# requirement that each team load into its own service. Credentials come from the repo-root .env,
+# which is gitignored; .env.example lists every variable with the secrets redacted.
+
+name: phoenix
+
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      # v1's "original corpus" position on the dataset switch. The unseen day is the other
+      # position and resolves to CH_UNSEEN_DATABASE.
+      CH_DATABASE: ${CH_DATABASE:-phoenix_live}
+      CH_INSIGHT_DATABASE: ${CH_INSIGHT_DATABASE:-phoenix_live}
+      CH_UNSEEN_DATABASE: ${CH_UNSEEN_DATABASE:-phoenix_unseen}
+      # Reached through the proxy from the browser, but server-to-server on the compose network.
+      LIBRECHAT_URL: http://api:3080
+    # NOT published. Only the proxy reaches it.
+    expose: ["3200"]
+    # A bounded curve query, not just a TCP check: "the port is open" and "the pipeline answers"
+    # are different facts, and only the second one matters to a judge.
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3200/api/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: [.env]
+    working_dir: /app
+    environment:
+      DB: ${LIVE_DB:-phoenix_live}
+      # PERIOD must stay under the 90-second foreground tolerance or the population it is
+      # re-heartbeating stops counting between cycles and the curve sawtooths.
+      TARGET: ${LIVE_TARGET:-12000}
+      PERIOD: ${LIVE_PERIOD:-30}
+      # Effectively unbounded: the demo host should still be live tomorrow morning.
+      CYCLES: ${LIVE_CYCLES:-100000}
+    command: ["./scripts/live_producer.sh"]
+
+  ticker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: [.env]
+    working_dir: /app
+    command: ["./deploy/live_loop.sh"]
+    depends_on:
+      - producer
+    volumes:
+      # THE WATERMARK MUST SURVIVE A RESTART. Without this it lived in the container's copy of
+      # /app and died with it, so every tick took the first-tick branch and replayed a 3600s
+      # window every 60 seconds: correct, because the derive is idempotent, but roughly 60x the
+      # intended work and exactly the input that feeds a widening-window spiral.
+      - derive-state:/app/state
+    environment:
+      DERIVE_DB: ${LIVE_DB:-phoenix_live}
+      DERIVE_PERIOD: ${DERIVE_PERIOD:-60}
+      DERIVE_STATE_DIR: /app/state
+    # Asserts the pipeline is actually CURRENT, not merely running. A hung tick and a working tick
+    # are otherwise indistinguishable from outside the container, which is how a permanent failure
+    # went unnoticed for twenty minutes while the logs printed PASS.
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/state/.derive_watermark.$${DERIVE_DB} && test $$(( $$(date +%s) - $$(stat -c %Y /app/state/.derive_watermark.$${DERIVE_DB}) )) -lt 300"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  # Named, so the derive watermark outlives `docker compose up --force-recreate`.
+  derive-state:
+
+# LibreChat, for the v2 Ask tab only. Behind a profile because the consoles are fully functional
+# without it and a judge should not have to wait for six extra containers to see the curve.
+include:
+  - path: librechat/docker-compose.yml
+    project_directory: librechat
+  - path: librechat/docker-compose.override.yml
+    project_directory: librechat

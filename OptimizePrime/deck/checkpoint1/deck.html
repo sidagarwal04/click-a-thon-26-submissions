@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SonyLIV — Foreground-Only Concurrency at Streaming Scale</title>
+<style>
+  /* ============ deck geometry: 15 pages, 1280x720 each ============ */
+  @page { size: 1280px 720px; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #0a0a0a; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #e8e6dd;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .slide {
+    width: 1280px; height: 720px;
+    page-break-after: always; break-after: page;
+    background: #0a0a0a;
+    padding: 44px 60px 36px;
+    display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+  .mono, td, th, .num { font-family: "SF Mono", Menlo, Consolas, monospace; }
+
+  /* kicker line */
+  .kicker {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: #8a8a80; padding-bottom: 10px;
+    border-bottom: 1px solid #262622; margin-bottom: 22px;
+  }
+  .kicker .axis { color: #34d399; }
+
+  h1 { font-size: 46px; font-weight: 700; letter-spacing: -.02em; line-height: 1.06; }
+  h2 { font-size: 30px; font-weight: 700; letter-spacing: -.015em; line-height: 1.12; margin-bottom: 18px; }
+  h2 .dim { color: #8a8a80; font-weight: 400; }
+  .accent { color: #34d399; }
+  .warn   { color: #c08080; }
+  .tan    { color: #c8b08a; }
+  .muted  { color: #8a8a80; }
+
+  p, li { font-size: 15px; line-height: 1.45; color: #c9c7bd; }
+  .small { font-size: 12.5px; color: #8a8a80; line-height: 1.4; }
+
+  /* tables */
+  table { border-collapse: collapse; width: 100%; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 400; letter-spacing: .1em;
+    text-transform: uppercase; color: #8a8a80;
+    border-bottom: 1px solid #3a3a34; padding: 6px 14px 6px 0;
+  }
+  td {
+    font-size: 14px; padding: 8px 14px 8px 0; vertical-align: top;
+    border-bottom: 1px solid #1e1e1a; color: #d5d3c9;
+  }
+  td.r, th.r { text-align: right; }
+  td.r:last-child, th.r:last-child { padding-right: 0; }
+  tr.hl td { color: #34d399; }
+
+  /* stat tiles */
+  .stats { display: flex; gap: 0; border-top: 1px solid #262622; border-bottom: 1px solid #262622; }
+  .stat { flex: 1; padding: 18px 22px; border-left: 1px solid #262622; }
+  .stat:first-child { border-left: none; padding-left: 0; }
+  .stat .v { font-family: "SF Mono", Menlo, monospace; font-size: 34px; font-weight: 700; letter-spacing: -.02em; }
+  .stat .l { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #8a8a80; margin-top: 6px; line-height: 1.4; }
+
+  /* quote */
+  blockquote {
+    border-left: 2px solid #34d399; padding: 4px 0 4px 18px;
+    font-size: 17px; line-height: 1.5; color: #e8e6dd; margin: 14px 0;
+  }
+  blockquote .src { display: block; margin-top: 6px; font-size: 11.5px; color: #8a8a80; font-family: "SF Mono", Menlo, monospace; }
+
+  pre.diagram {
+    font-family: "SF Mono", Menlo, monospace; font-size: 13px; line-height: 1.5;
+    color: #c9c7bd; white-space: pre; overflow: hidden;
+  }
+  pre.diagram .a { color: #34d399; } pre.diagram .m { color: #8a8a80; } pre.diagram .w { color: #c08080; }
+
+  /* single-measure bar rows (identity via labels, one hue + one emphasis) */
+  .bars { display: grid; grid-template-columns: 190px 1fr 130px; row-gap: 10px; align-items: center; }
+  .bars .lbl { font-size: 13px; color: #c9c7bd; }
+  .bars .track { height: 20px; position: relative; }
+  .bars .bar { height: 20px; background: #6f6f66; border-radius: 0 3px 3px 0; min-width: 2px; }
+  .bars .bar.hi { background: #34d399; }
+  .bars .bar.lo { background: #c08080; }
+  .bars .val { font-family: "SF Mono", Menlo, monospace; font-size: 13px; text-align: right; color: #e8e6dd; }
+
+  /* architecture boxes */
+  .arch { font-family: "SF Mono", Menlo, monospace; font-size: 12px; }
+  .box {
+    border: 1px solid #3a3a34; padding: 8px 12px; line-height: 1.45;
+    color: #d5d3c9;
+  }
+  .box b { color: #e8e6dd; font-weight: 700; }
+  .box .sub { color: #8a8a80; font-size: 11px; }
+  .box.gate { border-color: #34d399; }
+  .arrow { color: #8a8a80; text-align: center; font-size: 12px; line-height: 1.2; }
+
+  .cols { display: flex; gap: 44px; flex: 1; min-height: 0; }
+  .col { flex: 1; min-width: 0; }
+
+  .foot {
+    margin-top: auto; padding-top: 12px; border-top: 1px solid #1e1e1a;
+    font-family: "SF Mono", Menlo, monospace; font-size: 10.5px; color: #6f6f66;
+    display: flex; justify-content: space-between;
+  }
+
+  .rulebox { border: 1px solid #262622; padding: 14px 18px; margin-top: 14px; }
+  .rulebox .t { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #34d399; font-family: "SF Mono", Menlo, monospace; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ SLIDE 1 -->
+<section class="slide">
+  <div class="kicker"><span>CLICK-A-THON INDIA 2026 · SONYLIV × CLICKHOUSE</span><span>01 / 15</span></div>
+  <div style="margin-top:40px">
+    <h1>Foreground-only concurrency<br>at streaming scale</h1>
+    <p style="font-size:20px; margin-top:22px; max-width:900px; color:#c9c7bd">
+      How many viewers are <span class="accent">actually watching</span>, minute by minute — backgrounded
+      and paused time excluded — computed entirely in ClickHouse, gated against raw events,
+      and served in 7&nbsp;ms.
+    </p>
+  </div>
+  <div class="stats" style="margin-top:56px">
+    <div class="stat"><div class="v accent">2,917</div><div class="l">actually watching at the peak<br>2026-07-26 10:56 · any-overlap minute rule → s14</div></div>
+    <div class="stat"><div class="v warn">3,708</div><div class="l">what naive session-span counting says<br>a 21.3% over-count</div></div>
+    <div class="stat"><div class="v">17,028</div><div class="l">minutes reconciled against raw<br>0 mismatched</div></div>
+    <div class="stat"><div class="v">7 ms</div><div class="l">headline curve, 329 KiB read<br>from system.query_log</div></div>
+  </div>
+  <div class="foot"><span>ClickHouse Cloud 26.2.1.525 · db sonyliv · every number measured, none hand-computed</span><span>sql/ · docs/adr/ · evidence/ · tools/</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 2 -->
+<section class="slide">
+  <div class="kicker"><span>THE PROBLEM, IN THE PARTNER'S OWN WORDS</span><span><span class="axis">→ PROBLEM FIT</span> · 02 / 15</span></div>
+  <div class="cols">
+    <div class="col" style="flex:1.15">
+      <blockquote>"How many people are watching right now?" — "the most-asked question in the
+        building and one of the hardest to answer correctly."
+        <span class="src">problem statement</span></blockquote>
+      <blockquote>"Ingestion, modeling, and all concurrency computation live in ClickHouse."
+        · "Apply foreground-only filtering." · "Publish continuously updated aggregates."
+        · "Hand-computed answers score nothing."
+        <span class="src">requirements · docs/upstream/, never edited</span></blockquote>
+      <p style="margin-top:14px">The app being open is <b>not</b> the same as someone watching:</p>
+<pre class="diagram" style="margin-top:10px">
+8:00 ─────────────────────────────────────────────── 9:00
+     <span class="a">██████████</span>  <span class="m">▒▒▒▒▒▒▒</span>  <span class="a">████████</span>  <span class="w">░░░░░░░░░</span>  <span class="a">██████</span>
+      watching    phone    watching    PAUSED    watching
+       20 min   in pocket   10 min     15 min     5 min
+
+     naive : "watched 60 minutes"   <span class="a">truth : 35 minutes</span>
+</pre>
+    </div>
+    <div class="col">
+      <p class="small" style="margin-bottom:8px">THE FIVE QUESTIONS THE SPEC DEMANDS WE ANSWER WITH WORKING CODE</p>
+      <table>
+        <tr><td>1</td><td>What is an <b>active interval</b> when the heartbeat is missing, the player paused, the app backgrounded?</td><td class="r muted">slide 3</td></tr>
+        <tr><td>2</td><td>How are <b>active ranges represented</b> — intervals, deltas, hybrid?</td><td class="r muted">slide 6</td></tr>
+        <tr><td>3</td><td><b>Peak and average</b> without rescanning session history per query?</td><td class="r muted">6 · 7</td></tr>
+        <tr><td>4</td><td><b>Filter-friendly</b> across platform / country / content / type / grain?</td><td class="r muted">5 · 11</td></tr>
+        <tr><td>5</td><td><b>Still-open sessions</b> whose ranges keep growing?</td><td class="r muted">slide 13</td></tr>
+      </table>
+      <div class="rulebox">
+        <div class="t">measured on the provided file</div>
+        <p style="font-size:14px"><b class="accent">33.6%</b> of apparent watch time is backgrounded or paused.
+        Foreground-only total: <b>1,978.1&nbsp;h</b>. The whole problem exists to kill that over-count.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>docs/EXPLAINER.md §A · checkpoint/1.md §A1</span><span>905,558 events · 10,866 sessions · 33,464 catalog titles</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 3 -->
+<section class="slide">
+  <div class="kicker"><span>WHY IT IS HARD — THE TWO-SIGNAL DISCOVERY</span><span><span class="axis">→ PROBLEM FIT · INNOVATION</span> · 03 / 15</span></div>
+  <h2>"Not watching" happens two ways — <span class="accent">and only one is silent</span></h2>
+  <table style="margin-bottom:20px">
+    <tr><th>player state</th><th class="r">heartbeats / min</th><th class="r">median window</th><th>detectable by a gap threshold?</th></tr>
+    <tr><td>actively watching</td><td class="r">4.72</td><td class="r">—</td><td class="muted">—</td></tr>
+    <tr class="hl"><td style="color:#d5d3c9">backgrounded</td><td class="r">0.047</td><td class="r" style="color:#d5d3c9">35 s</td><td><b>YES</b> — a 100× drop; the pings stop</td></tr>
+    <tr><td>paused</td><td class="r warn">0.756</td><td class="r">20 s</td><td class="warn"><b>NO</b> — one ping every ~79 s slips under any sane threshold</td></tr>
+  </table>
+  <div class="bars" style="max-width:900px">
+    <div class="lbl">active</div><div class="track"><div class="bar hi" style="width:100%"></div></div><div class="val">4.72 /min</div>
+    <div class="lbl">paused <span class="muted">(still chattering)</span></div><div class="track"><div class="bar lo" style="width:16%"></div></div><div class="val">0.756 /min</div>
+    <div class="lbl">backgrounded <span class="muted">(silent)</span></div><div class="track"><div class="bar" style="width:1%"></div></div><div class="val">0.047 /min</div>
+  </div>
+  <div class="rulebox" style="margin-top:22px; border-color:#34d399">
+    <div class="t">the hybrid rule — measured before built (ADR 0001, amended by ADR 0007)</div>
+    <p class="mono" style="font-size:14px; line-height:1.7">
+      active&nbsp;interval = contiguous run with no gap &gt; 150 s&nbsp;&nbsp;<span class="muted">← catches backgrounding</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>MINUS</b> explicit [pause, resume) windows&nbsp;&nbsp;<span class="muted">← catches pause — gaps never can</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>PLUS</b>&nbsp; 60 s tail grace at a run ending in silence
+    </p>
+  </div>
+  <p style="margin-top:16px">A gap-only model would have shipped, passed every test we own, and silently booked
+    paused time as watching — which the statement explicitly forbids. That is the difference between
+    <span class="warn mono">3,708</span> and <span class="accent mono">2,917</span> at the peak.</p>
+  <div class="foot"><span>ADR 0007 · docs/EXPLAINER.md §B.3 · measured on Cloud, sonyliv.ev_raw</span><span>tunables live in one place: sql/10_intervals.sql</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 4 -->
+<section class="slide">
+  <div class="kicker"><span>ARCHITECTURE — BOTH MANDATED MODELS, ONE GATE</span><span><span class="axis">→ TECHNICAL IMPLEMENTATION</span> · 04 / 15</span></div>
+  <div class="arch" style="flex:1; display:flex; flex-direction:column; gap:6px">
+    <div style="display:flex; gap:12px">
+      <div class="box" style="flex:1"><b>raw events CSV</b> 905,558 · sha256-pinned <span class="sub">· tools/load.sh refuses to double-load</span></div>
+      <div class="box" style="flex:1"><b>content CSV</b> 33,464 titles → <b>content_dim</b> → dict_content <span class="sub">(COMPLEX_KEY_HASHED — catalog plants a negative key)</span></div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="box"><b>ev_raw</b> · MergeTree · ORDER BY (toStartOfHour(ts), platform, video_session_id, ts) <span class="sub">— the single source of truth; retains every event, so corrections need no stored state</span></div>
+    <div class="arrow">▼&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼</div>
+    <div style="display:flex; gap:12px">
+      <div class="box" style="flex:1.2; border-color:#4a5a4a"><b>SESSION-AWARE</b> (the accurate model)<br>
+        <b>session_intervals</b> 30,323 · one row per contiguous <i>active</i> range · ReplacingMergeTree(build_version)<br>
+        → <b>cc_minute_delta</b> 28,073 · hour-clipped ±1 deltas · <span class="accent">THE SERVING LAYER</span><br>
+        → <b>cc_hour_agg</b> 26,254 · peak + integral per hour, 8-level cube</div>
+      <div class="box" style="flex:1"><b>SESSION-INDEPENDENT</b> (the mandated baseline)<br>
+        <b>mv_stateless</b> — a true streaming MV<br>
+        → <b>cc_minute_stateless</b> 91,292<br>
+        <b>cc_user_minute</b> 91,692 · replaceable uniqExact buckets (ADR 0016 — MV retired)<br>
+        <span class="sub">peak 2,894 vs 2,917 at the same minute — the gap IS the excluded background+pause</span></div>
+    </div>
+    <div class="arrow">▼</div>
+    <div style="display:flex; gap:12px">
+      <div class="box" style="flex:1.2"><b>43 serving + health views</b> — minute/hour/day, content-enriched, normalised, rolling + tumbling windows <span class="sub">· a chart tool cannot read an AggregateFunction column; this layer is why it doesn't have to</span></div>
+      <div class="box" style="flex:1"><b>ClickStack / HyperDX</b> — the visualization <span class="sub">reads the views AND our OTLP telemetry (slide 12) · zero custom UI code</span></div>
+    </div>
+    <div class="box gate" style="margin-top:2px"><b class="accent">THE GATE · /reconcile</b> — recomputes truth from ev_raw with window functions (not the model's arraySplit), compares <b>every</b> minute incl. idle ones, exits 1 on any diff. <span class="sub">17,028 minutes · 0 mismatched · negative-tested twice (slide 8)</span></div>
+  </div>
+  <div class="foot"><span>checkpoint/1.md §A2 · Go CLI orchestrates and observes — it computes nothing about concurrency</span><span>graded DB batch-rebuilt today; the incremental publisher is proven in scratch — slide 13</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 5 -->
+<section class="slide">
+  <div class="kicker"><span>THE SORT KEY — AND WHY WE CHANGED OUR OWN</span><span><span class="axis">→ CLICKHOUSE DEPTH</span> · 05 / 15</span></div>
+  <h2>Keys follow the measured access shape — <span class="dim">so our two tables sort in opposite directions</span></h2>
+  <p>Our first key on <span class="mono">ev_raw</span> led with <span class="mono">video_session_id</span> "for session locality."
+     The vendored ClickHouse best-practice rules said otherwise; we measured on the real 905K-event file, and the measurement won — over our own decision (ADR 0002).</p>
+  <table style="margin-top:16px">
+    <tr><th>access shape</th><th class="r">session-first key<br>rows read</th><th class="r">hour-first key<br>rows read</th><th class="r">win</th></tr>
+    <tr><td>one-hour time slice</td><td class="r">849,888</td><td class="r">434,176</td><td class="r">2.0×</td></tr>
+    <tr class="hl"><td style="color:#d5d3c9">hour + platform filter <span class="muted">(the dashboard shape)</span></td><td class="r" style="color:#d5d3c9">849,888</td><td class="r">49,152</td><td class="r"><b>17.3×</b></td></tr>
+    <tr><td>full interval rebuild</td><td class="r">905,558</td><td class="r">905,558</td><td class="r muted">identical</td></tr>
+  </table>
+  <p style="margin-top:14px">The locality argument was worth nothing: the rebuild touches <b>all</b> sessions, so it
+     scans everything under either key — while every dashboard query filters by time and usually platform.</p>
+  <div class="rulebox">
+    <div class="t">and the serving tables invert it</div>
+    <p style="font-size:14px"><span class="mono">cc_minute_delta</span> · ORDER BY <span class="mono">(platform, country, content_id, minute, +4 dims)</span> —
+      <b>dimensions first, time last</b>, because dashboards filter then range-scan: measured <b class="accent">122×</b> fewer rows read on the filtered A/B.
+      Two opposite keys, one principle — and every CREATE TABLE carries a comment defending its ORDER BY, per docs/CONVENTIONS.md.</p>
+  </div>
+  <div class="foot"><span>ADR 0002 · vendored ClickHouse/agent-skills cited: schema-pk-cardinality-order</span><span>"if you cannot write that sentence, you have guessed a key, not chosen one"</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 6 -->
+<section class="slide">
+  <div class="kicker"><span>HOUR-CLIPPED DELTAS — KILLING THE SCAN FROM t=0</span><span><span class="axis">→ CLICKHOUSE DEPTH</span> · 06 / 15</span></div>
+  <h2>Active ranges become ±1 deltas, <span class="accent">clipped at every hour boundary</span></h2>
+  <p>A running sum over raw +1/−1 deltas needs every delta since the beginning of time — partition pruning
+     becomes decorative. Clipping makes each hour's running sum <b>absolute and standalone</b>:</p>
+<pre class="diagram" style="margin-top:16px">
+an interval running <b>20:59:48 → 22:04:49</b> emits:
+
+  UNCLIPPED   +1 @20:59 ······································ −1 @22:05
+              <span class="w">to read 21:30 you must sum from t=0</span>
+
+  CLIPPED     hour 20 │ <span class="a">+1 @20:59</span>   (survives the hour — no close emitted)
+              hour 21 │ <span class="a">+1 @21:00</span>   (fresh open)
+              hour 22 │ <span class="a">+1 @22:00 … −1 @22:05</span>
+              <span class="a">every hour is now absolute — queries prune to the hours they touch</span>
+</pre>
+  <div class="cols" style="flex:0 0 auto; margin-top:18px">
+    <div class="col rulebox" style="margin-top:0">
+      <div class="t">payoff 1 — pruning is real</div>
+      <p style="font-size:14px">Every running sum is <span class="mono">PARTITION BY toStartOfHour(minute)</span> — a repo-wide convention, because forgetting it yields <i>plausible wrong numbers</i>, not errors.</p>
+    </div>
+    <div class="col rulebox" style="margin-top:0">
+      <div class="t">payoff 2 — peak pre-aggregates across time</div>
+      <p style="font-size:14px">Per-hour <span class="mono">max</span> is a real number, not a fragment — so <span class="mono">cc_hour_agg</span> stores peak + integral per hour, and a day-grain peak reads <b class="accent">24 rows</b> per combination instead of 1,440 minutes.</p>
+    </div>
+  </div>
+  <p style="margin-top:16px" class="small">Rejected representation: per-minute explosion of all history (148,900 rows vs ~28K — the "only works at
+    hackathon size" choice the statement names). We keep it only as an independent cross-check for the gate, documented as not the serving path.</p>
+  <div class="foot"><span>ADR 0003 · sql/40_deltas.sql · docs/CONVENTIONS.md</span><span>append-only: nothing in the serving layer is ever updated in place</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 7 -->
+<section class="slide">
+  <div class="kicker"><span>AGGREGATE-STATE DISCIPLINE — THE 9× WE AVOIDED</span><span><span class="axis">→ CLICKHOUSE DEPTH</span> · 07 / 15</span></div>
+  <h2>-State / -Merge, and the three arithmetic rules that keep the numbers honest</h2>
+  <table>
+    <tr><th style="width:33%">rule</th><th>what we do</th><th class="r" style="width:22%">measured cost of the naive way</th></tr>
+    <tr><td><b>Never sum a distinct count</b></td><td><span class="mono">cc_user_minute</span> stores <span class="mono">uniqExactState(user_id)</span>; reads <span class="mono">uniqExactMerge</span>; second hops use <span class="mono">-MergeState</span>. Session-level counts <i>are</i> summable across buckets (one session, one platform); user-level never.</td><td class="r warn"><b>9×</b> over-count<br><span class="muted">(45,000 vs truth 5,000)</span></td></tr>
+    <tr><td><b>Peak is not summable across dimensions</b></td><td>Always: filter → sum deltas per minute → running sum within hour → <b>then</b> <span class="mono">max()</span>. We never store a per-dimension peak; the 8-level cube computes each curve separately.</td><td class="r warn">+2.0% (platform)<br><b>+53.6%</b> (content)</td></tr>
+    <tr><td><b>uniqExact, never uniq</b></td><td>HyperLogLog's 1–2% error is a silent correctness bug against an <i>exact</i> private answer key.</td><td class="r warn">1–2% silent error</td></tr>
+  </table>
+  <div class="rulebox" style="border-color:#c08080">
+    <div class="t" style="color:#c08080">and the type that is load-bearing</div>
+    <p style="font-size:14px"><span class="mono">SimpleAggregateFunction(sum, <b>Int64</b>)</span> for delta columns. As <span class="mono">UInt64</span>, a negated
+      corrective row (slide 13) silently wrapped to 2⁶⁴−n: <span class="mono">sum()</span> stayed right by modular arithmetic <b>so the bug hid</b>,
+      while <span class="mono">max()</span> returned 1.8e19 and <span class="mono">starts</span> inflated 22%. Found by our own truncation test, fixed, re-gated.</p>
+  </div>
+  <p style="margin-top:14px" class="small">Also enforced repo-wide: plain columns in an AggregatingMergeTree must be SimpleAggregateFunction (hard error on 26.7) ·
+    dictGet over joining the small dimension (3.7× less memory, measured) · reads may say FINAL, writers never say OPTIMIZE.</p>
+  <div class="foot"><span>docs/CONVENTIONS.md · checkpoint/1.md §A5 · measured on Cloud</span><span>every convention exists because the naive version produced a wrong number</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 8 -->
+<section class="slide">
+  <div class="kicker"><span>THE GATE — 17,028 MINUTES, AND IT CAN FAIL</span><span><span class="axis">→ TECHNICAL IMPLEMENTATION</span> · 08 / 15</span></div>
+  <h2><span class="mono accent">minutes_compared=17028 · mismatched=0 · max_abs_diff=0 · PASS</span></h2>
+  <div class="cols" style="margin-top:6px">
+    <div class="col">
+      <p><b>Independent by construction.</b> <span class="mono">/reconcile</span> recomputes truth from
+        <span class="mono">ev_raw</span> alone using <b>window functions</b> — a different algorithm from the model's
+        <span class="mono">arraySplit</span> derivation — then compares a <b>dense minute spine</b>, so an idle minute
+        can disagree too. A SUMMARY row asserts coverage; silence is failure, not success.</p>
+      <p style="margin-top:12px"><b>Negative-tested twice</b> — a gate that cannot fail proves nothing:</p>
+      <table style="margin-top:8px">
+        <tr><td>inject one bad delta row</td><td class="r mono">exit 1</td></tr>
+        <tr><td>fabricate 500 viewers at an <b>idle</b> minute</td><td class="r mono">25 mismatched · max_abs_diff 500</td></tr>
+        <tr><td>rebuild</td><td class="r mono accent">exit 0</td></tr>
+      </table>
+      <p style="margin-top:12px" class="small">And on every rebuild: delta layer vs interval expansion — 3,725 minutes, 0 mismatches ·
+        hour tier vs minute tier — 98 hours, 0 · incremental vs from-scratch — 1,578 minutes, 0.</p>
+    </div>
+    <div class="col">
+      <div class="rulebox" style="margin-top:0; border-color:#c08080">
+        <div class="t" style="color:#c08080">the story that makes it credible: we broke our own gate</div>
+        <p style="font-size:14px; line-height:1.5">An adversarial pass on the first gate found it <b>passing on zero rows</b>:
+          five hard-coded 2026-07-26 timestamps meant any other day compared nothing, and
+          <span class="mono">grep&nbsp;-q&nbsp;MISMATCH</span> read that silence as success. It was also blind to idle minutes —
+          a fabricated 500 viewers at a quiet minute <i>passed</i>.</p>
+        <p style="font-size:14px; margin-top:10px">All three defects fixed and each fix negative-tested.
+          Coverage went <b>5 → 17,028 minutes</b>, idle minutes included, on the same zero-mismatch verdict —
+          and the gate now derives its target minutes from the data, so it works unchanged on the unseen day
+          (proven on a holdout: 1,364 minutes, 207 of them idle).</p>
+      </div>
+      <p style="margin-top:12px" class="small">What the gate cannot see — a definitional error, because it recomputes truth from the
+        same spec it is testing. That honest boundary is slide 14.</p>
+    </div>
+  </div>
+  <div class="foot"><span>evidence/reconcile.txt · sql/90_reconcile.sql · tools/reconcile.sh</span><span>re-run after every model change — it exits non-zero, and has proven it can</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 9 -->
+<section class="slide">
+  <div class="kicker"><span>MEASURED, THEN REJECTED</span><span><span class="axis">→ INNOVATION · MATURITY</span> · 09 / 15</span></div>
+  <h2>Every "best practice" was made to prove itself on our data. <span class="dim">Six didn't.</span></h2>
+  <table>
+    <tr><th style="width:26%">candidate</th><th style="width:24%">looked like</th><th>measured, on the real file</th></tr>
+    <tr><td><span class="mono">PROJECTION</span> on ev_raw by session id</td><td>27.7× on single-session lookups</td><td>the straggler path of the day used <span class="mono">IN (subquery)</span>, which full-scans → <b class="warn">1.00×</b>. Re-measured when ADR 0013 changed the access pattern: <b class="warn">12.8×</b> on the finalizer shape, still +91% storage. <b>Not shipped either way</b> — a measurement is only valid for the shape it was taken on</td></tr>
+    <tr><td><span class="mono">argMax()</span> instead of <span class="mono">FINAL</span></td><td>"FINAL is slow" folklore</td><td><b class="warn">3–4× slower, 5.7× more bytes</b> — one active part, zero duplicate keys: FINAL has nothing to collapse</td></tr>
+    <tr><td>a dedup step (spec step 3)</td><td>mandatory hygiene</td><td>4,210 duplicate rows are <b>provably inert</b>: raw vs deduped derivation identical — <b class="accent">0 of 3,725 minutes differ</b> (0 of 834 restricted to the 863 duplicate-bearing sessions). "We proved the step unnecessary" beats "we added the step"</td></tr>
+    <tr><td><span class="mono">any()</span> to attribute dimensions</td><td>a cheap tie-break</td><td>picks the player's pre-resolution <b>sentinel</b>: <b class="warn">44.5%</b> of audio attributions wrong, 73.5% at the peak minute — and non-deterministic across thread counts. Replaced by dominant-value-per-interval → 3.3%</td></tr>
+    <tr><td><span class="mono">uniq()</span> (HyperLogLog)</td><td>faster distinct</td><td>1–2% error against an exact private key — a silent correctness bug</td></tr>
+    <tr><td>app-side insert batching</td><td>standard ingest advice</td><td><span class="mono">async_insert=1</span> already does it server-side; we would reimplement the server and move durability into a process that can die holding data</td></tr>
+  </table>
+  <p style="margin-top:14px">Not one decision was settled by argument — and <b>four measurements overturned our own prior plan</b>,
+    twice reversing a choice we had already ADR'd. The defensible story is not "we designed it well";
+    it is <span class="accent">"we kept trying to disprove it, and here is the list of times we succeeded."</span></p>
+  <div class="foot"><span>checkpoint/1.md §A8 · evidence/dedup.txt · docs/EXPLAINER.md §D</span><span>ADR 0002 · ADR 0008</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 10 -->
+<section class="slide">
+  <div class="kicker"><span>COST, NOT JUST SPEED</span><span><span class="axis">→ QUERY PERFORMANCE</span> · 10 / 15</span></div>
+  <h2>We quote what queries <span class="accent">read</span>, not just how fast they return</h2>
+  <div class="stats" style="margin-top:8px">
+    <div class="stat"><div class="v accent">7 ms</div><div class="l">headline concurrency curve<br>query cache off</div></div>
+    <div class="stat"><div class="v accent">329 KiB</div><div class="l">bytes read for that curve</div></div>
+    <div class="stat"><div class="v">28,073</div><div class="l">rows read — the whole delta layer</div></div>
+    <div class="stat"><div class="v">8.5×</div><div class="l">less I/O than expanding intervals<br>299 KB vs 2.55 MB</div></div>
+  </div>
+  <div class="cols" style="margin-top:24px">
+    <div class="col">
+      <p><b>Evidence, not vibes.</b> Every benchmark run is tagged
+        <span class="mono">SETTINGS log_comment='…'</span> and the numbers are read back from
+        <span class="mono">system.query_log</span> — the authoritative record of latency, rows and bytes.
+        No screenshot, no stopwatch, reproducible by anyone with the service.</p>
+      <p style="margin-top:12px">A filtered dashboard shape (<span class="mono">ck1_android_phone</span>):
+        <b>30 ms · 603 KiB</b> — still reading the 28K-row delta layer, never raw history.</p>
+    </div>
+    <div class="col">
+      <p><b>Why it's cheap by construction:</b> queries read <span class="mono">cc_minute_delta</span> —
+        rows exist only where concurrency <i>changes</i>, hour-clipping bounds every scan to the hours
+        touched, and the dimension-first sort key (slide 5) prunes the rest.</p>
+      <p style="margin-top:12px"><b>And it's observable:</b> a HyperDX source charts
+        <span class="mono">system.query_log</span> itself — p95 latency and bytes read of our own queries,
+        on the graded service.</p>
+    </div>
+  </div>
+  <p class="small" style="margin-top:8px">Window views use RANGE frames, not ROWS — a delta table stores only change rows, so "5 rows back" is not "5 minutes back".
+    Rolling/tumbling views verified against a brute-force join: 0 mismatches.</p>
+  <div class="foot"><span>system.query_log · checkpoint/1.md appendix (live verification log)</span><span>"what your queries read, not just how fast they return" — the judges' own criterion</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 11 -->
+<section class="slide">
+  <div class="kicker"><span>SCALE — THE 100× QUESTION</span><span><span class="axis">→ SCALABILITY &amp; IMPACT</span> · 11 / 15</span></div>
+  <blockquote style="margin-top:0">"The provided dataset is a scaled-down proxy for a petabyte-class production problem.
+    Judges will ask how your design behaves at 100×."<span class="src">problem statement — scale framing</span></blockquote>
+  <div class="cols" style="margin-top:10px">
+    <div class="col" style="flex:1.15">
+      <div class="rulebox" style="margin-top:0; border-color:#34d399">
+        <div class="t">the hard row ceiling — a bound, not a hope</div>
+        <p style="font-size:14.5px"><span class="mono">cc_minute_delta</span> stores at most one open + one close per (merged run, hour),
+          so on this file it is capped at <b class="accent">≤ 36,930 rows no matter how many dimensions exist</b>:</p>
+        <div class="bars" style="margin-top:12px; grid-template-columns: 150px 1fr 150px">
+          <div class="lbl">3 dimensions</div><div class="track"><div class="bar" style="width:67.6%"></div></div><div class="val">24,951 · 67.6%</div>
+          <div class="lbl">7 dimensions</div><div class="track"><div class="bar hi" style="width:76%"></div></div><div class="val">28,073 · 76.0%</div>
+          <div class="lbl">the ceiling</div><div class="track" style="border-right:2px dashed #8a8a80"><div class="bar" style="width:100%; background:none; border:1px dashed #4a4a44"></div></div><div class="val">36,930</div>
+        </div>
+        <p class="small" style="margin-top:10px">Whole table: 111 KiB. Per-minute explosion (148,900 rows, ≈5.3× larger) has no such ceiling — that is why it isn't the serving path.</p>
+      </div>
+      <p style="margin-top:12px">Work scales with <b>change</b>, not history: the delta layer is O(intervals), rebuilds touch
+        only sessions that changed, corrections cost O(stragglers). Hour-clipping means no query ever scans from t=0.</p>
+    </div>
+    <div class="col">
+      <p class="small" style="margin-bottom:8px">WHAT BREAKS FIRST — SAID BEFORE WE'RE ASKED</p>
+      <table>
+        <tr><td><b>The graded DB is batch-published today.</b> The incremental publisher (ADR 0013/0016) is proven byte-identical to a rebuild across all four tiers in scratch — but it has never committed a run on the graded DB, and its crash/concurrency windows are audited by inspection only (slides 13 · 15).</td></tr>
+        <tr><td><b>FINAL vs argMax flips at scale.</b> Our measurement (slide 9) holds at one active part and zero duplicate keys; with many parts and frequent corrections it reverses. We would re-measure, not assume.</td></tr>
+        <tr><td><b>The file can't test everything.</b> <span class="mono">country</span> has a single value, so a country-filter bug is invisible to every test we own — we test on platform's 10 values instead, and say so.</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><span>ADR 0008 · docs/EXPLAINER.md §D.2 · checkpoint/1.md §B7</span><span>"choices that only work at hackathon size will be treated as what they are"</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 12 -->
+<section class="slide">
+  <div class="kicker"><span>THE OSS INTEGRATION — BOTH DIRECTIONS</span><span><span class="axis">→ CLICKHOUSE &amp; OSS DEPTH</span> · 12 / 15</span></div>
+  <h2>ClickStack charts our data <span class="dim">and</span> observes our pipeline. <span class="accent">Delete it and the demo breaks.</span></h2>
+  <div class="cols" style="margin-top:8px">
+    <div class="col">
+      <div class="rulebox" style="margin-top:0">
+        <div class="t">direction 1 — clickstack IS the visualization</div>
+        <p style="font-size:14px">HyperDX sources read our serving views on the graded Cloud service: the concurrency curve,
+          per-dimension drilldowns, content-level views — and a <span class="mono">system.query_log</span> source charting the
+          p95 latency and bytes read of our own queries. <b>Zero custom UI code</b>: the spec puts polished frontends
+          out of scope and separately requires an OSS integration — one component satisfies both.</p>
+      </div>
+      <div class="rulebox">
+        <div class="t">direction 2 — clickstack OBSERVES the pipeline</div>
+        <p style="font-size:14px"><span class="mono">sonyliv observe</span> (Go) emits over OTLP into ClickStack's
+          <span class="mono">otel_*</span> tables: <b>watermark lag</b> — the observable expression of the whole
+          update design — plus build-stage timing and the reconcile gate verdict, rendered as a freshness panel.
+          A ~250-line stdlib-only OTLP/HTTP JSON client; no SDK.</p>
+      </div>
+    </div>
+    <div class="col">
+      <p><b>The test we set ourselves</b> — the organiser warns "superficial inclusion won't count":
+        remove ClickStack and the freshness panel has <i>nowhere to come from</i>. The integration is
+        load-bearing in both directions, not a logo on a slide.</p>
+      <p style="margin-top:14px"><b>OSS depth beyond ClickStack:</b> the official
+        <span class="mono">ClickHouse/agent-skills</span> best-practice rules (Apache-2.0) are vendored into the repo
+        and cited by name in our ADRs — and they <b>overturned one of our own schema choices</b>
+        (the ev_raw sort key, slide 5). We treat upstream OSS guidance as a reviewer, not decoration.</p>
+      <p style="margin-top:14px" class="small">Go CLI: verify (env/schema preflight) · observe (OTLP emit). It computes nothing about
+        concurrency — R1 stays intact: all modeling and computation live in ClickHouse.</p>
+    </div>
+  </div>
+  <div class="foot"><span>docs/CLICKSTACK.md · docs/OBSERVABILITY.md · .claude/skills/vendor/</span><span>internal/{chdb, pipelinehealth, otelemit} · cmd/sonyliv</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 13 -->
+<section class="slide">
+  <div class="kicker"><span>UPDATE HANDLING — ONE MECHANISM, EVERY ARRIVAL CLASS</span><span><span class="axis">→ TECHNICAL IMPLEMENTATION</span> · 13 / 15</span></div>
+  <h2>Nothing is ever mutated. <span class="dim">Every late arrival is re-derived per session and appended as a diff — never rebuilt.</span></h2>
+  <table style="margin-top:4px">
+    <tr><th style="width:26%">arrival class</th><th style="width:24%">mechanism</th><th>why it is correct</th></tr>
+    <tr><td>in order, near-real-time</td><td>an MV on <span class="mono">ev_raw</span> records touched sessions; the <b>publisher</b> claims what arrived since its cursor and re-derives only those (ADR 0013)</td><td>appends the negation of each session's published deltas plus its new ones; cost scales with changed sessions, not history</td></tr>
+    <tr><td>straggler, however late <span class="muted">(measured tail: 2,081 s after VideoSessionEnd)</span></td><td><b>correction-by-diff</b> (ADR 0006, live): recompute that one session, append −old +new</td><td>exactly as correct as a full rebuild — because it <i>is</i> one, of one session. <span class="mono">SimpleAggregateFunction(sum, Int64)</span> absorbs the negative rows natively; a 46-min straggler measured at 3.4 s</td></tr>
+    <tr><td>hour/day peaks + distinct users</td><td><b>publisher phases</b> re-derive every touched bucket; <span class="mono">cc_user_minute</span> is replaceable buckets, not a set union (ADR 0016)</td><td>replacement is the cheapest representation in which user <i>retraction</i> exists — all four tiers converge to a from-scratch rebuild: 0 differing cells across bootstrap, shrink, dimension flip, straggler, 200 forced runs</td></tr>
+  </table>
+  <div class="rulebox" style="border-color:#34d399">
+    <div class="t">the proof — a truncation test that manufactures the worst case</div>
+    <p style="font-size:14px">Cut the stream at the peak minute — <b>52.6% of sessions left open</b> — then absorb the withheld
+      <b>447,081 late events</b> incrementally: never truncating, never mutating, only appending. Result: row-for-row equal to a
+      from-scratch build on all <b class="accent">1,578 minutes, 0 mismatches</b>.</p>
+    <p style="font-size:14px; margin-top:8px">It caught <b>two real bugs</b> before any judge could:
+      a stale-row defect (versioning intervals by <span class="mono">interval_end</span> let an overshot tail-grace win forever — 316 intervals, peak over-counted by 37;
+      now <span class="mono">ReplacingMergeTree(build_version)</span>) and the UInt64 wrap on negated corrections (slide 7). Both fixed, both re-gated.</p>
+  </div>
+  <p style="margin-top:12px" class="small"><b>Honest status:</b> the publisher is proven in a scratch database (evidence/publish.txt); the graded DB is
+    still batch-rebuilt — the installed publisher has never committed a run there (slide 15). The hot tier (ADR 0004/0005) was
+    <b>retired, not deferred</b>: correction-by-diff makes it unnecessary, and its lease model counted paused time as watching.</p>
+  <div class="foot"><span>evidence/truncation.txt · evidence/publish.txt · ADR 0006 · ADR 0013 · ADR 0016</span><span>ev_raw retains every event — corrections are deterministic and need no stored state</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 14 -->
+<section class="slide">
+  <div class="kicker"><span>HONEST LIMITS — THE FIVE DEFINITIONAL FORKS</span><span><span class="axis">→ MATURITY</span> · 14 / 15</span></div>
+  <h2>Five definitions the data cannot settle — <span class="accent">each measured, each built as a switch</span></h2>
+  <table style="margin-top:2px">
+    <tr><th style="width:34%">fork</th><th style="width:30%">our default, stated</th><th class="r">measured worth</th></tr>
+    <tr><td><b>1 · minute membership.</b> Is a session concurrent at minute M if it overlaps <i>any part</i> of M, or only if active <i>at the instant M:00</i> — how a sampled gauge reads? The gate cannot see this: it shares the convention.</td><td>any overlap counts — consistent across model, gate and serving tiers</td><td class="r"><b class="warn">2,507 vs 2,917 · −14.1%</b><br><span class="muted">the largest fork measured (doubts/09)</span></td></tr>
+    <tr><td><b>2 · resume semantics.</b> 9,958 <span class="mono">resume→resume</span> pairs; 900 sessions whose first pause/resume event is a <i>resume</i>. Does a pause close at the first resume, or one that corresponds to it?</td><td>close at first resume; unpaired resumes are noise</td><td class="r"><b class="warn">189.2 h · 9.6%</b><br><span class="muted">of counted watch time</span></td></tr>
+    <tr><td><b>3 · unclosed pauses.</b> 23% of pauses never resume. Stay paused to end of run, or end at next event?</td><td>conservative — stays paused (over-counting invents viewers)</td><td class="r"><b class="warn">99.3 h · +131 peak</b><br><span class="muted">pre-ADR-0009 measurement; permissive arm re-run pending</span></td></tr>
+    <tr><td><b>4 · heartbeat cadence.</b> The doc says 60 s; the shipped data ticks at <b>40.0 s</b> (p50 = p90 on three separate telemetry streams). Which did the ground truth assume?</td><td>the shipped data is authoritative</td><td class="r"><b class="warn">≤ 170.9 h · 8.6%</b><br><span class="muted">upper bound</span></td></tr>
+    <tr><td><b>5 · is Hindi one language or four?</b> <span class="mono">hin / HIN / hin-hindi / hin-Hindi</span> are four raw values.</td><td>store raw, normalise on read — never degrade the derivation</td><td class="r"><b class="warn">+23.8%</b><br><span class="muted">on any per-language answer (peak 1,774 → 2,196, live)</span></td></tr>
+  </table>
+  <p style="margin-top:10px">None of these is measurable from the data: the ground truth is private, so a wrong guess is silently wrong
+    on every benchmark answer. Our gate <b>structurally cannot catch them</b> — it recomputes truth from the same rule.
+    That is why each fork is a <b>one-line switch</b> (or a stated two-file convention) with an ~11 s rebuild:
+    the moment a definition is pinned, we re-run and re-gate.</p>
+  <p class="small" style="margin-top:8px">Also disclosed: <span class="mono">country</span> carries a single value in the provided file, so country-filter
+    bugs are invisible to our tests — we validate filtering on platform's 10 values and say so out loud.</p>
+  <div class="foot"><span>doubts/ — one dossier per fork: evidence, exact wording, a decision table per answer</span><span>naming the limit pre-empts the question — this project's story is "we kept trying to disprove ourselves"</span></div>
+</section>
+
+<!-- ================================================================ SLIDE 15 -->
+<section class="slide">
+  <div class="kicker"><span>WHAT WE WOULD DO NEXT</span><span><span class="axis">→ IMPACT</span> · 15 / 15</span></div>
+  <h2>Next steps, in scoring order — <span class="dim">each already de-risked</span></h2>
+  <table style="margin-top:4px">
+    <tr><th style="width:34%">step</th><th>state of de-risking</th></tr>
+    <tr><td><b>1 · First committed publisher run on the graded DB</b> — the spec's "continuously updated aggregates"</td><td>the mechanism is no longer a gap: the incremental finalizer maintains <b>all four tiers</b> (ADR 0013/0016), proven byte-identical to a from-scratch rebuild — <b>0 differing cells</b> across bootstrap, growth, shrink, dimension flip, a 46-min straggler and 200 forced runs; phases 0.5–1.8 s. The graded DB has the schema installed and zero committed runs</td></tr>
+    <tr><td><b>2 · Live continuous-publication demo</b> — publisher on a per-minute cadence, watermark lag charted in ClickStack</td><td>every piece exists: publish batches measured 3.5–5 s in scratch, <span class="mono">sonyliv observe</span> already emits the lag. (The hot tier was retired, not deferred — ADR 0013 measured correction-by-diff making it unnecessary)</td></tr>
+    <tr><td><b>3 · Close the publisher's crash / concurrency windows</b></td><td>consumed-before-claimed and single-publisher assumptions are audited by inspection only — reproduce, then guard (queued as ADR 0017)</td></tr>
+    <tr><td><b>4 · Commit the tail-sensitivity sweep as a harness</b></td><td>already measured by the cross-model audit: gap {120, 150, 180} × tail {0, 60, 150} spans peak <b>2,756 → 3,132</b> (13.6%); our shipped point 150/60 → 2,917. Make it one command so the unseen day re-runs it</td></tr>
+    <tr><td><b>5 · /bench on the official query set, if released</b></td><td>it never was — a <b>13-query reconstruction</b> of the statement's shapes is committed with answers, bytes read and query ids (evidence/benchmark/): largest read 814 KiB, server medians 7–45 ms, <span class="mono">ev_raw</span> never touched</td></tr>
+    <tr><td><b>6 · Ingest definition answers</b> (slide 14)</td><td>every fork is a one-line switch (minute membership: a stated two-file convention) and an ~11 s rebuild, re-gated by <span class="mono">/reconcile</span></td></tr>
+  </table>
+  <div class="rulebox" style="border-color:#34d399; margin-top:18px">
+    <div class="t">the close</div>
+    <p style="font-size:16px; line-height:1.55"><b>Correct first</b> — 17,028 minutes gated against raw events, negative-tested.
+      <b>Fast second</b> — 7 ms and 329 KiB for the headline curve, and we quote what queries <i>read</i>.
+      <b>Update-friendly third</b> — one mechanism for every arrival class, all four tiers converging on the rebuild answer, proven by tests that caught two real bugs.
+      And where a definition is genuinely open, we measured what it is worth and built the switch.</p>
+  </div>
+  <div class="foot"><span>checkpoint/1.md §C6–C7 · docs/RUNBOOK_UNSEEN.md — unseen day: 47–58 s end-to-end, rehearsed ×3</span><span>SonyLIV × ClickHouse · Click-a-thon India 2026</span></div>
+</section>
+
+</body>
+</html>

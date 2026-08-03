@@ -1,0 +1,191 @@
+{
+  "schema_version": "8.1",
+  "scan_summary": {
+    "metrics_swept": [
+      "requests",
+      "fill_rate",
+      "ecpm"
+    ],
+    "windows_swept": 35,
+    "incidents_found": 4,
+    "ruled_out_lookalikes": 8,
+    "wall_clock_s": 13.91,
+    "source": "blind e2e run vs rca_e2e"
+  },
+  "investigations": [
+    {
+      "incident_id": "inv_fill_rate_2026-06-12",
+      "title": "fill_rate -44.8% at region=LATAM",
+      "severity": "crit",
+      "verdict": "LOCALIZED_1D",
+      "metric": "fill_rate",
+      "panes": [
+        "fill_rate",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-12T00:00:00Z",
+        "end": "2026-06-14T23:59:59Z"
+      },
+      "headline": {
+        "observed": 0.4301,
+        "baseline": 0.7737,
+        "delta_pct": -44.8,
+        "unit": "rate"
+      },
+      "culprit": {
+        "dimension": "region",
+        "value": "LATAM",
+        "co_cut": null
+      },
+      "uniformity": "isolated to region=LATAM; sibling segments move within noise",
+      "mechanism": "fill_rate at region=LATAM fell -44.8% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "fill_rate is the driver (-44.4%)",
+      "confidence": "high",
+      "ruled_out": [
+        "country=MX (-45.1%): correlated with region=LATAM",
+        "country=AR (-44.7%): correlated with region=LATAM",
+        "country=BR (-44.5%): correlated with region=LATAM"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect region=LATAM supply/demand path for 2026-06-12..2026-06-14"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff fill_rate config/releases scoped to region=LATAM"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_ecpm_2026-06-18",
+      "title": "ecpm -50.0% at category=ecommerce",
+      "severity": "crit",
+      "verdict": "LOCALIZED_1D",
+      "metric": "ecpm",
+      "panes": [
+        "ecpm",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-18T00:00:00Z",
+        "end": "2026-06-20T23:59:59Z"
+      },
+      "headline": {
+        "observed": 1.2681,
+        "baseline": 2.5106,
+        "delta_pct": -50.0,
+        "unit": "usd"
+      },
+      "culprit": {
+        "dimension": "category",
+        "value": "ecommerce",
+        "co_cut": null
+      },
+      "uniformity": "isolated to category=ecommerce; sibling segments move within noise",
+      "mechanism": "ecpm at category=ecommerce fell -50.0% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "ecpm is the driver (-49.5%)",
+      "confidence": "high",
+      "ruled_out": [],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect category=ecommerce supply/demand path for 2026-06-18..2026-06-20"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff ecpm config/releases scoped to category=ecommerce"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_fill_rate_2026-06-28",
+      "title": "fill_rate -49.8% at os_version=Android 14",
+      "severity": "crit",
+      "verdict": "LOCALIZED_1D",
+      "metric": "fill_rate",
+      "panes": [
+        "fill_rate",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-06-28T00:00:00Z",
+        "end": "2026-06-30T23:59:59Z"
+      },
+      "headline": {
+        "observed": 0.391,
+        "baseline": 0.7737,
+        "delta_pct": -49.8,
+        "unit": "rate"
+      },
+      "culprit": {
+        "dimension": "os_version",
+        "value": "Android 14",
+        "co_cut": null
+      },
+      "uniformity": "isolated to os_version=Android 14; sibling segments move within noise",
+      "mechanism": "fill_rate at os_version=Android 14 fell -49.8% while the rest of the slice held \u2014 a segment-local cause, not an upstream one.",
+      "contribution": "fill_rate is the driver (-49.5%)",
+      "confidence": "high",
+      "ruled_out": [
+        "device_model=Galaxy S24 (-14.7%): correlated with os_version=Android 14",
+        "device_model=Pixel 7 (-12.8%): correlated with os_version=Android 14",
+        "device_model=Galaxy S23 (-13.3%): correlated with os_version=Android 14",
+        "device_model=Redmi Note 12 (-10.9%): correlated with os_version=Android 14",
+        "device_model=Pixel 8 (-10.7%): correlated with os_version=Android 14"
+      ],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Inspect os_version=Android 14 supply/demand path for 2026-06-28..2026-06-30"
+        },
+        {
+          "urgency": "next",
+          "text": "Diff fill_rate config/releases scoped to os_version=Android 14"
+        }
+      ],
+      "trace_url": ""
+    },
+    {
+      "incident_id": "inv_ecpm_2026-07-02",
+      "title": "ecpm moved -14.8% \u2014 global, no single segment",
+      "severity": "info",
+      "verdict": "GLOBAL_UNLOCALIZED",
+      "metric": "ecpm",
+      "panes": [
+        "ecpm",
+        "revenue"
+      ],
+      "incident_window": {
+        "start": "2026-07-02T00:00:00Z",
+        "end": "2026-07-03T23:59:59Z"
+      },
+      "headline": {
+        "observed": 2.1792,
+        "baseline": 2.521,
+        "delta_pct": -13.6,
+        "unit": "usd"
+      },
+      "culprit": null,
+      "uniformity": "spread across many segments in several dimensions \u2014 no single culprit",
+      "mechanism": "ecpm moved -13.6% everywhere at once; that shape points to an upstream cause (pricing, ingestion, exchange), not a segment problem.",
+      "contribution": "uniform \u2014 no segment explains more than its traffic share",
+      "confidence": "medium",
+      "ruled_out": [],
+      "actions": [
+        {
+          "urgency": "now",
+          "text": "Check upstream systems for 2026-07-02..2026-07-03"
+        },
+        {
+          "urgency": "now",
+          "text": "Do NOT chase segments \u2014 global causes need global fixes"
+        }
+      ],
+      "trace_url": ""
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+name: schema-kings
+
+x-langfuse-env: &langfuse-env
+  DATABASE_URL: postgresql://${LANGFUSE_POSTGRES_USER:-langfuse}:${LANGFUSE_POSTGRES_PASSWORD:-langfuse}@langfuse-postgres:5432/${LANGFUSE_POSTGRES_DB:-langfuse}
+  NEXTAUTH_URL: ${LANGFUSE_URL:-http://localhost:3000}
+  NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-dev-nextauth-secret-change-me}
+  SALT: ${LANGFUSE_SALT:-dev-salt-change-me}
+  ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+  TELEMETRY_ENABLED: ${LANGFUSE_TELEMETRY_ENABLED:-false}
+  CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+  CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+  CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-clickhouse}
+  CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse}
+  CLICKHOUSE_DB: ${LANGFUSE_CLICKHOUSE_DB:-langfuse}
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  REDIS_CONNECTION_STRING: redis://langfuse-redis:6379/0
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${LANGFUSE_S3_BUCKET:-langfuse}
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: ${LANGFUSE_S3_REGION:-auto}
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_ROOT_USER:-minio}
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_ROOT_PASSWORD:-miniosecret}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${LANGFUSE_S3_BUCKET:-langfuse}
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: ${LANGFUSE_S3_REGION:-auto}
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_ROOT_USER:-minio}
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_ROOT_PASSWORD:-miniosecret}
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  # Headless seed — must match backend/.env.example local Langfuse keys (do not quote values).
+  LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-schema-kings-org}
+  LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-Schema Kings}
+  LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-schema-kings}
+  LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-Schema Kings Local}
+  LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-lf_pk_schema_kings_local}
+  LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-lf_sk_schema_kings_local_secret}
+  LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-local@schema-kings.dev}
+  LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Local Dev}
+  LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-schemakingslocal}
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:${APP_CLICKHOUSE_IMAGE_TAG:-latest}
+    container_name: schema-kings-clickhouse
+    ports:
+      - "${APP_CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${APP_CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    environment:
+      CLICKHOUSE_DB: ${APP_CLICKHOUSE_DATABASE:-schema_kings}
+      CLICKHOUSE_USER: ${APP_CLICKHOUSE_USER:-schema_kings}
+      CLICKHOUSE_PASSWORD: ${APP_CLICKHOUSE_PASSWORD:-schema_kings}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - app_clickhouse_data:/var/lib/clickhouse
+      - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "clickhouse-client --user=$$CLICKHOUSE_USER --password=$$CLICKHOUSE_PASSWORD --query='SELECT 1'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  langfuse-web:
+    image: langfuse/langfuse:${LANGFUSE_IMAGE_TAG:-latest}
+    container_name: schema-kings-langfuse-web
+    profiles: [ "langfuse" ]
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+      langfuse-minio-create-bucket:
+        condition: service_completed_successfully
+    ports:
+      - "${LANGFUSE_PORT:-3000}:3000"
+    environment:
+      <<: *langfuse-env
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:${LANGFUSE_IMAGE_TAG:-latest}
+    container_name: schema-kings-langfuse-worker
+    profiles: [ "langfuse" ]
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+      langfuse-minio-create-bucket:
+        condition: service_completed_successfully
+    environment:
+      <<: *langfuse-env
+
+  langfuse-postgres:
+    image: postgres:16-alpine
+    container_name: schema-kings-langfuse-postgres
+    profiles: [ "langfuse" ]
+    environment:
+      POSTGRES_USER: ${LANGFUSE_POSTGRES_USER:-langfuse}
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD:-langfuse}
+      POSTGRES_DB: ${LANGFUSE_POSTGRES_DB:-langfuse}
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${LANGFUSE_POSTGRES_USER:-langfuse} -d ${LANGFUSE_POSTGRES_DB:-langfuse}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:${LANGFUSE_CLICKHOUSE_IMAGE_TAG:-latest}
+    container_name: schema-kings-langfuse-clickhouse
+    profiles: [ "langfuse" ]
+    ports:
+      - "${LANGFUSE_CLICKHOUSE_HTTP_PORT:-8124}:8123"
+      - "${LANGFUSE_CLICKHOUSE_NATIVE_PORT:-9001}:9000"
+    environment:
+      CLICKHOUSE_DB: ${LANGFUSE_CLICKHOUSE_DB:-langfuse}
+      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: [ "CMD-SHELL", "clickhouse-client --user=$$CLICKHOUSE_USER --password=$$CLICKHOUSE_PASSWORD --query='SELECT 1'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  langfuse-redis:
+    image: redis:7-alpine
+    container_name: schema-kings-langfuse-redis
+    profiles: [ "langfuse" ]
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  langfuse-minio:
+    image: minio/minio:latest
+    container_name: schema-kings-langfuse-minio
+    profiles: [ "langfuse" ]
+    command: server /data --console-address ":9001"
+    ports:
+      - "${LANGFUSE_MINIO_API_PORT:-9090}:9000"
+      - "${LANGFUSE_MINIO_CONSOLE_PORT:-9091}:9001"
+    environment:
+      MINIO_ROOT_USER: ${LANGFUSE_MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_ROOT_PASSWORD:-miniosecret}
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  langfuse-minio-create-bucket:
+    image: minio/mc:latest
+    container_name: schema-kings-langfuse-minio-create-bucket
+    profiles: [ "langfuse" ]
+    depends_on:
+      langfuse-minio:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - >
+        mc alias set local http://langfuse-minio:9000 "${LANGFUSE_MINIO_ROOT_USER:-minio}" "${LANGFUSE_MINIO_ROOT_PASSWORD:-miniosecret}" && mc mb --ignore-existing local/"${LANGFUSE_S3_BUCKET:-langfuse}"
+    environment:
+      MINIO_ROOT_USER: ${LANGFUSE_MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_ROOT_PASSWORD:-miniosecret}
+      LANGFUSE_S3_BUCKET: ${LANGFUSE_S3_BUCKET:-langfuse}
+
+volumes:
+  app_clickhouse_data:
+  langfuse_postgres_data:
+  langfuse_clickhouse_data:
+  langfuse_redis_data:
+  langfuse_minio_data:

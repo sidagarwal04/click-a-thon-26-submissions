@@ -1,0 +1,25 @@
+# Cloud mode: point the analytical path at ClickHouse Cloud (the primary datastore)
+# while the in-stack clickhouse keeps serving ClickStack's trace store.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d
+#
+# Requires in .env (never committed):
+#   CLOUD_CH_HOST=yourservice.region.provider.clickhouse.cloud
+#   CLOUD_RCA_RW_PASSWORD=...        (writer: rca-mcp)
+#   CLOUD_LIBRECHAT_RO_PASSWORD=...  (read-only: mcp-clickhouse)
+services:
+  rca-mcp:
+    environment:
+      CH_HOST: ${CLOUD_CH_HOST}
+      CH_SECURE: "1"
+      CH_HTTP_PORT: "8443"
+      CH_USER: rca_rw
+      CH_PASSWORD: ${CLOUD_RCA_RW_PASSWORD}
+
+  mcp-clickhouse:
+    environment:
+      CLICKHOUSE_HOST: ${CLOUD_CH_HOST}
+      CLICKHOUSE_PORT: "8443"
+      CLICKHOUSE_SECURE: "true"
+      CLICKHOUSE_USER: librechat_ro
+      CLICKHOUSE_PASSWORD: ${CLOUD_LIBRECHAT_RO_PASSWORD}

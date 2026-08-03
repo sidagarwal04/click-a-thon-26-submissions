@@ -1,0 +1,103 @@
+UNSEEN-DAY RUN
+generated 2026-08-01T17:34:06Z   commit 51ef49f
+target database sonyliv_unseen_q26   ·   raw data/unseen-synthetic-raw.csv   ·   content data/unseen-synthetic-content.csv
+--------------------------------------------------------------------------
+reset: DROP DATABASE sonyliv_unseen_q26 — re-loading without this DOUBLES ev_raw (measured; see the note in this script)
+preflight ok · server 26.2.1.525 · database sonyliv_unseen_q26 ready and empty
+raw CSV header matches the loader · 6887 data rows
+
+SQL fingerprint (sha256, first 12) — the exact model this run exercised:
+  4a8377de1e08  sql/00_schema.sql
+  de80eaf031af  sql/10_intervals.sql
+  4ffca75940bf  sql/20_views.sql
+  6ba8c21fb5f8  sql/30_build_intervals.sql
+  d1dfeb14c894  sql/40_deltas.sql
+  764ee4c5d810  sql/45_user_concurrency.sql
+  41a53bf747b4  sql/50_hour_agg.sql
+  15525d8870b4  sql/80_content.sql
+  0e278f3516e3  sql/85_windows.sql
+  be6a7a4f2e0f  sql/90_reconcile.sql
+  fffb7ab3ea43  tools/load.sh
+  git 51ef49f (sql+tools clean)
+
+--------------------------------------------------------------------------
+PHASE — 1 schema (00_schema, 10_intervals) — tables + the stateless MV
+--------------------------------------------------------------------------
+  objects: 6 created
+
+--------------------------------------------------------------------------
+PHASE — 2 load (tools/load.sh, unmodified)
+--------------------------------------------------------------------------
+target=cloud  database=sonyliv_unseen_q26  (from --database)  mode=refuse
+loading content_dim from /Users/barun/.superconductor/worktrees/clickathon-project/sc-coherent-yttrium-d4c5/data/unseen-synthetic-content.csv ...
+loading ev_raw from /Users/barun/.superconductor/worktrees/clickathon-project/sc-coherent-yttrium-d4c5/data/unseen-synthetic-raw.csv ...
+loaded into TARGET=cloud, database sonyliv_unseen_q26:
+   ┌─t───────────┬─before─┬─rows─┬─added─┐
+1. │ ev_raw      │      0 │ 6887 │  6887 │
+2. │ content_dim │      0 │   29 │    29 │
+   └─────────────┴────────┴──────┴───────┘
+  ev_raw 6887 = CSV data rows 6887
+  176 sessions · 174 users · 31 content ids · 2026-08-15 06:00:00.250 -> 2026-08-15 23:59:20.900
+  content_dim 29 rows
+  cc_minute_stateless 1457 rows (mv_stateless fired during the load)
+  data spans 2026-08-15 06:00:00 .. 2026-08-15 23:59:00  (1 calendar day(s))
+
+--------------------------------------------------------------------------
+PHASE — 3 intervals (30_build_intervals.sql)
+--------------------------------------------------------------------------
+  198 intervals over 176 sessions · 12 still open · 73.4 active hours
+
+--------------------------------------------------------------------------
+PHASE — 4 user tier (45_user_concurrency.sql)
+--------------------------------------------------------------------------
+  cc_user_minute 1581 rows
+
+--------------------------------------------------------------------------
+PHASE — 5 deltas (40_deltas.sql)
+--------------------------------------------------------------------------
+  157 delta rows · opens 218 · closes 198
+
+--------------------------------------------------------------------------
+PHASE — 6 views (20) + hour agg (50) + content (80) + windows (85)
+--------------------------------------------------------------------------
+  cc_hour_agg 328 rows
+  hour tier says peak 30 @ 2026-08-15 20:00:00
+
+--------------------------------------------------------------------------
+PHASE — 7 the answer (this is what we would submit)
+--------------------------------------------------------------------------
+  session concurrency  peak 30 @ 2026-08-15 20:00:00  (earliest tied minute — ADR 0014)
+  user concurrency     peak 30
+  stateless baseline   peak 30
+  minutes tied at the peak: 64  (dense spine; the change-point count under-reports)
+
+--------------------------------------------------------------------------
+PHASE — 8 THE GATE — truth recomputed from ev_raw
+--------------------------------------------------------------------------
+
+sql/90_reconcile.sql, verbatim (SUMMARY + up to 20 mismatches + 5 samples):
+     0	SUMMARY	minutes_compared=1080	mismatched=0	max_abs_diff=0	peak=30	PASS
+     2	sample	2026-08-15 06:00:00	1	1	0	PASS
+     2	sample	2026-08-15 12:04:00	12	12	0	PASS
+     2	sample	2026-08-15 18:36:00	0	0	0	PASS
+     2	sample	2026-08-15 21:10:00	30	30	0	PASS
+     2	sample	2026-08-15 23:59:00	12	12	0	PASS
+
+     asserted: minutes_compared=1080 equals the day's spine (2026-08-15 06:00:00 .. 2026-08-15 23:59:00)
+
+--------------------------------------------------------------------------
+TIMINGS — wall clock, this run, 6887 events
+--------------------------------------------------------------------------
+  1 schema (00_schema, 10_intervals) — tables + the stateless MV     5s
+  2 load (tools/load.sh, unmodified)                             9s
+  3 intervals (30_build_intervals.sql)                           3s
+  4 user tier (45_user_concurrency.sql)                          4s
+  5 deltas (40_deltas.sql)                                       4s
+  6 views (20) + hour agg (50) + content (80) + windows (85)    17s
+  7 the answer (this is what we would submit)                    5s
+  8 THE GATE — truth recomputed from ev_raw                    6s
+  TOTAL                                                         56s
+
+--------------------------------------------------------------------------
+VERDICT — GATE PASSED on sonyliv_unseen_q26. peak 30 @ 2026-08-15 20:00:00 (earliest tied minute).
+--------------------------------------------------------------------------

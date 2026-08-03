@@ -1,0 +1,72 @@
+/* One segment of the parent group's instrument strip, not a card of its own: no border, no
+   background, no corner-ticks here, the group container (see Dashboard.module.css) owns the
+   frame and the hairline dividers between segments, so a row of these reads as one meter
+   cluster instead of a grid of separate boxes. A value coloured red/orange at 2.7rem reads as
+   an alarm the instant it happens to be zero (a live viewer count genuinely can be), so the
+   accent lives on this top cap and on the label instead of on the number itself. */
+.readout {
+  position: relative;
+  border-top: 3px solid var(--line-bright);
+  padding: 1.05rem 1.05rem 0.75rem;
+  min-width: 130px;
+  animation: fade-up 0.35s ease both;
+}
+
+.readout.signal {
+  border-top-color: var(--signal);
+}
+
+.readout.cool {
+  border-top-color: var(--cool);
+}
+
+.value {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+
+.value.lg {
+  font-size: 2.7rem;
+}
+
+.label {
+  display: block;
+}
+
+.readout.signal .label {
+  color: var(--signal);
+}
+
+.readout.cool .label {
+  color: var(--cool);
+}
+
+/* Diagnostic pill: query latency, rows read, technical readouts a viewer can ignore, so they
+   sit small and quiet instead of matching the weight of the metrics they came here to read. */
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+}
+
+.inlineLabel {
+  font-size: 0.62rem;
+  color: var(--ink-faint);
+}
+
+.inlineValue {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+}

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — install with `make hooks`.
+#
+# This hook FIXES rather than flags, per the repo rule: a hook that hands you a
+# list of complaints has just moved the work back to you. It formats, autofixes
+# what golangci-lint can autofix, re-stages the result, and only then blocks on
+# what genuinely needs a human.
+set -euo pipefail
+
+# Only look at Go files that are actually staged.
+staged_go=$(git diff --cached --name-only --diff-filter=ACM -- '*.go' || true)
+[ -z "$staged_go" ] && exit 0
+
+echo "pre-commit: formatting and autofixing Go"
+
+# gofmt first — cheap, and golangci's autofix assumes formatted input.
+echo "$staged_go" | xargs gofmt -w
+
+if command -v goimports >/dev/null 2>&1; then
+  echo "$staged_go" | xargs goimports -w -local github.com/d-cryptic/clickathon
+fi
+
+if command -v golangci-lint >/dev/null 2>&1; then
+  # --fix repairs what it can. A non-zero exit here means findings remain that
+  # autofix cannot resolve, which is exactly when a human should look.
+  if ! golangci-lint run --fix ./...; then
+    echo
+    echo "pre-commit: golangci-lint left findings it could not autofix (above)." >&2
+    echo "Fix them, or commit with --no-verify if you are mid-spike." >&2
+    exit 1
+  fi
+else
+  echo "pre-commit: golangci-lint not on PATH — run inside 'devbox shell'." >&2
+fi
+
+# Re-stage whatever the fixers rewrote, so the commit contains the fixed code.
+echo "$staged_go" | xargs git add
+
+# Tests are fast here; a red suite should never reach a commit.
+if ! CGO_ENABLED=1 go test -count=1 ./... >/dev/null; then
+  echo "pre-commit: tests failed — run 'make test' to see why." >&2
+  exit 1
+fi
+
+echo "pre-commit: ok"

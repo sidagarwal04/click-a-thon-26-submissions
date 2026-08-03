@@ -1,0 +1,63 @@
+[tool.coverage.run]
+branch = true
+source = [ "src" ]
+
+[tool.coverage.report]
+exclude_lines = ['if TYPE_CHECKING:']
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = """
+ --cov
+"""
+
+[project]
+name = "zentra-adapter-telemetry"
+version = "1.0.0"
+description = "ZentraOS OpenTelemetry adapter"
+requires-python = ">=3.13,<3.14"
+readme = 'README.md'
+dependencies = [
+    "fastapi>=0.119,<1",
+    "opentelemetry-api>=1.38,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.38,<2",
+    "opentelemetry-instrumentation-fastapi>=0.59b0,<1",
+    "opentelemetry-sdk>=1.38,<2",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.8.9,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+exclude = [
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "dist",
+]
+
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []

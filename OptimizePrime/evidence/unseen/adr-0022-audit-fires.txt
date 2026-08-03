@@ -1,0 +1,57 @@
+UNSEEN-DAY RUN
+generated 2026-08-01T17:40:25Z   commit 51ef49f
+target database sonyliv_unseen_q26   ·   raw data/unseen-synthetic-raw.csv   ·   content data/unseen-synthetic-content.csv
+--------------------------------------------------------------------------
+reset: DROP DATABASE sonyliv_unseen_q26 — re-loading without this DOUBLES ev_raw (measured; see the note in this script)
+preflight ok · server 26.2.1.525 · database sonyliv_unseen_q26 ready and empty
+raw CSV header matches the loader · 6887 data rows
+
+SQL fingerprint (sha256, first 12) — the exact model this run exercised:
+  4a8377de1e08  sql/00_schema.sql
+  de80eaf031af  sql/10_intervals.sql
+  4ffca75940bf  sql/20_views.sql
+  6ba8c21fb5f8  sql/30_build_intervals.sql
+  d1dfeb14c894  sql/40_deltas.sql
+  764ee4c5d810  sql/45_user_concurrency.sql
+  20fefccc4705  sql/50_hour_agg.sql
+  15525d8870b4  sql/80_content.sql
+  0e278f3516e3  sql/85_windows.sql
+  be6a7a4f2e0f  sql/90_reconcile.sql
+  fffb7ab3ea43  tools/load.sh
+  git 51ef49f (sql+tools DIRTY — uncommitted changes)
+
+--------------------------------------------------------------------------
+PHASE — 1 schema (00_schema, 10_intervals) — tables + the stateless MV
+--------------------------------------------------------------------------
+  objects: 6 created
+
+--------------------------------------------------------------------------
+PHASE — 2 load (tools/load.sh, unmodified)
+--------------------------------------------------------------------------
+target=cloud  database=sonyliv_unseen_q26  (from --database)  mode=refuse
+loading content_dim from /Users/barun/.superconductor/worktrees/clickathon-project/sc-coherent-yttrium-d4c5/data/unseen-synthetic-content.csv ...
+loading ev_raw from /Users/barun/.superconductor/worktrees/clickathon-project/sc-coherent-yttrium-d4c5/data/unseen-synthetic-raw.csv ...
+loaded into TARGET=cloud, database sonyliv_unseen_q26:
+   ┌─t───────────┬─before─┬─rows─┬─added─┐
+1. │ ev_raw      │      0 │ 6887 │  6887 │
+2. │ content_dim │      0 │   29 │    29 │
+   └─────────────┴────────┴──────┴───────┘
+  ev_raw 6887 = CSV data rows 6887
+  176 sessions · 174 users · 31 content ids · 2026-08-15 06:00:00.250 -> 2026-08-15 23:59:20.900
+  content_dim 29 rows
+  cc_minute_stateless 1457 rows (mv_stateless fired during the load)
+  data spans 2026-08-15 06:00:00 .. 2026-08-15 23:59:00  (1 calendar day(s))
+
+  SENTINEL COLLISION IN THE DATA (ADR 0022):
+    ev_raw rows with content_id = -1: 25 · platform = '*': 0 · country = '*': 0
+    cc_hour_agg and its views stay CORRECT (cube_level separates rollup from value).
+    NOT safe for the colliding value: sql/85_windows.sql's p_* = sentinel
+    convention, tools/clickstack-cloud.sh CUBE_TOTAL, tools/build-model.sh's
+    status line, evidence/benchmark sentinel pins. Route per-content answers
+    for that id through cc_hour_agg WITH cube_level pinned, or cc_minute_delta.
+
+=== FAILED: 2 load (tools/load.sh, unmodified) ===
+sentinel-colliding values in ev_raw — the R9 trap. The pipeline's own answer
+and gate stay correct, but the sentinel-convention query paths listed above are
+ambiguous for the colliding value. Read the list, then re-run with
+UNSEEN_ACK_SENTINEL=1.

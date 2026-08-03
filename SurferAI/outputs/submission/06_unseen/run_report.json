@@ -1,0 +1,424 @@
+{
+  "spec_id": "06_unseen",
+  "table_name": "promo_coupon_checkout",
+  "timestamp": "2026-08-02T03:58:32.705249+00:00",
+  "trace_id": "a82d9533e2b28b824781eb3bc8a15cc7",
+  "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/26e706dd8beb696925eac91ad44a6cff",
+  "run_mode": "live_run",
+  "strategy": "EVOLVE",
+  "strategy_why": "",
+  "ddl": "CREATE TABLE IF NOT EXISTS promo_coupon_checkout (\n    event LowCardinality(String),\n    id String,\n    timestamp DateTime,\n    device_type LowCardinality(String),\n    os LowCardinality(String),\n    app_version LowCardinality(String),\n    geoip_country_code LowCardinality(String),\n    city LowCardinality(String),\n    client_lib LowCardinality(String),\n    user_id String,\n    application_id String,\n    destination String,\n    cart_value Float64,\n    currency LowCardinality(String),\n    coupon_code LowCardinality(String),\n    discount_type LowCardinality(String),\n    discount_amount Nullable(Float64),\n    final_value Nullable(Float64),\n    reject_reason LowCardinality(String)\n) ENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nPRIMARY KEY (timestamp, user_id)\nORDER BY (timestamp, user_id)\nTTL timestamp + INTERVAL 12 MONTH\nSETTINGS index_granularity = 8192;",
+  "mv_ddl": "-- justification: daily segment rollup for accelerated dashboard query execution\nCREATE MATERIALIZED VIEW IF NOT EXISTS promo_coupon_checkout_daily_mv\nENGINE = SummingMergeTree\nPARTITION BY toYYYYMM(date)\nORDER BY (device_type, os, geoip_country_code, destination, date, event)\nAS SELECT\n    toYYYYMMDD(timestamp) AS date,\n    device_type, os, geoip_country_code, destination, event,\n    count() AS total_events,\n    uniqState(user_id) AS unique_users\nFROM promo_coupon_checkout\nGROUP BY device_type, os, geoip_country_code, destination, date, event;",
+  "rows_loaded": 5363,
+  "schema_version": 2,
+  "field_mapping": {
+    "event": "event",
+    "id": "id",
+    "timestamp": "timestamp",
+    "device_type": "device_type",
+    "os": "os",
+    "app_version": "app_version",
+    "geoip_country_code": "geoip_country_code",
+    "city": "city",
+    "client_lib": "client_lib",
+    "user_id": "user_id",
+    "application_id": "application_id",
+    "destination": "destination",
+    "cart_value": "cart_value",
+    "currency": "currency",
+    "coupon_code": "coupon_code",
+    "discount_type": "discount_type",
+    "discount_amount": "discount_amount",
+    "final_value": "final_value",
+    "reject_reason": "reject_reason"
+  },
+  "diff_result": {
+    "table_name": "promo_coupon_checkout",
+    "columns_checked": [
+      "event",
+      "id",
+      "timestamp",
+      "device_type",
+      "os",
+      "app_version",
+      "geoip_country_code",
+      "city",
+      "client_lib",
+      "user_id",
+      "application_id",
+      "destination",
+      "cart_value",
+      "currency",
+      "coupon_code",
+      "discount_type",
+      "discount_amount",
+      "final_value",
+      "reject_reason"
+    ],
+    "conflicts": [
+      "Denominator definition conflict in 3. The eight raw event tables#1: | Table | Kind | Emitted when | Key event-specific columns |\n|-------|------|--------------|----------------------------|\n| `destination_card_clicked` | funnel | user taps a destination card | `destination`, `visa_type`, `card_type`, `flow` |\n| `application_started` | funnel | user starts an application | `purpose`, `eta_shown`, `co_travelers`, `destination` |\n| `document_uploaded` | funnel | passport image submitted | `doc_type`, `capture_mode`, `retry_count`, `is_crossed_failed_attempt_threshold` |\n| `purchase_completed` | funnel | payment succeeds (**conversion**) | `value` (revenue), `currency`, `insurance_amount`, `coupon_applied` |\n| `search_typed` | supporting | user types a destination search | `search_term`, `results_count`, `source` |\n| `landing_page_scrolled` | supporting | user scrolls a landing page | `scroll_depth_pct`, `time_on_page_s`, `page_version` |\n| `auth_completed` | supporting | user finishes login/signup | `auth_method`, `is_new_user`, `attempts` |\n| `pay_now_clicked` | supporting | user taps Pay Now at checkout | `payment_method`, `amount`, `currency`, `coupon_applied` |",
+      "Denominator definition conflict in 4. Metric definitions#0: **Conversion rate** = completed purchases \u00f7 **sessions**. A session is a single\napp-open / web visit. This is the headline number reported to leadership.",
+      "Denominator definition conflict in 4. Metric definitions#6: > Note on funnel conversion: within the funnel, we treat **conversion as\n> `purchase_completed` users \u00f7 users who started an application**\n> (`application_started`). This is the denominator used in the drop-off dashboards."
+    ],
+    "gaps": [
+      "Undocumented column `app_version` in promo_coupon_checkout",
+      "Undocumented column `client_lib` in promo_coupon_checkout",
+      "Undocumented column `cart_value` in promo_coupon_checkout",
+      "Undocumented column `coupon_code` in promo_coupon_checkout",
+      "Undocumented column `discount_type` in promo_coupon_checkout",
+      "Undocumented column `discount_amount` in promo_coupon_checkout",
+      "Undocumented column `final_value` in promo_coupon_checkout",
+      "Undocumented column `reject_reason` in promo_coupon_checkout"
+    ],
+    "additions": [
+      "promo_coupon_checkout.event",
+      "promo_coupon_checkout.id",
+      "promo_coupon_checkout.timestamp",
+      "promo_coupon_checkout.device_type",
+      "promo_coupon_checkout.os",
+      "promo_coupon_checkout.app_version",
+      "promo_coupon_checkout.geoip_country_code",
+      "promo_coupon_checkout.city",
+      "promo_coupon_checkout.client_lib",
+      "promo_coupon_checkout.user_id",
+      "promo_coupon_checkout.application_id",
+      "promo_coupon_checkout.destination",
+      "promo_coupon_checkout.cart_value",
+      "promo_coupon_checkout.currency",
+      "promo_coupon_checkout.coupon_code",
+      "promo_coupon_checkout.discount_type",
+      "promo_coupon_checkout.discount_amount",
+      "promo_coupon_checkout.final_value",
+      "promo_coupon_checkout.reject_reason"
+    ]
+  },
+  "table_semantics": {
+    "table_name": "promo_coupon_checkout",
+    "spec_id": "06_unseen",
+    "description": "This is the **unseen sixth spec** promised in [`PROBLEM_STATEMENT.md`](../PROBLEM_STATEMENT.md): same format as the five known specs, same fictional universe, released to all teams simultaneously. Push it through your pipeline end to end \u2014 the output must come from your system, evidenced by the trace. **No trace, no credit.**",
+    "concepts": "promo coupon checkout, event, id, device_type, os, app_version, geoip_country_code, city, client_lib",
+    "embedding_dims": 0,
+    "version": 1
+  },
+  "reasoning_chain": [
+    {
+      "step": "context_agent::refresh_chdb_from_live",
+      "agent": "context_agent",
+      "why": "refreshed live ClickHouse catalog (8 tables present; drift: False)",
+      "input": {
+        "spec_id": "06_unseen",
+        "table": "promo_coupon_checkout"
+      },
+      "output": {
+        "status": "synced",
+        "live_tables_found": 16,
+        "tables": [
+          "abandoned_checkout_recovery",
+          "application_started",
+          "auth_completed",
+          "clickathon.express_checkout_shown",
+          "destination_card_clicked",
+          "document_uploaded",
+          "express_checkout",
+          "group_applications",
+          "group_family",
+          "group_family_applications",
+          "instant_forex_orders",
+          "landing_page_scrolled",
+          "pay_now_clicked",
+          "promo_coupon_checkout",
+          "purchase_completed",
+          "search_typed"
+        ]
+      }
+    },
+    {
+      "step": "context_agent::build_context_package",
+      "agent": "context_agent",
+      "why": "assembled existing table shapes from schema_registry and business metrics/rules from business_context",
+      "input": {
+        "table": "promo_coupon_checkout"
+      },
+      "output": {
+        "existing_tables": [],
+        "rules_count": 15
+      }
+    },
+    {
+      "step": "context_agent::decide_strategy",
+      "agent": "context_agent",
+      "why": "strategy decided: EVOLVE",
+      "input": {
+        "table": "promo_coupon_checkout",
+        "columns": [
+          "event",
+          "id",
+          "timestamp",
+          "device_type",
+          "os",
+          "app_version",
+          "geoip_country_code",
+          "city",
+          "client_lib",
+          "user_id",
+          "application_id",
+          "destination",
+          "cart_value",
+          "currency",
+          "coupon_code",
+          "discount_type",
+          "discount_amount",
+          "final_value",
+          "reject_reason"
+        ]
+      },
+      "output": {
+        "strategy": "EVOLVE",
+        "reason": "Table `promo_coupon_checkout` previously registered at version 1. Proposing backward-compatible schema evolution.",
+        "target_version": 2
+      }
+    },
+    {
+      "step": "instrumentation_agent::design_schema",
+      "agent": "instrumentation_agent",
+      "why": "led ordering with (timestamp, user_id) for temporal granule pruning, partitioned monthly toYYYYMM, and mapped nested event fields",
+      "input": {
+        "spec_id": "06_unseen",
+        "table": "promo_coupon_checkout",
+        "sample_size": 5363
+      },
+      "output": {
+        "field_mapping": {
+          "event": "event",
+          "id": "id",
+          "timestamp": "timestamp",
+          "device_type": "device_type",
+          "os": "os",
+          "app_version": "app_version",
+          "geoip_country_code": "geoip_country_code",
+          "city": "city",
+          "client_lib": "client_lib",
+          "user_id": "user_id",
+          "application_id": "application_id",
+          "destination": "destination",
+          "cart_value": "cart_value",
+          "currency": "currency",
+          "coupon_code": "coupon_code",
+          "discount_type": "discount_type",
+          "discount_amount": "discount_amount",
+          "final_value": "final_value",
+          "reject_reason": "reject_reason"
+        },
+        "ordering_key": "(timestamp, user_id)",
+        "partitioning": "toYYYYMM(timestamp)"
+      }
+    },
+    {
+      "step": "query_architect::design_to_ddl",
+      "agent": "query_architect",
+      "why": "rendered design intent into ClickHouse MergeTree DDL, SummingMergeTree MV, and JSONEachRow INSERT",
+      "input": {
+        "table": "promo_coupon_checkout",
+        "ddl": "CREATE TABLE IF NOT EXISTS promo_coupon_checkout (\n    event LowCardinality(String),\n    id String,\n    timestamp DateTime,\n    device_type LowCardinality(String),\n    os LowCardinality(String),\n    app_version LowCardinality(String),\n    geoip_country_code LowCardinality(String),\n    city LowCardinality(String),\n    client_lib LowCardinality(String),\n    user_id String,\n    application_id String,\n    destination String,\n    cart_value Float64,\n    currency LowCardinality(String),\n    coupon_code LowCardinality(String),\n    discount_type LowCardinality(String),\n    discount_amount Nullable(Float64),\n    final_value Nullable(Float64),\n    reject_reason LowCardinality(String)\n) ENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nPRIMARY KEY (timestamp, user_id)\nORDER BY (timestamp, user_id)\nTTL timestamp + INTERVAL 12 MONTH\nSETTINGS index_granularity = 8192;"
+      },
+      "output": {
+        "ddl": "CREATE TABLE IF NOT EXISTS promo_coupon_checkout (\n    event LowCardinality(String),\n    id String,\n    timestamp DateTime,\n    device_type LowCardinality(String),\n    os LowCardinality(String),\n    app_version LowCardinality(String),\n    geoip_country_code LowCardinality(String),\n    city LowCardinality(String),\n    client_lib LowCardinality(String),\n    user_id String,\n    application_id String,\n    destination String,\n    cart_value Float64,\n    currency LowCardinality(String),\n    coupon_code LowCardinality(String),\n    discount_type LowCardinality(String),\n    discount_amount Nullable(Float64),\n    final_value Nullable(Float64),\n    reject_reason LowCardinality(String)\n) ENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nPRIMARY KEY (timestamp, user_id)\nORDER BY (timestamp, user_id)\nTTL timestamp + INTERVAL 12 MONTH\nSETTINGS index_granularity = 8192;",
+        "mv_ddl": "-- justification: daily segment rollup for accelerated dashboard query execution\nCREATE MATERIALIZED VIEW IF NOT EXISTS promo_coupon_checkout_daily_mv\nENGINE = SummingMergeTree\nPARTITION BY toYYYYMM(date)\nORDER BY (device_type, os, geoip_country_code, destination, date, event)\nAS SELECT\n    toYYYYMMDD(timestamp) AS date,\n    device_type, os, geoip_country_code, destination, event,\n    count() AS total_events,\n    uniqState(user_id) AS unique_users\nFROM promo_coupon_checkout\nGROUP BY device_type, os, geoip_country_code, destination, date, event;",
+        "insert_sql": "INSERT INTO promo_coupon_checkout FORMAT JSONEachRow"
+      }
+    },
+    {
+      "step": "validator::invariant_check",
+      "agent": "validator",
+      "why": "verified 4 ClickHouse invariants (violations: 0)",
+      "input": {
+        "ddl": "CREATE TABLE IF NOT EXISTS promo_coupon_checkout (\n    event LowCardinality(String),\n    id String,\n    timestamp DateTime,\n    device_type LowCardinality(String),\n    os LowCardinality(String),\n    app_version LowCardinality(String),\n    geoip_country_code LowCardinality(String),\n    city LowCardinality(String),\n    client_lib LowCardinality(String),\n    user_id String,\n    application_id String,\n    destination String,\n    cart_value Float64,\n    currency LowCardinality(String),\n    coupon_code LowCardinality(String),\n    discount_type LowCardinality(String),\n    discount_amount Nullable(Float64),\n    final_value Nullable(Float64),\n    reject_reason LowCardinality(String)\n) ENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nPRIMARY KEY (timestamp, user_id)\nORDER BY (timestamp, user_id)\nTTL timestamp + INTERVAL 12 MONTH\nSETTINGS index_granularity = 8192;"
+      },
+      "output": {
+        "violations": [],
+        "status": "clean"
+      }
+    },
+    {
+      "step": "context_agent::context_diff",
+      "agent": "context_agent",
+      "why": "audited context: 19 additions, 3 conflicts, 8 gaps",
+      "input": {
+        "table": "promo_coupon_checkout",
+        "columns": [
+          "event",
+          "id",
+          "timestamp",
+          "device_type",
+          "os",
+          "app_version",
+          "geoip_country_code",
+          "city",
+          "client_lib",
+          "user_id",
+          "application_id",
+          "destination",
+          "cart_value",
+          "currency",
+          "coupon_code",
+          "discount_type",
+          "discount_amount",
+          "final_value",
+          "reject_reason"
+        ]
+      },
+      "output": {
+        "table_name": "promo_coupon_checkout",
+        "columns_checked": [
+          "event",
+          "id",
+          "timestamp",
+          "device_type",
+          "os",
+          "app_version",
+          "geoip_country_code",
+          "city",
+          "client_lib",
+          "user_id",
+          "application_id",
+          "destination",
+          "cart_value",
+          "currency",
+          "coupon_code",
+          "discount_type",
+          "discount_amount",
+          "final_value",
+          "reject_reason"
+        ],
+        "conflicts": [
+          "Denominator definition conflict in 3. The eight raw event tables#1: | Table | Kind | Emitted when | Key event-specific columns |\n|-------|------|--------------|----------------------------|\n| `destination_card_clicked` | funnel | user taps a destination card | `destination`, `visa_type`, `card_type`, `flow` |\n| `application_started` | funnel | user starts an application | `purpose`, `eta_shown`, `co_travelers`, `destination` |\n| `document_uploaded` | funnel | passport image submitted | `doc_type`, `capture_mode`, `retry_count`, `is_crossed_failed_attempt_threshold` |\n| `purchase_completed` | funnel | payment succeeds (**conversion**) | `value` (revenue), `currency`, `insurance_amount`, `coupon_applied` |\n| `search_typed` | supporting | user types a destination search | `search_term`, `results_count`, `source` |\n| `landing_page_scrolled` | supporting | user scrolls a landing page | `scroll_depth_pct`, `time_on_page_s`, `page_version` |\n| `auth_completed` | supporting | user finishes login/signup | `auth_method`, `is_new_user`, `attempts` |\n| `pay_now_clicked` | supporting | user taps Pay Now at checkout | `payment_method`, `amount`, `currency`, `coupon_applied` |",
+          "Denominator definition conflict in 4. Metric definitions#0: **Conversion rate** = completed purchases \u00f7 **sessions**. A session is a single\napp-open / web visit. This is the headline number reported to leadership.",
+          "Denominator definition conflict in 4. Metric definitions#6: > Note on funnel conversion: within the funnel, we treat **conversion as\n> `purchase_completed` users \u00f7 users who started an application**\n> (`application_started`). This is the denominator used in the drop-off dashboards."
+        ],
+        "gaps": [
+          "Undocumented column `app_version` in promo_coupon_checkout",
+          "Undocumented column `client_lib` in promo_coupon_checkout",
+          "Undocumented column `cart_value` in promo_coupon_checkout",
+          "Undocumented column `coupon_code` in promo_coupon_checkout",
+          "Undocumented column `discount_type` in promo_coupon_checkout",
+          "Undocumented column `discount_amount` in promo_coupon_checkout",
+          "Undocumented column `final_value` in promo_coupon_checkout",
+          "Undocumented column `reject_reason` in promo_coupon_checkout"
+        ],
+        "additions": [
+          "promo_coupon_checkout.event",
+          "promo_coupon_checkout.id",
+          "promo_coupon_checkout.timestamp",
+          "promo_coupon_checkout.device_type",
+          "promo_coupon_checkout.os",
+          "promo_coupon_checkout.app_version",
+          "promo_coupon_checkout.geoip_country_code",
+          "promo_coupon_checkout.city",
+          "promo_coupon_checkout.client_lib",
+          "promo_coupon_checkout.user_id",
+          "promo_coupon_checkout.application_id",
+          "promo_coupon_checkout.destination",
+          "promo_coupon_checkout.cart_value",
+          "promo_coupon_checkout.currency",
+          "promo_coupon_checkout.coupon_code",
+          "promo_coupon_checkout.discount_type",
+          "promo_coupon_checkout.discount_amount",
+          "promo_coupon_checkout.final_value",
+          "promo_coupon_checkout.reject_reason"
+        ]
+      }
+    },
+    {
+      "step": "context_agent::execute_ddl",
+      "agent": "context_agent",
+      "why": "executed CREATE TABLE and CREATE MATERIALIZED VIEW on ClickHouse Cloud with rollback guarantee",
+      "input": {
+        "table": "promo_coupon_checkout",
+        "ddl": "CREATE TABLE IF NOT EXISTS promo_coupon_checkout (\n    event LowCardinality(String),\n    id String,\n    timestamp DateTime,\n    device_type LowCardinality(String),\n    os LowCardinality(String),\n    app_version LowCardinality(String),\n    geoip_country_code LowCardinality(String),\n    city LowCardinality(String),\n    client_lib LowCardinality(String),\n    user_id String,\n    application_id String,\n    destination String,\n    cart_value Float64,\n    currency LowCardinality(String),\n    coupon_code LowCardinality(String),\n    discount_type LowCardinality(String),\n    discount_amount Nullable(Float64),\n    final_value Nullable(Float64),\n    reject_reason LowCardinality(String)\n) ENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nPRIMARY KEY (timestamp, user_id)\nORDER BY (timestamp, user_id)\nTTL timestamp + INTERVAL 12 MONTH\nSETTINGS index_granularity = 8192;",
+        "dry_run": false
+      },
+      "output": {
+        "status": "ok",
+        "table": "promo_coupon_checkout",
+        "version": 2,
+        "error": null
+      }
+    },
+    {
+      "step": "context_agent::load_events",
+      "agent": "context_agent",
+      "why": "loaded 5,363 events from events.ndjson into ClickHouse Cloud table promo_coupon_checkout",
+      "input": {
+        "table": "promo_coupon_checkout",
+        "spec_id": "06_unseen"
+      },
+      "output": {
+        "table_name": "promo_coupon_checkout",
+        "status": "loaded",
+        "rows_loaded": 5363,
+        "verified_count": 5363
+      }
+    },
+    {
+      "step": "context_agent::register_schema_version",
+      "agent": "context_agent",
+      "why": "registered table 'promo_coupon_checkout' version 2 in schema_registry",
+      "input": {
+        "table": "promo_coupon_checkout",
+        "version": 2
+      },
+      "output": {
+        "version": 2
+      }
+    },
+    {
+      "step": "context_agent::sync_context",
+      "agent": "context_agent",
+      "why": "upserted 19 attributes into business_context and context_changelog with trace attribution",
+      "input": {
+        "additions": [
+          "promo_coupon_checkout.event",
+          "promo_coupon_checkout.id",
+          "promo_coupon_checkout.timestamp",
+          "promo_coupon_checkout.device_type",
+          "promo_coupon_checkout.os",
+          "promo_coupon_checkout.app_version",
+          "promo_coupon_checkout.geoip_country_code",
+          "promo_coupon_checkout.city",
+          "promo_coupon_checkout.client_lib",
+          "promo_coupon_checkout.user_id",
+          "promo_coupon_checkout.application_id",
+          "promo_coupon_checkout.destination",
+          "promo_coupon_checkout.cart_value",
+          "promo_coupon_checkout.currency",
+          "promo_coupon_checkout.coupon_code",
+          "promo_coupon_checkout.discount_type",
+          "promo_coupon_checkout.discount_amount",
+          "promo_coupon_checkout.final_value",
+          "promo_coupon_checkout.reject_reason"
+        ]
+      },
+      "output": {
+        "upserts": 19,
+        "changelog_entries": 19
+      }
+    },
+    {
+      "step": "context_agent::write_table_semantics",
+      "agent": "context_agent",
+      "why": "wrote table description, concepts, and embedding (0 dims) for promo_coupon_checkout into chDB table_semantics (v1)",
+      "input": {
+        "spec_id": "06_unseen",
+        "table": "promo_coupon_checkout"
+      },
+      "output": {
+        "table_name": "promo_coupon_checkout",
+        "spec_id": "06_unseen",
+        "description": "This is the **unseen sixth spec** promised in [`PROBLEM_STATEMENT.md`](../PROBLEM_STATEMENT.md): same format as the five known specs, same fictional universe, released to all teams simultaneously. Push it through your pipeline end to end \u2014 the output must come from your system, evidenced by the trace. **No trace, no credit.**",
+        "concepts": "promo coupon checkout, event, id, device_type, os, app_version, geoip_country_code, city, client_lib",
+        "embedding_dims": 0,
+        "version": 1
+      }
+    }
+  ]
+}

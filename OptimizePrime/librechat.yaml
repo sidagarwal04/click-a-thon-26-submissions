@@ -1,0 +1,44 @@
+# LibreChat configuration for the local SonyLIV read-only ClickHouse assistant.
+version: 1.3.13
+cache: true
+
+# 1000 credits = USD 0.001. A new judge account therefore has a hard USD 0.10
+# starting allowance and no refill. This limits provider-key exposure even if a
+# public registration credential is abused.
+balance:
+  enabled: true
+  startBalance: 100000
+  autoRefillEnabled: false
+
+interface:
+  mcpServers:
+    use: true
+    create: false
+    share: false
+    public: false
+
+mcpSettings:
+  allowedAddresses:
+    - 'mcp-clickhouse:8000'
+
+mcpServers:
+  sonyliv-clickhouse:
+    title: SonyLIV ClickHouse Read Only
+    description: Query the foreground-only concurrency serving layer without database write access.
+    type: streamable-http
+    url: http://mcp-clickhouse:8000/mcp
+    headers:
+      Authorization: 'Bearer ${CLICKHOUSE_MCP_AUTH_TOKEN}'
+    requiresOAuth: false
+    startup: true
+    initTimeout: 30000
+    timeout: 60000
+    serverInstructions: |
+      This ClickHouse connection is read-only and restricted to aggregate serving objects.
+      Raw events, session-level facts, user-level facts, writes, and DDL are not accessible.
+      Prefer the serving views (v_cc_minute_series_total, v_cc_window_range,
+      v_cc_tumbling_total, and v_cc_tumbling_dim) over scanning raw events.
+      For a newly discovered filter dimension, query cc_dimension_minute_exact by its
+      dimension and value columns; this table contains aggregate counts, not raw identities.
+      Never sum distinct-user counts or peaks across dimensions. When a requested field is
+      unfamiliar, inspect table metadata before writing SQL and apply explicit time bounds.

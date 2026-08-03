@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: inmobi-rca
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: CH_HOST
+        sync: false
+      - key: CH_PORT
+        value: 8443
+      - key: CH_USER
+        value: default
+      - key: CH_PASSWORD
+        sync: false
+      - key: CH_DB
+        value: rca
+      - key: AUDIT_TABLE
+        value: rca.ledger
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: openai/gpt-oss-20b:free
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      - key: LANGFUSE_HOST
+        value: https://cloud.langfuse.com

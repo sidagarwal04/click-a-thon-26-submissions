@@ -1,0 +1,105 @@
+{
+  "name": "recovers_from_a_member_outside_the_catalog",
+  "agent": "cube_analyst",
+  "catalog": {
+    "measures": [
+      {
+        "name": "Commerce.refundAmount",
+        "type": "sum",
+        "format": "currency"
+      },
+      {
+        "name": "Commerce.orderCount",
+        "type": "countDistinct"
+      },
+      {
+        "name": "Commerce.refundRate",
+        "type": "number",
+        "format": "percent"
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "Commerce.orderedAt",
+        "type": "time"
+      },
+      {
+        "name": "Commerce.region",
+        "type": "string"
+      },
+      {
+        "name": "Commerce.refundReason",
+        "type": "string"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "Commerce.orderedAt.month": "2026-06-01T00:00:00.000",
+      "Commerce.refundAmount": "20.00"
+    },
+    {
+      "Commerce.orderedAt.month": "2026-07-01T00:00:00.000",
+      "Commerce.refundAmount": "260.00"
+    }
+  ],
+  "state": {
+    "question": "Why did EU refunds increase from June to July 2026?"
+  },
+  "model_responses": [
+    {
+      "reasoning": "Compare governed EU refunds month over month.",
+      "query": {
+        "measures": [
+          "commerce_facts.margin"
+        ],
+        "dimensions": [],
+        "time_dimensions": [],
+        "filters": []
+      }
+    },
+    {
+      "reasoning": "Compare governed EU refunds month over month.",
+      "query": {
+        "measures": [
+          "Commerce.refundAmount"
+        ],
+        "dimensions": [],
+        "time_dimensions": [
+          {
+            "dimension": "Commerce.orderedAt",
+            "granularity": "month",
+            "date_range": [
+              "2026-06-01",
+              "2026-07-31"
+            ]
+          }
+        ],
+        "filters": []
+      }
+    },
+    {
+      "result_summary": "EU refunds rose from $20 to $260.",
+      "metrics": [
+        {
+          "metric": "refund_amount",
+          "previous_value": "20.00",
+          "current_value": "260.00",
+          "unit": "USD"
+        }
+      ],
+      "confidence": 0.9,
+      "sample_size": 240
+    }
+  ],
+  "expect": {
+    "outcome_kind": "confidence",
+    "evidence_refs": 1,
+    "field_present": [
+      "query",
+      "result_summary",
+      "metrics",
+      "rows"
+    ]
+  }
+}

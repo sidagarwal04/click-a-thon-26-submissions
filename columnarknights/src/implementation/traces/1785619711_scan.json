@@ -1,0 +1,53 @@
+{
+  "name": "scan",
+  "input": {
+    "start": "2026-02-14",
+    "end": "2026-02-21",
+    "metrics": [
+      "ctr"
+    ],
+    "lookback_weeks": 4
+  },
+  "output": {
+    "n_incidents_total": 1
+  },
+  "children": [
+    {
+      "name": "daily_series[ctr]",
+      "input": {
+        "metric": "ctr"
+      },
+      "output": {
+        "n_days_fetched": 36
+      },
+      "children": [],
+      "start": 1785619711.6519792,
+      "end": 1785619711.6959524,
+      "duration_s": 0.044
+    },
+    {
+      "name": "detect_anomalies[ctr]",
+      "input": {
+        "lookback_weeks": 4
+      },
+      "output": {
+        "n_anomalous_days": 1,
+        "incidents": [
+          {
+            "start": "2026-02-20",
+            "end": "2026-02-20",
+            "peak_rel_delta": 0.2408
+          }
+        ]
+      },
+      "children": [],
+      "start": 1785619711.6964743,
+      "end": 1785619711.6987176,
+      "duration_s": 0.0022
+    }
+  ],
+  "start": 1785619711.4559593,
+  "end": 1785619711.6990323,
+  "duration_s": 0.2431,
+  "langfuse_trace_url": "https://cloud.langfuse.com/project/cmsa7vxeh0b00ad0i9q5t2zyk/traces/7b94429fb0b7b784a13c3ac0d94aa094"
+}

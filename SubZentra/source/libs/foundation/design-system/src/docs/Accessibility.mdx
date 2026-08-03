@@ -1,0 +1,332 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Getting Started/Accessibility" />
+
+# Accessibility Guidelines
+
+The Open Zentra Design System is built with accessibility as a core principle. All components are designed to meet WCAG 2.1 AA compliance standards.
+
+## Overview
+
+### Our Accessibility Commitment
+
+- **WCAG 2.1 AA Compliance** — All components meet or exceed Level AA requirements
+- **Keyboard Accessible** — Full keyboard navigation support
+- **Screen Reader Compatible** — Proper ARIA attributes and semantic HTML
+- **Color Contrast** — All text meets minimum contrast ratios
+- **Reduced Motion** — Respects user motion preferences
+
+---
+
+## Color & Contrast
+
+### Contrast Requirements
+
+| Element Type       | Minimum Ratio | Our Implementation |
+| ------------------ | ------------- | ------------------ |
+| Normal Text        | 4.5:1         | ✅ Exceeds         |
+| Large Text (18px+) | 3:1           | ✅ Exceeds         |
+| UI Components      | 3:1           | ✅ Meets           |
+| Focus Indicators   | 3:1           | ✅ Meets           |
+
+### Color Independence
+
+Never use color alone to convey information:
+
+```tsx
+// ❌ Bad - Color only
+<span className="text-red-500">Error occurred</span>
+
+// ✅ Good - Color + Icon + Text
+<Alert intent="danger">
+  <AlertIcon />
+  <span>Error: Please check your input</span>
+</Alert>
+```
+
+### Dark Mode Support
+
+All components automatically adapt to dark mode while maintaining contrast:
+
+```css
+/* Light mode */
+--color-foreground: var(--color-gray-900); /* #111827 */
+--color-background: #ffffff;
+
+/* Dark mode */
+--color-foreground: #fafafa;
+--color-background: #0a0a0a;
+```
+
+---
+
+## Keyboard Navigation
+
+### Focus Management
+
+#### Focus Visible
+
+All focusable elements display a visible focus indicator:
+
+```css
+--ring-focus: 0 0 0 var(--ring-offset) var(--color-background), 0 0 0 calc(
+      var(--ring-offset) + var(--ring-width)
+    ) var(--ring-color);
+```
+
+#### Focus Trapping
+
+Overlays (Modal, Drawer, Popover) trap focus within their boundaries:
+
+```tsx
+<Modal>
+  {/* Focus is trapped within modal while open */}
+  <Modal.Content>
+    <Modal.Close /> {/* First focusable */}
+    <Input /> {/* Next focusable */}
+    <Button /> {/* Last focusable - Tab wraps to Close */}
+  </Modal.Content>
+</Modal>
+```
+
+### Standard Keyboard Patterns
+
+| Component | Key                | Action              |
+| --------- | ------------------ | ------------------- |
+| All       | `Tab`              | Move focus forward  |
+| All       | `Shift + Tab`      | Move focus backward |
+| Button    | `Enter` / `Space`  | Activate            |
+| Link      | `Enter`            | Navigate            |
+| Checkbox  | `Space`            | Toggle              |
+| Radio     | `Arrow Up/Down`    | Select option       |
+| Select    | `Arrow Up/Down`    | Navigate options    |
+| Select    | `Enter`            | Select highlighted  |
+| Modal     | `Escape`           | Close               |
+| Menu      | `Escape`           | Close               |
+| Menu      | `Arrow Up/Down`    | Navigate items      |
+| Accordion | `Arrow Up/Down`    | Navigate headers    |
+| Accordion | `Enter` / `Space`  | Toggle panel        |
+| Tabs      | `Arrow Left/Right` | Navigate tabs       |
+| Tabs      | `Enter` / `Space`  | Activate tab        |
+
+---
+
+## ARIA Implementation
+
+### Roles and Labels
+
+All interactive components include proper ARIA attributes:
+
+```tsx
+// Button with loading state
+<button
+  aria-busy={loading}
+  aria-disabled={loading}
+  aria-label={loading ? "Submitting, please wait" : undefined}
+>
+  {loading ? "Submitting..." : "Submit"}
+</button>
+
+// Modal dialog
+<div
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  aria-describedby="modal-description"
+>
+  <h2 id="modal-title">Confirm Action</h2>
+  <p id="modal-description">Are you sure?</p>
+</div>
+```
+
+### Live Regions
+
+Dynamic content updates are announced to screen readers:
+
+```tsx
+// Toast notifications
+<div
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+>
+  {message}
+</div>
+
+// Error messages
+<div
+  role="alert"
+  aria-live="assertive"
+>
+  {errorMessage}
+</div>
+```
+
+### Form Accessibility
+
+```tsx
+<div>
+  <Label htmlFor="email">
+    Email Address
+    <span aria-hidden="true">*</span>
+    <span className="sr-only"> (required)</span>
+  </Label>
+  <Input
+    id="email"
+    type="email"
+    required
+    aria-required="true"
+    aria-invalid={hasError}
+    aria-describedby={hasError ? 'email-error' : 'email-hint'}
+  />
+  <span id="email-hint" className="text-sm text-foreground-muted">
+    We'll use this to contact you
+  </span>
+  {hasError && (
+    <span id="email-error" role="alert" className="text-sm text-danger">
+      Please enter a valid email address
+    </span>
+  )}
+</div>
+```
+
+---
+
+## Screen Reader Support
+
+### Visually Hidden Content
+
+Use the `VisuallyHidden` primitive for screen-reader-only content:
+
+```tsx
+import { VisuallyHidden } from '@open-zentra/foundation-design-system';
+
+// Icon-only button
+<IconButton aria-label="Close dialog">
+  <CloseIcon />
+</IconButton>
+
+// Additional context
+<Badge>
+  3
+  <VisuallyHidden>unread notifications</VisuallyHidden>
+</Badge>
+```
+
+### Meaningful Labels
+
+```tsx
+// ❌ Bad - Unhelpful label
+<Button aria-label="button">X</Button>
+
+// ✅ Good - Descriptive label
+<Button aria-label="Close modal">
+  <CloseIcon aria-hidden="true" />
+</Button>
+```
+
+---
+
+## Motion & Animation
+
+### Reduced Motion Support
+
+All animations respect the `prefers-reduced-motion` media query:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  @theme {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+  }
+}
+```
+
+### Safe Animation Practices
+
+```tsx
+// Animations that respect user preferences
+<div className="transition-opacity duration-normal motion-reduce:transition-none">
+  Fading content
+</div>
+```
+
+---
+
+## Testing Accessibility
+
+### Automated Testing
+
+Use the Storybook a11y addon for automated checks:
+
+1. Open any story in Storybook
+2. Click the "Accessibility" tab in the addon panel
+3. Review violations and warnings
+
+### Manual Testing Checklist
+
+- [ ] Navigate all interactive elements with keyboard only
+- [ ] Test with screen reader (VoiceOver, NVDA, JAWS)
+- [ ] Verify focus is visible on all focusable elements
+- [ ] Check color contrast meets requirements
+- [ ] Test with 200% browser zoom
+- [ ] Verify content is accessible with CSS disabled
+- [ ] Test with reduced motion preference enabled
+
+### Testing Tools
+
+| Tool                     | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| axe DevTools             | Automated accessibility testing     |
+| WAVE                     | Web accessibility evaluation        |
+| Lighthouse               | Chrome DevTools accessibility audit |
+| VoiceOver                | macOS screen reader                 |
+| NVDA                     | Windows screen reader               |
+| Colour Contrast Analyzer | Contrast checking                   |
+
+---
+
+## Common Patterns
+
+### Skip Links
+
+Provide skip links for keyboard users:
+
+```tsx
+<a href="#main-content" className="sr-only focus:not-sr-only">
+  Skip to main content
+</a>
+```
+
+### Loading States
+
+Communicate loading states accessibly:
+
+```tsx
+<Button loading aria-busy="true">
+  <Spinner aria-hidden="true" />
+  <span>Loading...</span>
+</Button>
+```
+
+### Error Handling
+
+Announce errors immediately:
+
+```tsx
+<div role="alert" aria-live="assertive">
+  <p>Form submission failed: {error.message}</p>
+</div>
+```
+
+---
+
+## Resources
+
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
+- [A11y Project Checklist](https://www.a11yproject.com/checklist/)
+- [MDN Accessibility Guide](https://developer.mozilla.org/en-US/docs/Web/Accessibility)

@@ -1,0 +1,56 @@
+{
+  "call_id": "CALL-14-HARD",
+  "category": "Hard",
+  "title": "First-Touch Attribution and Revenue Attribution via Window Functions",
+  "question": "Using first-touch attribution (ROW_NUMBER over pre-application touchpoints), what is the revenue and conversion cycle length attributed to search vs card clicks vs landing pages?",
+  "database": "default",
+  "target_tables": "purchase_completed, search_typed, destination_card_clicked, landing_page_scrolled",
+  "timestamp": "2026-08-02T00:14:35.244170+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 560.0,
+    "row_count": 3,
+    "columns_count": 5,
+    "columns": [
+      "first_interaction_channel",
+      "converted_users",
+      "attributed_gross_revenue",
+      "attributed_aov",
+      "avg_time_to_convert_minutes"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_hard_14",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/81c200b592c9271ac178bf8fc2a1b08e",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "WITH first_touch AS (\n    SELECT \n        user_id,\n        touchpoint_channel,\n        timestamp AS first_touch_ts,\n        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY timestamp ASC) AS rn\n    FROM (\n        SELECT user_id, 'destination_search' AS touchpoint_channel, timestamp FROM default.search_typed\n        UNION ALL\n        SELECT user_id, 'card_click' AS touchpoint_channel, timestamp FROM default.destination_card_clicked\n        UNION ALL\n        SELECT user_id, 'landing_page_scroll' AS touchpoint_channel, timestamp FROM default.landing_page_scrolled\n    )\n)\nSELECT \n    ft.touchpoint_channel AS first_interaction_channel,\n    count(DISTINCT p.user_id) AS converted_users,\n    round(sum(p.value), 2) AS attributed_gross_revenue,\n    round(avg(p.value), 2) AS attributed_aov,\n    round(avg(dateDiff('minute', ft.first_touch_ts, p.timestamp)), 1) AS avg_time_to_convert_minutes\nFROM default.purchase_completed p\nJOIN first_touch ft ON p.user_id = ft.user_id AND ft.rn = 1\nWHERE p.timestamp >= ft.first_touch_ts\nGROUP BY first_interaction_channel\nORDER BY attributed_gross_revenue DESC",
+  "result_sample": [
+    {
+      "first_interaction_channel": "destination_search",
+      "converted_users": 4247,
+      "attributed_gross_revenue": 11774729.2,
+      "attributed_aov": 2772.48,
+      "avg_time_to_convert_minutes": 137.4
+    },
+    {
+      "first_interaction_channel": "card_click",
+      "converted_users": 2590,
+      "attributed_gross_revenue": 7193392.5,
+      "attributed_aov": 2777.37,
+      "avg_time_to_convert_minutes": 124.4
+    },
+    {
+      "first_interaction_channel": "landing_page_scroll",
+      "converted_users": 217,
+      "attributed_gross_revenue": 659860.3,
+      "attributed_aov": 3040.83,
+      "avg_time_to_convert_minutes": 119.5
+    }
+  ],
+  "full_results_count": 3,
+  "summary": "Query executed successfully against ClickHouse default database in 560.0ms, returning 3 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "High-cardinality CTE window function ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY timestamp) across 2M touchpoints joined to purchase conversions."
+}

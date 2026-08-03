@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foreground-Only Concurrency — Model Deep Dive &amp; Design Evolution</title>
+<meta name="cc-type"    content="plan">
+<meta name="cc-project" content="clickathon-project">
+<meta name="cc-date"    content="2026-08-01">
+<meta name="cc-title"   content="Foreground-Only Concurrency — Model Deep Dive &amp; Design Evolution">
+<meta name="cc-summary" content="In-depth explanation of the SonyLIV concurrency problem, three mechanical flaws found in the baseline design, and four evolutions that fix them. AMENDED 2026-08-01: the 60s heartbeat cadence is measured false, heartbeats survive a pause, and the watermark is 2400s not ~10 min.">
+<meta name="cc-tags"    content="clickhouse,concurrency,sonyliv,clickathon,data-modelling,materialized-views,lambda-architecture">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#000;
+  --panel:#0c0c0d;
+  --panel2:#141416;
+  --border:#262628;
+  --rule-strong:#3a3a3d;
+  --fg:#f2f2f2;
+  --muted:#8a8a8a;
+  --faint:#646467;
+  --sage:#a8c8a4; --green:#6f9d7f; --green-bright:#7ec699;
+  --maroon:#b06a6a; --tan:#c9b07e; --blue:#8aa9c9;
+  --ok:#7ec699; --warn:#c9b07e; --risk:#b06a6a;
+  --code-bg:#0c0c0d; --code-ink:#e8e2d4;
+  --font-display:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,"SF Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg)}
+body{font-family:var(--font-body);font-size:15.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+main{max-width:1120px;margin:0 auto;padding:0 56px 120px}
+p{margin:0 0 18px;max-width:78ch;color:#dcdcdc}
+a{color:var(--green-bright);text-decoration:none;border-bottom:1px solid var(--border)}
+strong{color:var(--fg);font-weight:650}
+em{color:var(--sage);font-style:italic}
+
+/* ---- masthead ---- */
+.mast{border-top:1px solid var(--rule-strong);margin-top:44px;padding-top:26px}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-bright);margin:0 0 18px}
+h1{font-family:var(--font-display);font-weight:800;letter-spacing:-.025em;font-size:clamp(30px,5vw,44px);line-height:1.08;margin:0 0 16px;max-width:20ch}
+.dek{font-family:var(--font-mono);font-size:13px;line-height:1.75;color:var(--muted);max-width:80ch;margin:0 0 26px}
+.metastrip{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);margin:0 0 10px}
+.metastrip div{flex:1 1 150px;padding:12px 16px;border-right:1px solid var(--border)}
+.metastrip div:last-child{border-right:0}
+.metastrip .k{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:4px}
+.metastrip .v{font-family:var(--font-mono);font-size:12.5px;color:var(--fg)}
+
+/* ---- sections ---- */
+h2{font-family:var(--font-display);font-weight:800;font-size:27px;letter-spacing:-.02em;margin:64px 0 6px;padding-top:22px;border-top:1px solid var(--rule-strong)}
+h2 .num{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--green-bright);letter-spacing:.1em;display:block;margin-bottom:10px}
+h3{font-family:var(--font-display);font-weight:700;font-size:18.5px;letter-spacing:-.01em;margin:38px 0 10px;color:var(--fg)}
+h4{font-family:var(--font-mono);font-size:11.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:28px 0 10px}
+.lede{font-size:16.5px;color:var(--muted);max-width:76ch;margin-bottom:28px}
+
+/* ---- figures ---- */
+figure{margin:26px 0 30px;border:1px solid var(--border);background:var(--panel);padding:20px 22px 16px}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-family:var(--font-mono);font-size:11.5px;line-height:1.65;color:var(--faint);margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+figcaption b{color:var(--muted);font-weight:500}
+.figlabel{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--green-bright);margin-bottom:14px}
+.dia text{font-family:var(--font-mono);font-size:11px;fill:var(--muted)}
+.dia .sm{font-size:9.5px;fill:var(--faint);letter-spacing:.06em}
+.dia .hi{fill:var(--fg)}
+.dia .ax{stroke:var(--border);stroke-width:1}
+.dia .gr{stroke:var(--border);stroke-width:1;stroke-dasharray:2 4}
+.dia .ref{stroke:var(--green-bright);stroke-width:1.5;stroke-dasharray:5 4;fill:none}
+.dia .bad{stroke:var(--maroon);stroke-width:1.5;fill:none}
+.dia .good{stroke:var(--sage);stroke-width:1.5;fill:none}
+
+/* ---- css bar charts ---- */
+.chart{border:1px solid var(--border);background:var(--panel);padding:20px 22px 16px;margin:26px 0 30px}
+.bars{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:center}
+.bars .bl{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.track{position:relative;height:20px;background:#141416;border:1px solid var(--border)}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+.bv{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+.bv.in{color:#0c0c0d;font-weight:600}
+.cap{font-family:var(--font-mono);font-size:11.5px;line-height:1.65;color:var(--faint);margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;margin:24px 0 30px;border:1px solid var(--border)}
+table{border-collapse:collapse;width:100%;min-width:600px}
+th{font-family:var(--font-display);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:14px 18px;border-bottom:1px solid var(--rule-strong);white-space:nowrap}
+td{padding:16px 18px;border-bottom:1px solid var(--border);vertical-align:top;font-size:14px;color:#cfcfcf}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:var(--font-display);font-weight:650;color:var(--fg)}
+td.m,th.m{font-family:var(--font-mono);font-size:12.5px}
+td.num{font-family:var(--font-mono);text-align:right;font-size:12.5px}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .risk{color:var(--risk)} .dim{color:var(--faint)}
+
+/* ---- callouts ---- */
+.call{border:1px solid var(--border);border-left:2px solid var(--tan);background:var(--panel);padding:18px 22px;margin:26px 0}
+.call.risk{border-left-color:var(--maroon)}
+.call.ok{border-left-color:var(--green-bright)}
+.call .ct{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--tan);margin-bottom:8px}
+.call.risk .ct{color:var(--maroon)}
+.call.ok .ct{color:var(--green-bright)}
+.call p{margin:0 0 10px}
+.call p:last-child{margin-bottom:0}
+
+/* ---- code ---- */
+pre{background:var(--code-bg);border:1px solid var(--border);color:var(--code-ink);font-family:var(--font-mono);font-size:12.5px;line-height:1.65;padding:16px 18px;overflow-x:auto;margin:20px 0}
+code{font-family:var(--font-mono);font-size:.9em;background:var(--panel2);padding:1px 5px;border:1px solid var(--border);color:var(--code-ink)}
+pre code{background:none;border:0;padding:0}
+.c-com{color:var(--faint)} .c-kw{color:var(--sage)} .c-str{color:var(--tan)} .c-num{color:var(--blue)}
+
+/* ---- cell grid ---- */
+.cells{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));border:1px solid var(--border);border-bottom:0;margin:26px 0 30px}
+.cell{padding:18px 20px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.cell .ck{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.cell .cv{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-bottom:6px}
+.cell .cd{font-size:13px;color:var(--muted);line-height:1.55}
+
+/* ---- phase rail ---- */
+.rail{border-left:2px solid var(--border);padding-left:24px;margin:26px 0 30px}
+.ph{margin-bottom:26px;position:relative}
+.ph:last-child{margin-bottom:0}
+.ph h3{margin:0 0 4px;font-size:17px}
+.ph .est{font-family:var(--font-mono);font-size:11px;color:var(--faint);letter-spacing:.06em;margin-bottom:8px}
+.ph p{font-size:14px;margin:0;color:var(--muted)}
+.ph.mvp{border-left:2px solid var(--green-bright);margin-left:-26px;padding-left:24px}
+
+/* ---- prompt well ---- */
+.well{border:1px solid var(--border);background:var(--panel);padding:0;margin:26px 0}
+.well .wt{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--green-bright);padding:12px 18px;border-bottom:1px solid var(--border)}
+.well pre{border:0;margin:0;background:transparent}
+
+ul,ol{max-width:78ch;color:#dcdcdc;padding-left:22px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+.foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--rule-strong);font-family:var(--font-mono);font-size:11px;color:var(--faint);line-height:1.8}
+
+@media (max-width:760px){
+  main{padding:0 20px 80px}
+  .metastrip div{flex:1 1 100%;border-right:0;border-bottom:1px solid var(--border)}
+}
+@media print{
+  :root{--bg:#fff;--panel:#f6f6f6;--panel2:#eee;--fg:#111;--muted:#444;--faint:#666;--border:#ccc;--rule-strong:#999;--code-bg:#f6f6f6;--code-ink:#111}
+  main{max-width:none;padding:0}
+  figure,.chart,.tw{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ================= MASTHEAD ================= -->
+<section class="mast" aria-labelledby="title">
+  <p class="eyebrow">Design Deep Dive · clickathon-project · 2026-08-01</p>
+  <h1 id="title">Foreground-Only Concurrency at Streaming Scale</h1>
+  <p class="dek">
+    A full walk-through of the SonyLIV problem — the arithmetic, the data, and the traps — followed by
+    three mechanical flaws found in the baseline design and the four evolutions that fix them.
+    Every claim is tagged <b>MEASURED</b>, <b>DERIVED</b> or <b>UNVERIFIED</b>.
+  </p>
+  <div class="metastrip">
+    <div><span class="k">Repo</span><span class="v">clickathon-project</span></div>
+    <div><span class="k">Branch</span><span class="v">sc-trapped-helium-8e8a</span></div>
+    <div><span class="k">Engine</span><span class="v">ClickHouse 26.7</span></div>
+    <div><span class="k">Status</span><span class="v" style="color:var(--warn)">amended post-H1 · gates measured</span></div>
+    <div><span class="k">Gate</span><span class="v" style="color:var(--green-bright)">/reconcile</span></div>
+  </div>
+
+  <div class="call risk">
+    <div class="ct">Amendment · 2026-08-01 · what this document got wrong</div>
+    <p>
+      This was written before the data was loaded, against the organiser's stated
+      <strong>"heartbeat … is currently passed every 1 minute"</strong>. Measured on the real
+      905,558-event file, <strong>there is no 60-second cadence</strong>: <code>VideoHeartbeat</code>
+      is discrete, bursty player telemetry at <b>4.72/min</b>, inter-arrival <b>p50 0s · p90 40s ·
+      p99 49s</b>, mean 12.4s. Three claims below are corrected in place and marked
+      <b>AMENDED</b>:
+    </p>
+    <ul>
+      <li><strong>The cadence itself</strong> — §01, §03.1, §03.2, Figure 6. The 150s gap threshold
+      survives (it is ~3× the measured p99) but its stated justification did not.</li>
+      <li><strong>Heartbeats survive a pause</strong> — 0.756/min, one event every ~79s, inside any
+      sane gap threshold. So the gap model <em>and</em> the lease model of §E2 both count paused time
+      as watching. The sealed tier now subtracts explicit <code>pause</code>/<code>resume</code>
+      windows; <strong>the hot tier of §E2 has no equivalent and is blocked</strong>.</li>
+      <li><strong>The watermark is not ~10 min</strong> — 2.2% of sessions emit events up to
+      <b>2,081 s</b> after their <code>VideoSessionEnd</code>, so <code>W = 2400s</code> (~40 min).
+      The old figure was 3.5× too narrow.</li>
+    </ul>
+    <p>
+      Measurements and the full gate write-up:
+      <code>docs/adr/0007-gate-answers-pause-needs-explicit-handling.md</code>. The organiser's
+      documentation contradicting the shipped data is logged as a Tier 1 question in
+      <code>docs/MENTOR_QUESTIONS.md</code>.
+    </p>
+  </div>
+
+  <div class="call risk">
+    <div class="ct">Second amendment · 2026-08-01 (evening) · what the first amendment got wrong, and what superseded the design</div>
+    <ul>
+      <li><strong>"There is no cadence" was itself wrong.</strong> Mixed together, the 41
+      <code>VideoHeartbeat</code> sub-streams look aperiodic; separated, the three largest each tick at
+      <strong>exactly 40.0 s</strong> (p50 = p90). The 150s threshold still stands, but every
+      "there is no cadence" clause here is superseded by <code>doubts/01</code>.</li>
+      <li><strong>The headline was re-baselined by ADR 0009</strong> (same-second pause/resume tie):
+      peak <b>2,887 → 2,917</b>, counted watch time <b>1,949.3 h → 1,978.1 h</b>. Every watch-hours
+      figure in this document is the pre-fix number.</li>
+      <li><strong>§E2's two-tier architecture was retired, not built.</strong> ADR 0013's incremental
+      publisher made correction-by-diff (§E3) the <em>only</em> update path — the hot tier is
+      unnecessary and ADR 0005 is <strong>closed, will not be built</strong>. ADR 0016 extended the
+      publisher to all four serving tiers. §09 statuses as of tonight: 0003 accepted in practice,
+      0004 superseded in part by 0013, 0005 closed, 0006 <strong>accepted and live</strong>;
+      the record now runs to ADR 0018.</li>
+      <li><strong>The largest open question was found after this document:</strong> whether
+      "concurrent at minute M" means <em>any overlap</em> (shipped) or <em>presence at the instant
+      M:00</em> — worth <b>2,507 vs 2,917, −14.1%</b> on the peak (<code>doubts/09</code>).</li>
+    </ul>
+    <p>This page is kept as a dated design record; for current state read <code>WALKTHROUGH.md</code>
+    and the four-part deep-dive series (<code>deep-1-data … deep-4-scale-ops</code>).</p>
+  </div>
+</section>
+
+<!-- ================= SCOREBOARD ================= -->
+<h2><span class="num">00 — THE SHORT VERSION</span>What this document changes</h2>
+<p class="lede">
+  The baseline design gets the two big calls right: derive activity from heartbeat gaps, and serve
+  concurrency from minute deltas rather than exploded per-minute rows. Both survive. What does not
+  survive is the update-handling mechanism, which cannot be implemented in ClickHouse as written.
+</p>
+
+<div class="cells">
+  <div class="cell">
+    <div class="ck">Flaws found</div>
+    <div class="cv" style="color:var(--maroon)">3</div>
+    <div class="cd">One unimplementable mechanism, one missing dependency, one silent approximation.</div>
+  </div>
+  <div class="cell">
+    <div class="ck">Evolutions</div>
+    <div class="cv" style="color:var(--sage)">4</div>
+    <div class="cd">Hour-splitting, two-tier lambda, correction-by-diff, serving-key hedges.</div>
+  </div>
+  <div class="cell">
+    <div class="ck">Day-peak read cost</div>
+    <div class="cv" style="color:var(--green-bright)">60×</div>
+    <div class="cd">1,440 minute rows per dim-combo → 24 hour rows. <span class="dim">DERIVED</span></div>
+  </div>
+  <div class="cell">
+    <div class="ck">Gating unknowns</div>
+    <div class="cv" style="color:var(--tan)">3 → 0</div>
+    <div class="cd">All measured at H1. <span class="risk">Two of the three changed the model</span> — pause, and the watermark width. <span class="dim">AMENDED</span></div>
+  </div>
+</div>
+
+<div class="call ok">
+  <div class="ct">AMENDED — the single highest-leverage open question, now answered</div>
+  <p>
+    The entire activity model rested on one unmeasured assumption: <strong>that the heartbeat stops
+    while the app is backgrounded.</strong> <b>MEASURED — it does.</b> 0.047 beats/min strictly inside
+    13,948 closed background→foreground pairs, against 4.72/min while active: a <b>100× drop</b>.
+    Gaps detect backgrounding, and <code>ADR 0001</code> stands.
+  </p>
+  <p>
+    <strong>The sibling question was the one that bit.</strong> Heartbeats do <em>not</em> stop during
+    a <code>pause</code> — 0.756/min, one event every ~79s, inside the 150s threshold. A gap-only model
+    counts paused time as watching, which the statement forbids. The model is now a hybrid: gaps for
+    backgrounding, explicit <code>pause</code>/<code>resume</code> for paused time. See
+    <a href="#gates">§08 — Gating measurements</a> for all three answers.
+  </p>
+</div>
+
+<!-- ================= 01 THE PROBLEM ================= -->
+<h2><span class="num">01 — THE PROBLEM</span>Two words do all the damage</h2>
+<p class="lede">
+  Given session start/end events, player heartbeats and playback-state markers, answer
+  <em>"how many people were actually watching at minute M"</em> — for any minute, any dimension filter,
+  at dashboard latency, while sessions are still arriving. Everything hard lives in
+  <strong>actually watching</strong>.
+</p>
+
+<h3>1.1 · The naive model, and where it breaks</h3>
+<p>
+  The obvious approach is interval overlap: a session spans <code>[start, end]</code>, and concurrency
+  at minute M is how many spans cover M. That counts a phone sitting in someone's pocket with the app
+  open. It counts a paused player. It counts a session whose heartbeat died twenty minutes ago.
+</p>
+<p>
+  The sample data says this is not a rounding error. <strong>All 10,866 sessions in the provided file
+  contain at least one <code>AppBackgrounded</code> event.</strong> Backgrounding is the median session,
+  not an edge case. Span-based concurrency is therefore systematically inflated, and every ad-load,
+  capacity and content decision downstream inherits that inflation. That is the entire reason the
+  problem exists.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 1 — Span concurrency vs foreground-only concurrency</div>
+  <svg class="dia" viewBox="0 0 1000 400" role="img" aria-label="Five session timelines with backgrounded segments, and two concurrency curves showing span-based counting overstating the audience">
+    <defs>
+      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="6" height="6" fill="none"/>
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#3a3a3d" stroke-width="1.6"/>
+      </pattern>
+    </defs>
+
+    <text x="0" y="16" class="sm">SESSIONS — SOLID = ACTIVE · HATCHED = BACKGROUNDED</text>
+
+    <!-- session bars -->
+    <text x="0" y="54" class="sm">S1</text>
+    <rect x="70" y="40" width="237.3" height="12" fill="var(--sage)"/>
+    <rect x="307.3" y="40" width="178" height="12" fill="url(#hatch)" stroke="var(--border)"/>
+    <rect x="485.3" y="40" width="237.4" height="12" fill="var(--sage)"/>
+
+    <text x="0" y="78" class="sm">S2</text>
+    <rect x="159" y="64" width="474.7" height="12" fill="var(--sage)"/>
+
+    <text x="0" y="102" class="sm">S3</text>
+    <rect x="248" y="88" width="148.3" height="12" fill="var(--sage)"/>
+    <rect x="396.3" y="88" width="563.7" height="12" fill="url(#hatch)" stroke="var(--border)"/>
+
+    <text x="0" y="126" class="sm">S4</text>
+    <rect x="426" y="112" width="415.3" height="12" fill="var(--sage)"/>
+
+    <text x="0" y="150" class="sm">S5</text>
+    <rect x="574.3" y="136" width="385.7" height="12" fill="var(--sage)"/>
+
+    <!-- divider -->
+    <line x1="0" y1="176" x2="1000" y2="176" class="ax"/>
+    <text x="0" y="200" class="sm">CONCURRENCY</text>
+
+    <!-- y grid -->
+    <line x1="70" y1="215" x2="960" y2="215" class="gr"/>
+    <line x1="70" y1="244" x2="960" y2="244" class="gr"/>
+    <line x1="70" y1="273" x2="960" y2="273" class="gr"/>
+    <line x1="70" y1="302" x2="960" y2="302" class="gr"/>
+    <line x1="70" y1="331" x2="960" y2="331" class="gr"/>
+    <text x="52" y="219" class="sm" text-anchor="end">5</text>
+    <text x="52" y="248" class="sm" text-anchor="end">4</text>
+    <text x="52" y="277" class="sm" text-anchor="end">3</text>
+    <text x="52" y="306" class="sm" text-anchor="end">2</text>
+    <text x="52" y="335" class="sm" text-anchor="end">1</text>
+    <line x1="70" y1="360" x2="960" y2="360" class="ax"/>
+
+    <!-- span curve (wrong) -->
+    <path class="bad" d="M70,331 H159 V302 H248 V273 H426 V244 H574.3 V215 H633.7 V244 H722.7 V273 H841.3 V302 H960 V360"/>
+    <!-- foreground curve (right) -->
+    <path class="good" d="M70,331 H159 V302 H248 V273 H307.3 V302 H396.3 V331 H426 V302 H485.3 V273 H574.3 V244 H633.7 V273 H722.7 V302 H841.3 V331 H960 V360"/>
+
+    <!-- divergence marker at m=11 -->
+    <line x1="411" y1="273" x2="411" y2="331" class="ref"/>
+    <circle cx="411" cy="273" r="3" fill="var(--maroon)"/>
+    <circle cx="411" cy="331" r="3" fill="var(--sage)"/>
+    <text x="419" y="296" class="hi" style="font-size:10.5px">3 vs 1 — 3× overcount</text>
+
+    <!-- peak marker -->
+    <text x="580" y="209" class="sm" style="fill:var(--maroon)">span peak 5</text>
+    <text x="580" y="238" class="sm" style="fill:var(--sage)">true peak 4</text>
+
+    <!-- x axis -->
+    <text x="70" y="378" class="sm" text-anchor="middle">m0</text>
+    <text x="366.7" y="378" class="sm" text-anchor="middle">m10</text>
+    <text x="663.3" y="378" class="sm" text-anchor="middle">m20</text>
+    <text x="960" y="378" class="sm" text-anchor="middle">m30</text>
+
+    <!-- legend -->
+    <line x1="700" y1="196" x2="730" y2="196" class="bad"/>
+    <text x="736" y="200" class="sm">SPAN (start→end)</text>
+    <line x1="860" y1="196" x2="890" y2="196" class="good"/>
+    <text x="896" y="200" class="sm">FOREGROUND-ONLY</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the two curves share a shape but not a value. At m17–19 the span model overstates the
+    peak by one session; at m11 it reports <b>3</b> where the truth is <b>1</b>. The error is not a
+    constant offset you can calibrate away — it depends on how much of the audience happens to be
+    backgrounded at that instant, which is exactly what varies minute to minute. <span class="dim">Illustrative
+    shapes; the 10,866/all-sessions-backgrounded figure is MEASURED.</span>
+  </figcaption>
+</figure>
+
+<h3>1.2 · The two collapses</h3>
+<p>
+  Correctness is only half the problem. The statement names both scaling failures explicitly, and both
+  are worth understanding precisely because the fix is chosen by eliminating them.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 2 — Why the two obvious implementations fail</div>
+  <svg class="dia" viewBox="0 0 1000 250" role="img" aria-label="Left panel shows per-minute row explosion, right panel shows repeated full scans of raw history">
+    <!-- left: explosion -->
+    <text x="0" y="14" class="sm" style="fill:var(--maroon)">COLLAPSE A — PER-MINUTE EXPLOSION</text>
+    <rect x="0" y="26" width="440" height="150" fill="none" stroke="var(--border)"/>
+    <text x="16" y="48" class="sm">one row per (session × active minute)</text>
+    <!-- dot grid -->
+    <g fill="var(--maroon)" opacity="0.75">
+      <rect x="16" y="62" width="5" height="5"/><rect x="28" y="62" width="5" height="5"/><rect x="40" y="62" width="5" height="5"/><rect x="52" y="62" width="5" height="5"/><rect x="64" y="62" width="5" height="5"/><rect x="76" y="62" width="5" height="5"/><rect x="88" y="62" width="5" height="5"/><rect x="100" y="62" width="5" height="5"/><rect x="112" y="62" width="5" height="5"/><rect x="124" y="62" width="5" height="5"/><rect x="136" y="62" width="5" height="5"/><rect x="148" y="62" width="5" height="5"/><rect x="160" y="62" width="5" height="5"/><rect x="172" y="62" width="5" height="5"/><rect x="184" y="62" width="5" height="5"/><rect x="196" y="62" width="5" height="5"/><rect x="208" y="62" width="5" height="5"/><rect x="220" y="62" width="5" height="5"/><rect x="232" y="62" width="5" height="5"/><rect x="244" y="62" width="5" height="5"/><rect x="256" y="62" width="5" height="5"/><rect x="268" y="62" width="5" height="5"/><rect x="280" y="62" width="5" height="5"/><rect x="292" y="62" width="5" height="5"/><rect x="304" y="62" width="5" height="5"/><rect x="316" y="62" width="5" height="5"/><rect x="328" y="62" width="5" height="5"/><rect x="340" y="62" width="5" height="5"/><rect x="352" y="62" width="5" height="5"/><rect x="364" y="62" width="5" height="5"/><rect x="376" y="62" width="5" height="5"/><rect x="388" y="62" width="5" height="5"/><rect x="400" y="62" width="5" height="5"/><rect x="412" y="62" width="5" height="5"/>
+      <rect x="16" y="74" width="5" height="5"/><rect x="28" y="74" width="5" height="5"/><rect x="40" y="74" width="5" height="5"/><rect x="52" y="74" width="5" height="5"/><rect x="64" y="74" width="5" height="5"/><rect x="76" y="74" width="5" height="5"/><rect x="88" y="74" width="5" height="5"/><rect x="100" y="74" width="5" height="5"/><rect x="112" y="74" width="5" height="5"/><rect x="124" y="74" width="5" height="5"/><rect x="136" y="74" width="5" height="5"/><rect x="148" y="74" width="5" height="5"/><rect x="160" y="74" width="5" height="5"/><rect x="172" y="74" width="5" height="5"/><rect x="184" y="74" width="5" height="5"/><rect x="196" y="74" width="5" height="5"/><rect x="208" y="74" width="5" height="5"/><rect x="220" y="74" width="5" height="5"/><rect x="232" y="74" width="5" height="5"/><rect x="244" y="74" width="5" height="5"/><rect x="256" y="74" width="5" height="5"/><rect x="268" y="74" width="5" height="5"/><rect x="280" y="74" width="5" height="5"/><rect x="292" y="74" width="5" height="5"/><rect x="304" y="74" width="5" height="5"/><rect x="316" y="74" width="5" height="5"/><rect x="328" y="74" width="5" height="5"/><rect x="340" y="74" width="5" height="5"/><rect x="352" y="74" width="5" height="5"/><rect x="364" y="74" width="5" height="5"/><rect x="376" y="74" width="5" height="5"/><rect x="388" y="74" width="5" height="5"/><rect x="400" y="74" width="5" height="5"/><rect x="412" y="74" width="5" height="5"/>
+      <rect x="16" y="86" width="5" height="5"/><rect x="28" y="86" width="5" height="5"/><rect x="40" y="86" width="5" height="5"/><rect x="52" y="86" width="5" height="5"/><rect x="64" y="86" width="5" height="5"/><rect x="76" y="86" width="5" height="5"/><rect x="88" y="86" width="5" height="5"/><rect x="100" y="86" width="5" height="5"/><rect x="112" y="86" width="5" height="5"/><rect x="124" y="86" width="5" height="5"/><rect x="136" y="86" width="5" height="5"/><rect x="148" y="86" width="5" height="5"/><rect x="160" y="86" width="5" height="5"/><rect x="172" y="86" width="5" height="5"/><rect x="184" y="86" width="5" height="5"/><rect x="196" y="86" width="5" height="5"/><rect x="208" y="86" width="5" height="5"/><rect x="220" y="86" width="5" height="5"/><rect x="232" y="86" width="5" height="5"/><rect x="244" y="86" width="5" height="5"/><rect x="256" y="86" width="5" height="5"/><rect x="268" y="86" width="5" height="5"/><rect x="280" y="86" width="5" height="5"/><rect x="292" y="86" width="5" height="5"/><rect x="304" y="86" width="5" height="5"/><rect x="316" y="86" width="5" height="5"/><rect x="328" y="86" width="5" height="5"/><rect x="340" y="86" width="5" height="5"/><rect x="352" y="86" width="5" height="5"/><rect x="364" y="86" width="5" height="5"/><rect x="376" y="86" width="5" height="5"/><rect x="388" y="86" width="5" height="5"/><rect x="400" y="86" width="5" height="5"/><rect x="412" y="86" width="5" height="5"/>
+      <rect x="16" y="98" width="5" height="5"/><rect x="28" y="98" width="5" height="5"/><rect x="40" y="98" width="5" height="5"/><rect x="52" y="98" width="5" height="5"/><rect x="64" y="98" width="5" height="5"/><rect x="76" y="98" width="5" height="5"/><rect x="88" y="98" width="5" height="5"/><rect x="100" y="98" width="5" height="5"/><rect x="112" y="98" width="5" height="5"/><rect x="124" y="98" width="5" height="5"/><rect x="136" y="98" width="5" height="5"/><rect x="148" y="98" width="5" height="5"/><rect x="160" y="98" width="5" height="5"/><rect x="172" y="98" width="5" height="5"/><rect x="184" y="98" width="5" height="5"/><rect x="196" y="98" width="5" height="5"/><rect x="208" y="98" width="5" height="5"/><rect x="220" y="98" width="5" height="5"/><rect x="232" y="98" width="5" height="5"/><rect x="244" y="98" width="5" height="5"/><rect x="256" y="98" width="5" height="5"/><rect x="268" y="98" width="5" height="5"/><rect x="280" y="98" width="5" height="5"/><rect x="292" y="98" width="5" height="5"/><rect x="304" y="98" width="5" height="5"/><rect x="316" y="98" width="5" height="5"/><rect x="328" y="98" width="5" height="5"/><rect x="340" y="98" width="5" height="5"/><rect x="352" y="98" width="5" height="5"/><rect x="364" y="98" width="5" height="5"/><rect x="376" y="98" width="5" height="5"/><rect x="388" y="98" width="5" height="5"/><rect x="400" y="98" width="5" height="5"/><rect x="412" y="98" width="5" height="5"/>
+    </g>
+    <text x="16" y="124" class="sm">… × every session</text>
+    <text x="16" y="146" class="hi" style="font-size:12px">O(sessions × minutes)</text>
+    <text x="16" y="164" class="sm">5M concurrent × 180 min ≈ 900M rows / event</text>
+
+    <!-- right: rescan -->
+    <text x="560" y="14" class="sm" style="fill:var(--maroon)">COLLAPSE B — RECOMPUTE ON QUERY</text>
+    <rect x="560" y="26" width="440" height="150" fill="none" stroke="var(--border)"/>
+    <rect x="576" y="46" width="120" height="112" fill="var(--panel2)" stroke="var(--border)"/>
+    <text x="636" y="106" class="sm" text-anchor="middle">ev_raw</text>
+    <text x="636" y="120" class="sm" text-anchor="middle">(all history)</text>
+    <g stroke="var(--maroon)" stroke-width="1.2" fill="none">
+      <path d="M700,64 H860" marker-end="url(#ar)"/>
+      <path d="M700,86 H860"/>
+      <path d="M700,108 H860"/>
+      <path d="M700,130 H860"/>
+    </g>
+    <defs><marker id="ar" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--maroon)"/></marker></defs>
+    <text x="868" y="68" class="sm">refresh</text>
+    <text x="868" y="90" class="sm">refresh</text>
+    <text x="868" y="112" class="sm">refresh</text>
+    <text x="868" y="134" class="sm">refresh</text>
+    <text x="576" y="146" class="hi" style="font-size:12px">full overlap scan, every dashboard tick</text>
+    <text x="576" y="164" class="sm">latency ∝ total history, not query range</text>
+
+    <!-- verdict -->
+    <line x1="0" y1="198" x2="1000" y2="198" class="ax"/>
+    <text x="0" y="222" class="hi" style="font-size:12px">THE ESCAPE:</text>
+    <text x="100" y="222">a representation that is O(intervals) in storage and pre-aggregated enough that the dashboard never touches raw.</text>
+    <text x="0" y="240" class="sm">Eliminating both collapses selects the delta model — it is not a preference, it is what is left.</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the statement calls A <em>"prohibitively large"</em> and B <em>"far too slow"</em>.
+    They are the two ends of a spectrum — precompute everything, or precompute nothing. The delta model
+    sits in the middle: precompute the <b>boundaries</b>, reconstruct the values.
+  </figcaption>
+</figure>
+
+<h3>1.3 · What the data actually looks like</h3>
+<p>
+  The provided file is 905,559 events across 10,866 sessions, spanning 2026-07-14 to 2026-07-26
+  (≈11.8 days). The event mix matters because it dictates which signals are trustworthy.
+</p>
+
+<div class="chart">
+  <div class="bars">
+    <div class="bl">VideoHeartbeat</div>
+    <div class="track"><div class="fill" style="width:93.16%;background:var(--sage)"></div><div class="bv in" style="right:8px">843,600 · 93.16%</div></div>
+    <div class="bl">AppBackgrounded</div>
+    <div class="track"><div class="fill" style="width:1.62%;background:var(--maroon)"></div><div class="bv" style="left:calc(1.62% + 8px)">14,700 · 1.62%</div></div>
+    <div class="bl">AppForegrounded</div>
+    <div class="track"><div class="fill" style="width:1.58%;background:var(--maroon)"></div><div class="bv" style="left:calc(1.58% + 8px)">14,321 · 1.58%</div></div>
+    <div class="bl">VideoPlay</div>
+    <div class="track"><div class="fill" style="width:1.20%;background:var(--tan)"></div><div class="bv" style="left:calc(1.2% + 8px)">10,883 · 1.20%</div></div>
+    <div class="bl">VideoSessionEnd</div>
+    <div class="track"><div class="fill" style="width:1.20%;background:var(--tan)"></div><div class="bv" style="left:calc(1.2% + 8px)">10,881 · 1.20%</div></div>
+    <div class="bl">VideoSessionStart</div>
+    <div class="track"><div class="fill" style="width:1.20%;background:var(--tan)"></div><div class="bv" style="left:calc(1.2% + 8px)">10,880 · 1.20%</div></div>
+    <div class="bl">VideoError</div>
+    <div class="track"><div class="fill" style="width:0.03%;background:var(--faint)"></div><div class="bv" style="left:12px">293 · 0.03%</div></div>
+  </div>
+  <div class="cap">
+    <b>Read:</b> the heartbeat is 93% of the stream — it is the only high-volume, high-reliability
+    signal. Background/foreground together are 3.2% and are documented as <em>"not guaranteed"</em>.
+    That asymmetry is the argument behind ADR 0001. <b>MEASURED</b> — from docs/DATA_DICTIONARY.md.
+    <br><b>AMENDED:</b> this caption previously said the heartbeat "has a defined 60-second cadence",
+    following the organiser's <code>dataset_details.md</code>. It does not. Measured on our own load:
+    <b>4.72 beats/min</b>, inter-arrival <b>p50 0s · p90 40s · p99 49s</b>, mean 12.4s — bursty
+    telemetry (<code>network-activity</code>, <code>buffer-health</code>, <code>video-resize</code>,
+    <code>BufferStart</code>, <code>Seek</code>, <code>pause</code>, <code>resume</code>), not a beat.
+    Volume and reliability are unaffected; every argument that leaned on the <em>period</em> is.
+  </div>
+</div>
+
+<h3>1.4 · The four traps</h3>
+<p>
+  Each of these is a way the provided file lies about the unseen day. They are worth memorising because
+  each one is a design decision that passes locally and fails when it counts.
+</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Trap</th><th>Evidence</th><th class="m">Consequence if ignored</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>bg/fg do not pair</td>
+      <td class="m">14,700 bg vs 14,321 fg → <span class="risk">379 unmatched</span>; 418 sessions background and never return</td>
+      <td>A pairing model is already wrong on ~4% of sessions here, and wrong by a different, unknown amount on the unseen day.</td>
+    </tr>
+    <tr>
+      <td>Backgrounding is universal</td>
+      <td class="m">10,866 / 10,866 sessions have ≥1 background event</td>
+      <td>Foreground exclusion is <em>the problem</em>, not a correction term. Any design treating it as an edge case is mis-scoped.</td>
+    </tr>
+    <tr>
+      <td>Zero open sessions in the file</td>
+      <td class="m">0 sessions lack <code>VideoSessionEnd</code></td>
+      <td>The unseen day is <em>guaranteed</em> to have them. The path most likely to break is completely unexercised. Fix: truncate the file mid-stream to manufacture them.</td>
+    </tr>
+    <tr>
+      <td>Poison <code>content_id</code> + single country</td>
+      <td class="m"><code>-987654322</code> in content_dim (1 of 33,464); <code>country</code> has 1 distinct value</td>
+      <td><code>UInt64</code> dies with <code>Code: 6</code> on row 1193 — use <code>Int64</code>. And a country-filter bug is <em>invisible</em> locally; always test against <code>platform</code> (10 values) too.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================= 02 THE ARITHMETIC ================= -->
+<h2><span class="num">02 — THE ARITHMETIC</span>The delta model and its three sharp edges</h2>
+<p class="lede">
+  For each <strong>active</strong> interval <code>[s, e]</code>, emit <code>+1</code> at
+  <code>minute(s)</code> and <code>−1</code> at <code>minute(e)+1</code>. Concurrency at M is the
+  running sum of all deltas up to M. Two rows per interval instead of seventy-eight. This is the
+  sweep-line algorithm, applied to storage.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 3 — Intervals → impulses → running sum</div>
+  <svg class="dia" viewBox="0 0 1000 380" role="img" aria-label="Four active intervals converted to plus-one and minus-one impulses, then accumulated into a concurrency staircase peaking at three">
+    <text x="0" y="14" class="sm">① ACTIVE INTERVALS</text>
+    <rect x="70" y="28" width="311" height="11" fill="var(--sage)"/><text x="386" y="37" class="sm">I1 · m2→m9</text>
+    <rect x="159" y="46" width="444" height="11" fill="var(--sage)"/><text x="608" y="55" class="sm">I2 · m4→m14</text>
+    <rect x="292" y="64" width="222" height="11" fill="var(--sage)"/><text x="519" y="73" class="sm">I3 · m7→m11</text>
+    <rect x="514" y="82" width="266" height="11" fill="var(--sage)"/><text x="785" y="91" class="sm">I4 · m12→m18</text>
+
+    <line x1="0" y1="108" x2="1000" y2="108" class="ax"/>
+    <text x="0" y="128" class="sm">② IMPULSES — +1 AT OPEN, −1 AT CLOSE+1</text>
+
+    <!-- impulse marks -->
+    <line x1="70" y1="142" x2="70" y2="176" stroke="var(--sage)" stroke-width="2"/><text x="70" y="138" class="sm" text-anchor="middle" style="fill:var(--sage)">+1</text>
+    <line x1="159" y1="142" x2="159" y2="176" stroke="var(--sage)" stroke-width="2"/><text x="159" y="138" class="sm" text-anchor="middle" style="fill:var(--sage)">+1</text>
+    <line x1="292" y1="142" x2="292" y2="176" stroke="var(--sage)" stroke-width="2"/><text x="292" y="138" class="sm" text-anchor="middle" style="fill:var(--sage)">+1</text>
+    <line x1="425" y1="142" x2="425" y2="176" stroke="var(--maroon)" stroke-width="2"/><text x="425" y="138" class="sm" text-anchor="middle" style="fill:var(--maroon)">−1</text>
+    <line x1="514" y1="142" x2="514" y2="176" stroke="var(--tan)" stroke-width="2"/><text x="514" y="138" class="sm" text-anchor="middle" style="fill:var(--tan)">±0</text>
+    <line x1="647" y1="142" x2="647" y2="176" stroke="var(--maroon)" stroke-width="2"/><text x="647" y="138" class="sm" text-anchor="middle" style="fill:var(--maroon)">−1</text>
+    <line x1="825" y1="142" x2="825" y2="176" stroke="var(--maroon)" stroke-width="2"/><text x="825" y="138" class="sm" text-anchor="middle" style="fill:var(--maroon)">−1</text>
+    <text x="522" y="192" class="sm" style="fill:var(--tan)">m12: I3 closes (−1) and I4 opens (+1) — net zero, one row</text>
+
+    <line x1="0" y1="208" x2="1000" y2="208" class="ax"/>
+    <text x="0" y="228" class="sm">③ RUNNING SUM = CONCURRENCY</text>
+
+    <!-- grid -->
+    <line x1="70" y1="252" x2="960" y2="252" class="gr"/><text x="52" y="256" class="sm" text-anchor="end">3</text>
+    <line x1="70" y1="282" x2="960" y2="282" class="gr"/><text x="52" y="286" class="sm" text-anchor="end">2</text>
+    <line x1="70" y1="312" x2="960" y2="312" class="gr"/><text x="52" y="316" class="sm" text-anchor="end">1</text>
+    <line x1="70" y1="342" x2="960" y2="342" class="ax"/><text x="52" y="346" class="sm" text-anchor="end">0</text>
+
+    <path class="good" d="M70,342 V312 H159 V282 H292 V252 H425 V282 H647 V312 H825 V342 H960"/>
+    <line x1="292" y1="240" x2="425" y2="240" class="ref"/>
+    <text x="358" y="236" class="sm" text-anchor="middle" style="fill:var(--green-bright)">PEAK = 3 · m7–m9</text>
+
+    <text x="70" y="362" class="sm" text-anchor="middle">m0</text>
+    <text x="425" y="362" class="sm" text-anchor="middle">m12</text>
+    <text x="780" y="362" class="sm" text-anchor="middle">m24</text>
+    <text x="960" y="362" class="sm" text-anchor="middle">m30</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> four intervals collapse to seven delta rows (one of which is a net-zero merge), replacing
+    what would be ~40 exploded per-minute rows. Peak over any window is <code>max()</code> of the
+    staircase inside it — <b>provided</b> the staircase starts from the right value. Which is the next problem.
+  </figcaption>
+</figure>
+
+<h3>2.1 · Sharp edge one — the carry-in dependency</h3>
+<p>
+  The running sum is defined <strong>from the beginning of time</strong>, not from the start of your
+  query range. A dashboard asking for 18:00–19:00 that sums only the deltas inside that hour will miss
+  every session that opened at 17:45 and is still watching. This is the classic delta-model undercount,
+  and it is silent — the numbers look plausible, just low.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 4 — The carry-in undercount</div>
+  <svg class="dia" viewBox="0 0 1000 260" role="img" aria-label="A query window missing a session that started before the window, producing a concurrency of one instead of two">
+    <rect x="330" y="20" width="330" height="200" fill="#141416" stroke="var(--border)"/>
+    <text x="495" y="14" class="sm" text-anchor="middle" style="fill:var(--green-bright)">QUERY WINDOW [A=m10 → B=m20]</text>
+
+    <rect x="130" y="44" width="600" height="11" fill="var(--sage)"/>
+    <text x="738" y="53" class="sm">Sx · m3 → m25 (spans the whole window)</text>
+    <line x1="130" y1="38" x2="130" y2="66" stroke="var(--sage)" stroke-width="2"/>
+    <text x="130" y="80" class="sm" text-anchor="middle" style="fill:var(--sage)">+1 @ m3</text>
+    <text x="130" y="94" class="sm" text-anchor="middle" style="fill:var(--maroon)">OUTSIDE</text>
+
+    <rect x="396" y="106" width="198" height="11" fill="var(--sage)"/>
+    <text x="602" y="115" class="sm">Sy · m12 → m18</text>
+
+    <line x1="0" y1="136" x2="1000" y2="136" class="ax"/>
+
+    <!-- wrong -->
+    <text x="0" y="158" class="sm" style="fill:var(--maroon)">SUM DELTAS INSIDE THE WINDOW ONLY</text>
+    <line x1="330" y1="196" x2="960" y2="196" class="gr"/>
+    <path class="bad" d="M330,196 H396 V172 H627 V196 H660"/>
+    <text x="672" y="180" class="sm" style="fill:var(--maroon)">reports peak = 1 ✗</text>
+
+    <!-- right -->
+    <text x="0" y="228" class="sm" style="fill:var(--sage)">WITH CARRY-IN AT A</text>
+    <line x1="330" y1="244" x2="960" y2="244" class="gr"/>
+    <path class="good" d="M330,232 H396 V220 H627 V232 H660"/>
+    <text x="672" y="228" class="sm" style="fill:var(--sage)">reports peak = 2 ✓</text>
+    <line x1="330" y1="232" x2="330" y2="244" stroke="var(--green-bright)" stroke-width="2"/>
+    <text x="322" y="240" class="sm" text-anchor="end" style="fill:var(--green-bright)">carry-in = 1</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the fix is either scanning deltas from <code>t=0</code> (defeats partition pruning) or
+    maintaining periodic snapshot checkpoints (more state, more to get wrong). <b>Neither is in the
+    baseline design.</b> §05 shows a third option that removes the dependency entirely.
+  </figcaption>
+</figure>
+
+<h3>2.2 · Sharp edge two — peak is not summable</h3>
+<p>
+  This is what the statement's 300K / 200K / 50K scenario is really pointing at, and it is the single
+  most important constraint on the schema. Peak over a filtered set is <strong>not</strong> the sum of
+  the per-dimension peaks, because different dimension slices peak at <em>different minutes</em>.
+  Formally <code>max(a+b) ≤ max(a)+max(b)</code>, and the gap is large in practice.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 5 — max(a)+max(b) overstates the true combined peak by 65%</div>
+  <svg class="dia" viewBox="0 0 1000 320" role="img" aria-label="Android and iOS concurrency series peaking at opposite ends of the range, with the summed series peaking in the middle at a much lower value than the sum of individual peaks">
+    <!-- axes -->
+    <line x1="80" y1="250" x2="960" y2="250" class="ax"/>
+    <line x1="80" y1="40" x2="80" y2="250" class="ax"/>
+    <text x="66" y="254" class="sm" text-anchor="end">0</text>
+    <line x1="80" y1="180" x2="960" y2="180" class="gr"/><text x="66" y="184" class="sm" text-anchor="end">200</text>
+    <line x1="80" y1="110" x2="960" y2="110" class="gr"/><text x="66" y="114" class="sm" text-anchor="end">400</text>
+    <line x1="80" y1="40" x2="960" y2="40" class="gr"/><text x="66" y="44" class="sm" text-anchor="end">600</text>
+
+    <!-- grouped bars: 6 minutes, x from 110 step 140 -->
+    <!-- scale: value v -> height v*0.35 ; y = 250 - v*0.35 -->
+    <g>
+      <!-- m1 A=300 i=60 -->
+      <rect x="110" y="145" width="26" height="105" fill="var(--sage)"/>
+      <rect x="140" y="229" width="26" height="21" fill="var(--blue)"/>
+      <text x="140" y="266" class="sm" text-anchor="middle">m1</text>
+      <!-- m2 A=250 i=90 -->
+      <rect x="250" y="162.5" width="26" height="87.5" fill="var(--sage)"/>
+      <rect x="280" y="218.5" width="26" height="31.5" fill="var(--blue)"/>
+      <text x="280" y="266" class="sm" text-anchor="middle">m2</text>
+      <!-- m3 A=180 i=130 -->
+      <rect x="390" y="187" width="26" height="63" fill="var(--sage)"/>
+      <rect x="420" y="204.5" width="26" height="45.5" fill="var(--blue)"/>
+      <text x="420" y="266" class="sm" text-anchor="middle">m3</text>
+      <!-- m4 A=120 i=200 -->
+      <rect x="530" y="208" width="26" height="42" fill="var(--sage)"/>
+      <rect x="560" y="180" width="26" height="70" fill="var(--blue)"/>
+      <text x="560" y="266" class="sm" text-anchor="middle">m4</text>
+      <!-- m5 A=90 i=280 -->
+      <rect x="670" y="218.5" width="26" height="31.5" fill="var(--sage)"/>
+      <rect x="700" y="152" width="26" height="98" fill="var(--blue)"/>
+      <text x="700" y="266" class="sm" text-anchor="middle">m5</text>
+      <!-- m6 A=60 i=310 -->
+      <rect x="810" y="229" width="26" height="21" fill="var(--sage)"/>
+      <rect x="840" y="141.5" width="26" height="108.5" fill="var(--blue)"/>
+      <text x="840" y="266" class="sm" text-anchor="middle">m6</text>
+    </g>
+
+    <!-- sum line: 360,340,310,320,370,370 -> y=250-v*0.35 -->
+    <path class="good" d="M138,124 L278,131 L418,141.5 L558,138 L698,120.5 L838,120.5" stroke-width="2"/>
+    <circle cx="138" cy="124" r="3" fill="var(--sage)"/><circle cx="278" cy="131" r="3" fill="var(--sage)"/><circle cx="418" cy="141.5" r="3" fill="var(--sage)"/><circle cx="558" cy="138" r="3" fill="var(--sage)"/><circle cx="698" cy="120.5" r="3" fill="var(--sage)"/><circle cx="838" cy="120.5" r="3" fill="var(--sage)"/>
+
+    <!-- reference lines -->
+    <line x1="80" y1="36.5" x2="960" y2="36.5" class="ref" stroke="var(--maroon)"/>
+    <text x="956" y="30" class="sm" text-anchor="end" style="fill:var(--maroon)">max(Android)+max(iOS) = 610 — WRONG</text>
+    <line x1="80" y1="120.5" x2="960" y2="120.5" class="ref"/>
+    <text x="956" y="114" class="sm" text-anchor="end" style="fill:var(--green-bright)">TRUE combined peak = 370</text>
+
+    <!-- legend -->
+    <rect x="80" y="292" width="12" height="12" fill="var(--sage)"/><text x="98" y="302" class="sm">ANDROID · peaks m1 (300)</text>
+    <rect x="290" y="292" width="12" height="12" fill="var(--blue)"/><text x="308" y="302" class="sm">iOS · peaks m6 (310)</text>
+    <line x1="490" y1="298" x2="520" y2="298" class="good" stroke-width="2"/><text x="528" y="302" class="sm">SUM · peaks m5–m6 (370)</text>
+    <text x="760" y="302" class="sm" style="fill:var(--maroon)">error: +65%</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> Android peaks first, iOS peaks last, and the combined curve peaks in the middle at a
+    value far below either sum. <b>You can therefore never store a peak.</b> The serving table's payload
+    must be a <em>delta</em>, and the pipeline must be: filter dims → sum deltas per minute → cumulative
+    sum → <em>then</em> <code>max()</code>. Peak is a query-time operation by mathematical necessity.
+  </figcaption>
+</figure>
+
+<h3>2.3 · Sharp edge three — never sum a distinct count</h3>
+<p>
+  Session-level concurrency <em>is</em> summable across dimension buckets, because a session belongs to
+  exactly one platform and one content. That is why deltas work at all. <strong>User-level concurrency
+  is not</strong> — a user watching two contents simultaneously counts once, and summing per-content
+  buckets double-counts them.
+</p>
+<p>
+  The repo already measured the consequence: a <code>SummingMergeTree</code> over
+  <code>uniqExact</code> over-counted <strong>9×</strong> (45,000 against a truth of 5,000). Distinct
+  counts must travel as <code>uniqExactState</code> and be combined with <code>uniqExactMerge</code>,
+  never summed.
+</p>
+
+<div class="call risk">
+  <div class="ct">Flaw 3a — the baseline uses approximate uniq</div>
+  <p>
+    <code>sql/10_intervals.sql</code> defines <code>cc_minute_stateless.active_state</code> as
+    <code>AggregateFunction(uniq, String)</code> and fills it with <code>uniqState()</code>.
+    <code>uniq</code> is a HyperLogLog-family estimator with roughly <strong>1–2% error</strong>.
+  </p>
+  <p>
+    Against a <em>private, exact</em> ground truth, that is a silent correctness bug on every number
+    that passes through it. It must be <code>uniqExact</code>. The cost is memory proportional to
+    distinct sessions per bucket — entirely affordable at minute grain, and non-negotiable when the
+    score is exact-match.
+  </p>
+</div>
+
+<h3>2.4 · Average is time-weighted</h3>
+<p>
+  Average concurrency over a range is the <em>integral</em> of the concurrency curve divided by the
+  range length — equivalently, <code>total_active_seconds / range_seconds</code>. At uniform minute
+  grain this degenerates to a plain mean, <strong>but only if you include the zero-concurrency
+  minutes</strong>. At day grain rolled up from hours you must weight by bucket width. The
+  active-seconds formulation is also an excellent independent cross-check, because it can be computed
+  straight from interval durations without touching the delta layer at all.
+</p>
+<pre><code><span class="c-com">-- two independent routes to the same number; /reconcile should show them agreeing</span>
+<span class="c-com">-- route A — from the serving layer (integral of the staircase)</span>
+avg_concurrency = sum(concurrency_at_minute * 60) / range_seconds
+
+<span class="c-com">-- route B — from the intervals directly (no delta layer involved)</span>
+avg_concurrency = sum(<span class="c-kw">least</span>(interval_end, B) - <span class="c-kw">greatest</span>(interval_start, A)) / range_seconds</code></pre>
+
+<!-- ================= 03 DEFINING ACTIVE ================= -->
+<h2><span class="num">03 — DEFINING "ACTIVE"</span>The crux, and the assumption underneath it</h2>
+<p class="lede">
+  Everything above assumes we already know the active intervals. Producing them is the actual hard part,
+  and it is where correctness is won or lost, because the ground truth is private and we cannot fit to it.
+</p>
+
+<h3>3.1 · Signal reliability</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Signal</th><th class="m">Share</th><th>Reliability</th><th>Role in the model</th></tr></thead>
+  <tbody>
+    <tr><td>VideoHeartbeat</td><td class="m">93.16%</td><td class="warn">Bursty, <em>not</em> periodic — 4.72/min, p99 gap 49s <span class="dim">AMENDED</span></td><td><strong>Primary</strong> — presence means active, absence beyond a threshold means inactive. <span class="risk">But presence also persists through a pause (0.756/min), so presence alone is not "watching".</span></td></tr>
+    <tr><td>SessionStart / End</td><td class="m">2.40%</td><td class="ok">Reliable boundaries</td><td>Open/close the outer envelope; <code>End</code> absent ⇒ session still open.</td></tr>
+    <tr><td>VideoPlay</td><td class="m">1.20%</td><td class="warn">Reliable but sparse</td><td>Corroborates resume; also seeds the stateless model.</td></tr>
+    <tr><td>AppBackgrounded / Foregrounded</td><td class="m">3.20%</td><td class="risk">"Not guaranteed" · 379 unmatched</td><td><strong>Corroborating only</strong> — may close an interval earlier, never solely relied upon.</td></tr>
+    <tr><td>VideoError</td><td class="m">0.03%</td><td class="warn">Rare</td><td>Ignored for activity; useful for the ClickStack panel.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>3.2 · How the gap model derives an interval</h3>
+
+<figure>
+  <div class="figlabel">Figure 6 — Heartbeat-gap interval derivation, with the tail-credit ambiguity</div>
+  <svg class="dia" viewBox="0 0 1000 300" role="img" aria-label="Heartbeat ticks drawn evenly for legibility though the real stream is bursty, a bridged short gap, and a long gap that closes the interval, with three candidate tail credit lengths">
+    <text x="0" y="14" class="sm">HEARTBEATS — TICK = ONE EVENT · DRAWN EVENLY FOR LEGIBILITY; REAL SPACING IS BURSTY (p50 0s · p99 49s)</text>
+    <!-- beats: t=0..300 normal (x 70..370 step 60px per 60s -> 1s = 1px scale/... use 60s = 60px) -->
+    <g stroke="var(--sage)" stroke-width="2">
+      <line x1="70" y1="30" x2="70" y2="52"/><line x1="130" y1="30" x2="130" y2="52"/><line x1="190" y1="30" x2="190" y2="52"/><line x1="250" y1="30" x2="250" y2="52"/>
+      <line x1="370" y1="30" x2="370" y2="52"/><line x1="430" y1="30" x2="430" y2="52"/><line x1="490" y1="30" x2="490" y2="52"/>
+      <line x1="790" y1="30" x2="790" y2="52"/><line x1="850" y1="30" x2="850" y2="52"/>
+    </g>
+    <!-- missing beat marker at 310 -->
+    <line x1="310" y1="30" x2="310" y2="52" stroke="var(--maroon)" stroke-width="2" stroke-dasharray="3 3"/>
+    <text x="310" y="24" class="sm" text-anchor="middle" style="fill:var(--maroon)">missed</text>
+    <line x1="70" y1="52" x2="960" y2="52" class="ax"/>
+
+    <!-- gap annotations -->
+    <path d="M250,66 H370" stroke="var(--tan)" stroke-width="1"/>
+    <line x1="250" y1="62" x2="250" y2="70" stroke="var(--tan)"/><line x1="370" y1="62" x2="370" y2="70" stroke="var(--tan)"/>
+    <text x="310" y="82" class="sm" text-anchor="middle" style="fill:var(--tan)">gap 120s &lt; 150s → BRIDGED</text>
+
+    <path d="M490,66 H790" stroke="var(--maroon)" stroke-width="1"/>
+    <line x1="490" y1="62" x2="490" y2="70" stroke="var(--maroon)"/><line x1="790" y1="62" x2="790" y2="70" stroke="var(--maroon)"/>
+    <text x="640" y="82" class="sm" text-anchor="middle" style="fill:var(--maroon)">gap 300s &gt; 150s → INTERVAL CLOSES</text>
+
+    <line x1="0" y1="100" x2="1000" y2="100" class="ax"/>
+    <text x="0" y="122" class="sm">DERIVED ACTIVE INTERVALS</text>
+    <rect x="70" y="134" width="480" height="13" fill="var(--sage)"/>
+    <text x="300" y="144" class="sm" text-anchor="middle" style="fill:#0c0c0d">INTERVAL 1</text>
+    <rect x="790" y="134" width="120" height="13" fill="var(--sage)"/>
+    <text x="850" y="144" class="sm" text-anchor="middle" style="fill:#0c0c0d">INT 2</text>
+    <text x="70" y="164" class="sm">start = first beat</text>
+    <text x="556" y="164" class="sm" style="fill:var(--tan)">end = last beat + TAIL_GRACE ← the judgement call</text>
+
+    <line x1="0" y1="184" x2="1000" y2="184" class="ax"/>
+    <text x="0" y="206" class="sm" style="fill:var(--tan)">TAIL CREDIT — WHICH IS RIGHT? THE GROUND TRUTH IS PRIVATE.</text>
+
+    <line x1="490" y1="216" x2="490" y2="286" class="gr"/>
+    <rect x="490" y="222" width="0" height="12" fill="var(--maroon)"/>
+    <text x="498" y="232" class="sm">0s — credit nothing past the last beat (undercounts every interval)</text>
+    <rect x="490" y="242" width="60" height="12" fill="var(--green-bright)"/>
+    <text x="558" y="252" class="sm" style="fill:var(--green-bright)">60s — TAIL_GRACE_S, the repo's current default (NOT "one cadence" — there is none)</text>
+    <rect x="490" y="262" width="150" height="12" fill="var(--tan)"/>
+    <text x="648" y="272" class="sm" style="fill:var(--tan)">150s — full gap threshold (credits confirmed silence)</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the gap threshold and the tail credit are two independent tunables and both are
+    <em>guesses about the judges' definition</em>, not facts we can derive. Too tight a threshold
+    fragments genuine viewing; too loose credits backgrounded time. This is why §07 ships a
+    <b>sensitivity sweep</b> rather than a single number.
+    <br><b>AMENDED:</b> the diagram originally showed a 60s cadence with "one missed beat" bridged at
+    120s. There is no cadence, so there is no such thing as a missed beat — but the threshold logic is
+    unaffected, because it only ever compared a <em>gap</em> to a constant. 150s is now justified as
+    <b>~3× the measured p99 inter-arrival of 49s</b> rather than "~2.5 missed beats", and
+    <code>sql/30_build_intervals.sql</code> carries that derivation.
+    <br><b>What did change:</b> the tail grace is now credited <em>only</em> where a segment ends
+    because the run ended. A segment ending at an explicit <code>pause</code> gets none — we know to
+    the second when the viewer stopped, and 60s past it books paused (often backgrounded) time.
+  </figcaption>
+</figure>
+
+<h3>3.3 · Why not background/foreground pairing</h3>
+<div class="chart">
+  <div class="bars">
+    <div class="bl">AppBackgrounded</div>
+    <div class="track"><div class="fill" style="width:100%;background:var(--maroon)"></div><div class="bv in" style="right:8px">14,700</div></div>
+    <div class="bl">AppForegrounded</div>
+    <div class="track"><div class="fill" style="width:97.42%;background:var(--tan)"></div><div class="bv in" style="right:8px">14,321</div></div>
+    <div class="bl">unmatched</div>
+    <div class="track"><div class="fill" style="width:2.58%;background:var(--green-bright)"></div><div class="bv" style="left:calc(2.58% + 8px)">379 — every one is a session whose inactivity has no closing event</div></div>
+  </div>
+  <div class="cap">
+    <b>Read:</b> 379 unmatched backgrounds and 418 sessions that background and never return. A
+    pairing model has no rule for these without inventing one. The data dictionary states plainly that
+    these events <em>"are not guaranteed and sometimes depend on the system"</em> — meaning the unmatched
+    rate on the unseen day is not 2.58%, it is <b>unknown</b>. <b>MEASURED</b>.
+  </div>
+</div>
+
+<h3 id="premise">3.4 · The premise the whole model rests on — <span style="color:var(--green-bright)">MEASURED</span></h3>
+<div class="call ok">
+  <div class="ct">AMENDED — does the heartbeat stop while backgrounded? Yes.</div>
+  <p>
+    The gap model detects backgrounding <strong>only if the player stops emitting heartbeats when the
+    app goes to background</strong>. If heartbeats continued in the background there would be no gap to
+    detect, the gap model would report backgrounded users as watching, and it would fail the one thing
+    the problem exists to test.
+  </p>
+  <p>
+    <b>Run on the real 905,558-event file:</b> 13,948 closed background→foreground pairs covering
+    3,301,211 s of backgrounded time contain <b>2,605 heartbeats — 0.047/min</b>, against
+    <b>4.72/min</b> while active. A 100× drop; effectively zero. <strong>ADR 0001 stands.</strong>
+    The query that answered it:
+  </p>
+  <pre><code><span class="c-com">-- for each background→foreground pair, how many heartbeats land strictly inside?</span>
+<span class="c-com">-- ≈0  → gaps work, ADR 0001 stands</span>
+<span class="c-com">-- ≈1/min → gaps are blind to backgrounding; bg/fg becomes load-bearing after all</span>
+<span class="c-kw">WITH</span> bg <span class="c-kw">AS</span> (
+  <span class="c-kw">SELECT</span> video_session_id, event_timestamp <span class="c-kw">AS</span> t_bg,
+         <span class="c-kw">anyOrNull</span>(event_timestamp) <span class="c-kw">OVER</span> (
+           <span class="c-kw">PARTITION BY</span> video_session_id <span class="c-kw">ORDER BY</span> event_timestamp
+           <span class="c-kw">ROWS BETWEEN</span> <span class="c-num">1</span> <span class="c-kw">FOLLOWING AND</span> <span class="c-num">1</span> <span class="c-kw">FOLLOWING</span>) <span class="c-kw">AS</span> t_fg
+  <span class="c-kw">FROM</span> ev_raw
+  <span class="c-kw">WHERE</span> event_type <span class="c-kw">IN</span> (<span class="c-str">'AppBackgrounded'</span>, <span class="c-str">'AppForegrounded'</span>)
+)
+<span class="c-kw">SELECT</span> <span class="c-kw">countIf</span>(hb = <span class="c-num">0</span>) <span class="c-kw">AS</span> silent_pairs,
+       <span class="c-kw">countIf</span>(hb &gt; <span class="c-num">0</span>) <span class="c-kw">AS</span> noisy_pairs,
+       <span class="c-kw">avg</span>(hb)              <span class="c-kw">AS</span> avg_beats_while_bg
+<span class="c-kw">FROM</span> ( <span class="c-kw">SELECT</span> b.*, (
+         <span class="c-kw">SELECT</span> <span class="c-kw">count</span>() <span class="c-kw">FROM</span> ev_raw h
+         <span class="c-kw">WHERE</span> h.video_session_id = b.video_session_id
+           <span class="c-kw">AND</span> h.event_type = <span class="c-str">'VideoHeartbeat'</span>
+           <span class="c-kw">AND</span> h.event_timestamp &gt; b.t_bg <span class="c-kw">AND</span> h.event_timestamp &lt; b.t_fg ) <span class="c-kw">AS</span> hb
+       <span class="c-kw">FROM</span> bg b <span class="c-kw">WHERE</span> t_fg <span class="c-kw">IS NOT NULL</span> )
+<span class="c-kw">SETTINGS</span> log_comment = <span class="c-str">'gate:hb-during-background'</span>;</code></pre>
+  <p style="margin-top:12px">
+    A sibling unknown rode along: <strong>paused ≠ backgrounded</strong>. The statement excludes
+    <em>"backgrounded, paused, or silent"</em> periods, but the sample file shows no pause events in the
+    <code>event_type</code> census — they live in the under-explored <code>event</code> sub-column.
+    <strong>That is the one that bit.</strong>
+  </p>
+</div>
+
+<div class="call risk">
+  <div class="ct">AMENDED — and heartbeats survive a pause. This one failed.</div>
+  <p>
+    21,068 closed <code>pause → resume</code> pairs covering 3,002,604 s of paused time contain
+    <b>37,854 heartbeats — 0.756/min</b>, 16% of the active rate. That is <strong>one event every
+    ~79 seconds, comfortably inside the 150s gap threshold</strong>, so a gap-only model never closes
+    the interval and <strong>credits the entire pause as watching</strong>.
+  </p>
+  <p>
+    What those events are: <code>video-resize</code> (10,343), <code>network-activity</code> (8,338),
+    <code>buffer-health</code> (6,835), plus scrubbing. None of it is playback progress. The player
+    keeps reporting; the viewer is not watching.
+  </p>
+  <p>
+    <strong>The model is therefore a hybrid</strong>, and every "gap model" claim in this document is
+    scoped accordingly: gaps for backgrounding and disappearance, <em>explicit</em>
+    <code>pause</code>/<code>resume</code> windows subtracted for paused time. Shipped in
+    <code>sql/30_build_intervals.sql</code>. The unresolved residue is the <b>23% of pauses that never
+    resume</b> — conservative (stays paused to end of run) vs permissive (ends at next event) differ by
+    <b>99.3 h, 5.09%</b> of counted watch time. Conservative is shipped; only the organisers can settle
+    which the ground truth used.
+  </p>
+</div>
+
+<!-- ================= 04 FLAWS ================= -->
+<h2><span class="num">04 — FLAWS</span>Three things wrong with the baseline design</h2>
+<p class="lede">
+  These are mechanical, not stylistic. Each one is a place where the documented design contradicts how
+  ClickHouse actually executes, or where the arithmetic has a dependency nobody wrote down.
+</p>
+
+<h3>Flaw 1 · The compensating-delta mechanism cannot be implemented</h3>
+<p>
+  <code>docs/ARCHITECTURE.md</code> says: <em>"New heartbeats extend the interval
+  (<code>ReplacingMergeTree</code> on <code>interval_end</code>) and emit a compensating delta. Nothing
+  is rebuilt."</em> Walk through what that requires at insert time and it comes apart.
+</p>
+<p>
+  A heartbeat arrives extending an interval from end <code>E</code> to <code>E'</code>. To keep the
+  delta layer correct you must emit <code>+1 @ minute(E)+1</code> and <code>−1 @ minute(E')+1</code> —
+  which <strong>requires knowing the previous end <code>E</code></strong>. But a ClickHouse incremental
+  materialized view is a trigger over the rows of <em>the current insert block only</em>. It has no
+  memory of prior blocks and no access to the state of the target table. Learning <code>E</code> means
+  reading <code>session_intervals</code> from inside the insert path — a read-modify-write that is racy
+  under concurrent inserts and a well-known MV anti-pattern.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 7 — Why the MV cannot compute a compensating delta</div>
+  <svg class="dia" viewBox="0 0 1000 280" role="img" aria-label="Two concurrent insert blocks each triggering a materialized view that must read prior interval state, both reading the same stale value and producing conflicting deltas">
+    <!-- blocks -->
+    <rect x="0" y="30" width="180" height="60" fill="var(--panel2)" stroke="var(--border)"/>
+    <text x="90" y="56" class="sm" text-anchor="middle" style="fill:var(--fg)">INSERT BLOCK N</text>
+    <text x="90" y="74" class="sm" text-anchor="middle">hb @ 12:05</text>
+
+    <rect x="0" y="150" width="180" height="60" fill="var(--panel2)" stroke="var(--border)"/>
+    <text x="90" y="176" class="sm" text-anchor="middle" style="fill:var(--fg)">INSERT BLOCK N+1</text>
+    <text x="90" y="194" class="sm" text-anchor="middle">hb @ 12:06 (concurrent)</text>
+
+    <!-- MVs -->
+    <path d="M180,60 H250" stroke="var(--border)" marker-end="url(#ar2)"/>
+    <path d="M180,180 H250" stroke="var(--border)" marker-end="url(#ar2)"/>
+    <defs><marker id="ar2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--muted)"/></marker></defs>
+
+    <rect x="255" y="30" width="230" height="60" fill="none" stroke="var(--border)"/>
+    <text x="370" y="52" class="sm" text-anchor="middle" style="fill:var(--fg)">MV — STATELESS</text>
+    <text x="370" y="70" class="sm" text-anchor="middle">sees only block N's rows</text>
+
+    <rect x="255" y="150" width="230" height="60" fill="none" stroke="var(--border)"/>
+    <text x="370" y="172" class="sm" text-anchor="middle" style="fill:var(--fg)">MV — STATELESS</text>
+    <text x="370" y="190" class="sm" text-anchor="middle">sees only block N+1's rows</text>
+
+    <!-- required read -->
+    <path d="M485,60 H700" stroke="var(--maroon)" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+    <path d="M485,180 H700" stroke="var(--maroon)" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+    <defs><marker id="ar3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--maroon)"/></marker></defs>
+    <text x="592" y="52" class="sm" text-anchor="middle" style="fill:var(--maroon)">needs previous interval_end E</text>
+    <text x="592" y="172" class="sm" text-anchor="middle" style="fill:var(--maroon)">needs previous interval_end E</text>
+
+    <rect x="705" y="90" width="180" height="60" fill="var(--panel2)" stroke="var(--maroon)"/>
+    <text x="795" y="112" class="sm" text-anchor="middle" style="fill:var(--fg)">session_intervals</text>
+    <text x="795" y="130" class="sm" text-anchor="middle" style="fill:var(--maroon)">E = 12:04 (stale for both)</text>
+
+    <text x="905" y="116" style="font-size:20px;fill:var(--maroon)">⚠</text>
+
+    <line x1="0" y1="238" x2="1000" y2="238" class="ax"/>
+    <text x="0" y="260" class="sm" style="fill:var(--maroon)">RESULT:</text>
+    <text x="70" y="260">both blocks read the same stale E, both emit +1@12:05 — the interval is opened twice and closed once. Concurrency drifts upward, permanently.</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> interval derivation is inherently a <em>cross-block, per-session, time-ordered</em>
+    computation. A pure streaming MV cannot express it. The baseline has a hole exactly where the judges
+    look hardest — <em>"update handling: incrementally, or by recomputing?"</em> is a scored criterion.
+  </figcaption>
+</figure>
+
+<h3>Flaw 2 · The carry-in and the peak rollup are both missing</h3>
+<p>
+  Figure 4 covered the carry-in. The sibling problem is that <strong>peak does not roll up over time
+  either</strong>, not just over dimensions. Peak-over-a-day is <code>max()</code> across 1,440
+  minute-values, so every day-grain peak query is forced down to minute grain — 1,440 rows per
+  dimension combination, per query. The baseline has <code>cc_minute_delta</code> and nothing coarser,
+  so there is no cheap path for the hour- and day-grain queries the benchmark set explicitly includes.
+</p>
+
+<h3>Flaw 3 · Three correctness leaks</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Leak</th><th>Where</th><th>Fix</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Approximate <code>uniq</code></td>
+      <td class="m">sql/10_intervals.sql — <code>AggregateFunction(uniq, String)</code></td>
+      <td>HLL carries ~1–2% error against an <em>exact</em> ground truth. Switch to <code>uniqExact</code>.</td>
+    </tr>
+    <tr>
+      <td>Paused ≠ backgrounded <span class="risk">— CONFIRMED</span></td>
+      <td class="m">no pause handling anywhere</td>
+      <td><b>AMENDED:</b> measured — heartbeats survive a pause at 0.756/min, so gaps alone are insufficient and this was a real correctness bug, not a hypothetical. Fixed in the sealed tier by subtracting explicit <code>pause</code>/<code>resume</code> windows (<code>sql/30_build_intervals.sql</code>). <span class="risk">The E2 hot tier below is NOT fixed and is blocked.</span></td>
+    </tr>
+    <tr>
+      <td>Tail credit is a guess</td>
+      <td class="m"><code>TAIL_GRACE_S</code> = 60s, chosen by reasoning <span class="dim">(not "one cadence" — AMENDED)</span></td>
+      <td>The judges' definition is private and unfittable. Keep it a one-line tunable and ship a sensitivity table proving robustness (or knowingly picking the defensible point).</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================= 05 EVOLUTIONS ================= -->
+<h2><span class="num">05 — EVOLUTIONS</span>Four changes that fix all three</h2>
+
+<h3>E1 · Split intervals at hour boundaries</h3>
+<p>
+  One trick removes the carry-in dependency <em>and</em> makes peak pre-aggregable. When emitting
+  deltas, clip every active interval to the hour: for each hour an interval touches, emit a
+  <code>+1</code> at its start within that hour, and a <code>−1</code> only if it actually
+  <strong>ends</strong> within that hour. If it survives past the hour, emit no close — the next hour
+  re-opens it with a fresh <code>+1</code>.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 8 — Hour-clipping makes every hour self-contained</div>
+  <svg class="dia" viewBox="0 0 1000 300" role="img" aria-label="An interval spanning three hours emitting only two deltas leaves the middle hour unable to reconstruct concurrency; clipping to hour boundaries makes each hour reconstruct correctly on its own">
+    <!-- hour partitions -->
+    <line x1="70" y1="26" x2="70" y2="272" class="gr"/>
+    <line x1="366" y1="26" x2="366" y2="272" class="gr"/>
+    <line x1="663" y1="26" x2="663" y2="272" class="gr"/>
+    <line x1="960" y1="26" x2="960" y2="272" class="gr"/>
+    <text x="218" y="20" class="sm" text-anchor="middle">PARTITION h10</text>
+    <text x="514" y="20" class="sm" text-anchor="middle">PARTITION h11</text>
+    <text x="811" y="20" class="sm" text-anchor="middle">PARTITION h12</text>
+
+    <!-- BEFORE -->
+    <text x="0" y="48" class="sm" style="fill:var(--maroon)">BEFORE — ONE +1, ONE −1</text>
+    <rect x="278" y="60" width="472" height="12" fill="var(--sage)" opacity="0.5"/>
+    <line x1="278" y1="54" x2="278" y2="78" stroke="var(--sage)" stroke-width="2"/>
+    <text x="278" y="94" class="sm" text-anchor="middle" style="fill:var(--sage)">+1 @10:42</text>
+    <line x1="755" y1="54" x2="755" y2="78" stroke="var(--maroon)" stroke-width="2"/>
+    <text x="755" y="94" class="sm" text-anchor="middle" style="fill:var(--maroon)">−1 @12:18</text>
+    <text x="514" y="112" class="sm" text-anchor="middle" style="fill:var(--maroon)">h11 contains ZERO deltas → reconstructs 0 → wrong</text>
+
+    <line x1="0" y1="130" x2="1000" y2="130" class="ax"/>
+
+    <!-- AFTER -->
+    <text x="0" y="152" class="sm" style="fill:var(--sage)">AFTER — CLIPPED TO EACH HOUR</text>
+    <rect x="278" y="164" width="88" height="12" fill="var(--sage)"/>
+    <rect x="366" y="164" width="297" height="12" fill="var(--sage)"/>
+    <rect x="663" y="164" width="92" height="12" fill="var(--sage)"/>
+    <line x1="278" y1="158" x2="278" y2="182" stroke="var(--sage)" stroke-width="2"/>
+    <text x="278" y="198" class="sm" text-anchor="middle" style="fill:var(--sage)">+1 @10:42</text>
+    <line x1="366" y1="158" x2="366" y2="182" stroke="var(--sage)" stroke-width="2"/>
+    <text x="366" y="198" class="sm" text-anchor="middle" style="fill:var(--sage)">+1 @11:00</text>
+    <line x1="663" y1="158" x2="663" y2="182" stroke="var(--sage)" stroke-width="2"/>
+    <text x="663" y="198" class="sm" text-anchor="middle" style="fill:var(--sage)">+1 @12:00</text>
+    <line x1="755" y1="158" x2="755" y2="182" stroke="var(--maroon)" stroke-width="2"/>
+    <text x="763" y="198" class="sm" style="fill:var(--maroon)">−1 @12:18</text>
+    <text x="218" y="216" class="sm" text-anchor="middle">no close in h10 —</text>
+    <text x="218" y="228" class="sm" text-anchor="middle">still active at hour end</text>
+    <text x="514" y="216" class="sm" text-anchor="middle">no close in h11 —</text>
+    <text x="514" y="228" class="sm" text-anchor="middle">still active at hour end</text>
+
+    <line x1="0" y1="246" x2="1000" y2="246" class="ax"/>
+    <text x="0" y="266" class="sm" style="fill:var(--green-bright)">RESULT:</text>
+    <text x="72" y="266">every hour's running sum is absolute — no carry-in, no scan from t=0, and partition pruning becomes exact.</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> cost is one extra delta pair per interval per crossed hour. With ~78-minute average
+    sessions that is ≈1.3 crossings, so row count barely moves. In exchange the running sum becomes
+    <code>sum(delta) OVER (PARTITION BY toStartOfHour(minute) ORDER BY minute)</code> — bounded,
+    prunable, and correct standalone. <span class="dim">DERIVED — row-count impact to be confirmed at H3.</span>
+  </figcaption>
+</figure>
+
+<pre><code><span class="c-com">-- emission rule: clip the close to the hour; omit it if the interval survives the hour</span>
+<span class="c-kw">SELECT</span>
+    h                                                   <span class="c-kw">AS</span> hour_bucket,
+    <span class="c-kw">greatest</span>(<span class="c-kw">toStartOfMinute</span>(interval_start), h)      <span class="c-kw">AS</span> open_minute,
+    <span class="c-kw">if</span>(interval_end &lt; h + <span class="c-kw">INTERVAL</span> <span class="c-num">1</span> <span class="c-kw">HOUR</span>,
+       <span class="c-kw">toStartOfMinute</span>(interval_end) + <span class="c-kw">INTERVAL</span> <span class="c-num">1</span> <span class="c-kw">MINUTE</span>,
+       <span class="c-kw">NULL</span>)                                            <span class="c-kw">AS</span> close_minute  <span class="c-com">-- NULL ⇒ no −1 emitted</span>
+<span class="c-kw">FROM</span> session_intervals
+<span class="c-kw">ARRAY JOIN</span> <span class="c-kw">arrayMap</span>(i -&gt; <span class="c-kw">toStartOfHour</span>(interval_start) + <span class="c-kw">toIntervalHour</span>(i),
+              <span class="c-kw">range</span>(<span class="c-kw">toUInt32</span>(<span class="c-kw">dateDiff</span>(<span class="c-str">'hour'</span>, <span class="c-kw">toStartOfHour</span>(interval_start),
+                                          <span class="c-kw">toStartOfHour</span>(interval_end)) + <span class="c-num">1</span>))) <span class="c-kw">AS</span> h</code></pre>
+
+<h4>The payoff — peak becomes summable over time</h4>
+<p>
+  Because each hour is now self-contained, we can pre-aggregate per <code>(dims, hour)</code>: store the
+  <code>max</code> of that hour's running sum and its <code>integral</code> (concurrency-seconds). Then
+  peak over any hour-aligned range is <strong>the max of the stored maxes</strong>, and average is
+  <code>sum(integrals) / range_seconds</code> — correctly time-weighted, zero-minutes included for free.
+</p>
+
+<div class="chart">
+  <div class="bars">
+    <div class="bl">day peak · minute grain</div>
+    <div class="track"><div class="fill" style="width:100%;background:var(--maroon)"></div><div class="bv in" style="right:8px">1,440 rows per dim-combo</div></div>
+    <div class="bl">day peak · hour pre-agg</div>
+    <div class="track"><div class="fill" style="width:1.67%;background:var(--green-bright)"></div><div class="bv" style="left:calc(1.67% + 8px)">24 rows per dim-combo — 60× fewer</div></div>
+    <div class="bl">ragged range (edges)</div>
+    <div class="track"><div class="fill" style="width:9.6%;background:var(--tan)"></div><div class="bv" style="left:calc(9.6% + 8px)">≤2 partial hours at minute grain + whole hours pre-agg</div></div>
+  </div>
+  <div class="cap">
+    <b>Read:</b> a non-hour-aligned range like <code>10:17 → 14:43</code> decomposes into
+    <code>max(</code> minute-scan 10:17–10:59, hour-max 11/12/13, minute-scan 14:00–14:43 <code>)</code>.
+    Worst case is two partial hours regardless of range length, so the saving grows with the range.
+    <b>DERIVED</b> — to be measured as bytes-read at H6.
+  </div>
+</div>
+
+<h3>E2 · Replace compensating deltas with a two-tier lambda</h3>
+<p>
+  The insight that unlocks this: for the <strong>hot tail</strong> there is a delta-free representation
+  that is fully streamable <em>and</em> idempotent. Each heartbeat at time <code>t</code> grants a
+  <strong>lease</strong> <code>[t, t + LEASE)</code> where <code>LEASE = HEARTBEAT_GAP_S</code>. A
+  session is active in minute M if and only if some lease covers M. An MV <code>arrayJoin</code>s each
+  heartbeat into the 3–4 minute buckets its lease covers <span class="dim">(AMENDED — 3 or 4, not
+  exactly 3; the count depends on the beat's offset within its minute)</span> and accumulates
+  <code>uniqExactState(video_session_id)</code>.
+</p>
+
+<div class="call risk">
+  <div class="ct">AMENDED — E2's hot tier is BLOCKED. Two corrections, one of them fatal as specified.</div>
+  <p>
+    <strong>(a) The volume arithmetic is wrong.</strong> The fan-out below was derived as "3 buckets,
+    because a 60s cadence with a 150s lease covers 3". There is no cadence. Per beat the fan-out is
+    3–4; per <em>active session-minute</em> it is <b>≈ 4.72 × 3.5 ≈ 16 rows</b>, where a
+    one-beat-per-minute model predicted 3 — a 5× under-estimate of hot-tier write amplification. And
+    because p50 inter-arrival is <b>0s</b>, most of those rows are redundant insertions of the same
+    session id into the same <code>uniqExact</code> state. <code>uniqExact</code> absorbs them
+    correctly — the cost is insert and merge work, not cardinality error — but the TTL window must be
+    sized from 16 rows/session-minute, not 3. <span class="dim">DERIVED from the ADR 0007
+    measurement.</span>
+  </p>
+  <p>
+    <strong>(b) The lease model inherits the pause bug.</strong> Leases renew through a pause, because
+    heartbeats keep arriving at 0.756/min — one every ~79s, inside <code>LEASE = 150s</code>. So
+    coverage never breaks and <strong>the hot tier as specified counts paused time as watching</strong>.
+    The equivalence argument in Figure 9 is what hides it: the lease model is provably equivalent to the
+    <em>gap-only</em> model — and the gap-only model is exactly the one §3.4 discarded. Equivalence to a
+    discarded model is not a correctness argument.
+  </p>
+  <p>
+    <code>sql/30_build_intervals.sql</code> fixed this <strong>for the sealed tier only</strong>. Upper
+    bound on the exposure: 3,002,604 s (834 h) of measured closed-pause time against 1,949.3 h of
+    counted watch time — the same order as the answer. A corrected lease model must either
+    <b>(1)</b> let a <code>pause</code> truncate a live lease and grant none until <code>resume</code>
+    (correct, but "is this session paused?" is cross-block state, which is the read-modify-write E2
+    exists to avoid); <b>(2)</b> emit suppressing rows, which <code>uniqExact</code> cannot subtract, so
+    the tier would have to move to sum-of-deltas and lose its idempotence; or <b>(3)</b> keep leases
+    exactly as written and <strong>relabel the hot tier the session-independent upper bound</strong> —
+    one of the two models the statement mandates comparing — with the sealed tier, not the hot tier,
+    answering the benchmark. Option 3 is the only one that is free. Tracked in
+    <code>docs/adr/0005-heartbeat-lease-semantics.md</code> §Amendment; <code>[H5]</code> is gated on it.
+  </p>
+</div>
+
+<figure>
+  <div class="figlabel">Figure 9 — Lease semantics vs the gap model: identical except at the tail</div>
+  <svg class="dia" viewBox="0 0 1000 300" role="img" aria-label="Overlapping heartbeat leases forming continuous coverage including across a missed beat, with the union extending 150 seconds past the last beat versus 60 seconds for the gap model">
+    <text x="0" y="14" class="sm">BEATS AT t = 0, 60, 120, 180 — THEN SILENCE. LEASE = 150s. (SPACING ILLUSTRATIVE; REAL BEATS ARE BURSTY AT 4.72/min)</text>
+    <!-- time axis: 1s = 2px, origin x=70 -->
+    <g stroke="var(--sage)" stroke-width="2">
+      <line x1="70" y1="26" x2="70" y2="44"/><line x1="190" y1="26" x2="190" y2="44"/><line x1="310" y1="26" x2="310" y2="44"/><line x1="430" y1="26" x2="430" y2="44"/>
+    </g>
+    <text x="70" y="60" class="sm" text-anchor="middle">t0</text>
+    <text x="190" y="60" class="sm" text-anchor="middle">t60</text>
+    <text x="310" y="60" class="sm" text-anchor="middle">t120</text>
+    <text x="430" y="60" class="sm" text-anchor="middle">t180</text>
+
+    <!-- leases -->
+    <rect x="70" y="76" width="300" height="10" fill="var(--sage)" opacity="0.45"/><text x="378" y="85" class="sm">lease [0,150)</text>
+    <rect x="190" y="92" width="300" height="10" fill="var(--sage)" opacity="0.45"/><text x="498" y="101" class="sm">lease [60,210)</text>
+    <rect x="310" y="108" width="300" height="10" fill="var(--sage)" opacity="0.45"/><text x="618" y="117" class="sm">lease [120,270)</text>
+    <rect x="430" y="124" width="300" height="10" fill="var(--sage)" opacity="0.45"/><text x="738" y="133" class="sm">lease [180,330)</text>
+
+    <line x1="0" y1="150" x2="1000" y2="150" class="ax"/>
+
+    <rect x="70" y="164" width="660" height="13" fill="var(--sage)"/>
+    <text x="738" y="174" class="sm" style="fill:var(--sage)">UNION = [0, 330) — hot tier</text>
+    <rect x="70" y="186" width="480" height="13" fill="var(--green)"/>
+    <text x="558" y="196" class="sm" style="fill:var(--green)">GAP MODEL = [0, 240) — sealed tier (last event + TAIL_GRACE_S = 60s)</text>
+    <rect x="550" y="186" width="180" height="13" fill="var(--maroon)" opacity="0.55"/>
+    <text x="640" y="219" class="sm" text-anchor="middle" style="fill:var(--maroon)">Δ = 90s tail overcount</text>
+    <text x="640" y="233" class="sm" text-anchor="middle" style="fill:var(--maroon)">≈1.5 min, hot window only</text>
+
+    <line x1="0" y1="250" x2="1000" y2="250" class="ax"/>
+    <text x="0" y="270" class="sm" style="fill:var(--green-bright)">EQUIVALENCE:</text>
+    <text x="112" y="270">consecutive events ≤150s apart produce overlapping leases → continuous coverage. The algebra is d ≤ LEASE ⇒ overlap; no cadence needed.</text>
+    <text x="112" y="286" class="sm" style="fill:var(--maroon)">AMENDED — equivalence holds against the GAP-ONLY model, which §3.4 discarded: leases also renew straight through a pause (0.756/min).</text>
+    <text x="112" y="298" class="sm">The two models differ at the tail, and only until the watermark seals that minute — you cannot know an event was the last one until the gap elapses.</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the lease model needs no prior state, no read-modify-write and no compensation.
+    <code>uniqExact</code> is idempotent and monotone, so a replayed batch is a no-op and a late
+    heartbeat is a pure addition. The tail overcount is bounded — <b>disclosed and quantified</b>, not
+    hidden, and it disappears the moment the watermark passes.
+    <br><b>AMENDED:</b> the tail overcount is <em>not</em> the only error. Pause inflation is unbounded
+    by <code>LEASE</code> — a viewer paused for an hour renews leases for the whole hour — and it does
+    <em>not</em> vanish at the watermark, because the sealed tier computes a different, pause-subtracted
+    answer. That is a divergence between the tiers, not a freshness lag. See the blocked callout above.
+  </figcaption>
+</figure>
+
+<figure>
+  <div class="figlabel">Figure 10 — The two-tier architecture, stitched at a watermark</div>
+  <svg class="dia" viewBox="0 0 1000 400" role="img" aria-label="Raw events feeding a hot lease materialized view and a finalizer that seals intervals into hour-split deltas and hour aggregates, with a serving view stitching sealed and hot regions at the watermark">
+    <!-- ev_raw -->
+    <rect x="0" y="150" width="150" height="70" fill="var(--panel2)" stroke="var(--border)"/>
+    <text x="75" y="180" class="sm" text-anchor="middle" style="fill:var(--fg)">ev_raw</text>
+    <text x="75" y="196" class="sm" text-anchor="middle">append-only</text>
+    <text x="75" y="210" class="sm" text-anchor="middle">ORDER BY (hour, platform, sid, ts)</text>
+
+    <defs><marker id="ar4" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--muted)"/></marker></defs>
+
+    <!-- HOT path -->
+    <path d="M150,172 H230" stroke="var(--green-bright)" marker-end="url(#ar4)"/>
+    <rect x="235" y="60" width="215" height="66" fill="none" stroke="var(--green-bright)"/>
+    <text x="342" y="84" class="sm" text-anchor="middle" style="fill:var(--fg)">mv_lease</text>
+    <text x="342" y="100" class="sm" text-anchor="middle">arrayJoin beat → 3 minutes</text>
+    <text x="342" y="114" class="sm" text-anchor="middle">uniqExactState(session_id)</text>
+    <path d="M342,126 V150" stroke="var(--green-bright)" marker-end="url(#ar4)"/>
+    <rect x="235" y="152" width="215" height="52" fill="var(--panel2)" stroke="var(--green-bright)"/>
+    <text x="342" y="174" class="sm" text-anchor="middle" style="fill:var(--fg)">cc_minute_hot</text>
+    <text x="342" y="190" class="sm" text-anchor="middle">AggregatingMergeTree · TTL</text>
+    <text x="342" y="46" class="sm" text-anchor="middle" style="fill:var(--green-bright)">HOT TIER — IMMEDIATE, IDEMPOTENT</text>
+
+    <!-- SEALED path -->
+    <path d="M150,200 H230 V265" stroke="var(--tan)" fill="none" marker-end="url(#ar4)"/>
+    <rect x="235" y="268" width="215" height="60" fill="none" stroke="var(--tan)"/>
+    <text x="342" y="290" class="sm" text-anchor="middle" style="fill:var(--fg)">finalizer (watermark W)</text>
+    <text x="342" y="306" class="sm" text-anchor="middle">re-derives ONLY touched sessions</text>
+    <text x="342" y="320" class="sm" text-anchor="middle">refreshable MV / scheduled</text>
+    <text x="342" y="256" class="sm" text-anchor="middle" style="fill:var(--tan)">SEALED TIER — EXACT, BEHIND W</text>
+
+    <path d="M450,298 H510" stroke="var(--tan)" marker-end="url(#ar4)"/>
+    <rect x="515" y="268" width="175" height="60" fill="var(--panel2)" stroke="var(--tan)"/>
+    <text x="602" y="292" class="sm" text-anchor="middle" style="fill:var(--fg)">session_intervals</text>
+    <text x="602" y="308" class="sm" text-anchor="middle">Replacing · idempotent</text>
+
+    <path d="M690,298 H750" stroke="var(--tan)" marker-end="url(#ar4)"/>
+    <rect x="755" y="268" width="175" height="60" fill="var(--panel2)" stroke="var(--tan)"/>
+    <text x="842" y="288" class="sm" text-anchor="middle" style="fill:var(--fg)">cc_minute_delta</text>
+    <text x="842" y="304" class="sm" text-anchor="middle">hour-split · APPEND-ONLY</text>
+    <text x="842" y="318" class="sm" text-anchor="middle">never updated, never rebuilt</text>
+
+    <path d="M842,268 V230" stroke="var(--tan)" marker-end="url(#ar4)"/>
+    <rect x="755" y="170" width="175" height="58" fill="var(--panel2)" stroke="var(--tan)"/>
+    <text x="842" y="192" class="sm" text-anchor="middle" style="fill:var(--fg)">cc_hour_agg</text>
+    <text x="842" y="208" class="sm" text-anchor="middle">max + integral per hour</text>
+
+    <!-- serving view -->
+    <path d="M450,178 H700 V150" stroke="var(--green-bright)" fill="none" marker-end="url(#ar4)"/>
+    <path d="M842,170 V150" stroke="var(--tan)" marker-end="url(#ar4)"/>
+    <rect x="515" y="88" width="415" height="58" fill="none" stroke="var(--rule-strong)"/>
+    <text x="722" y="112" class="sm" text-anchor="middle" style="fill:var(--fg)">v_concurrency — THE STITCH</text>
+    <text x="722" y="130" class="sm" text-anchor="middle">minute &lt; W → sealed running sum · minute ≥ W → hot uniqExactMerge</text>
+
+    <!-- watermark strip -->
+    <line x1="0" y1="356" x2="1000" y2="356" class="ax"/>
+    <rect x="0" y="366" width="700" height="16" fill="var(--tan)" opacity="0.4"/>
+    <rect x="700" y="366" width="300" height="16" fill="var(--green-bright)" opacity="0.4"/>
+    <line x1="700" y1="360" x2="700" y2="392" stroke="var(--green-bright)" stroke-width="2"/>
+    <text x="350" y="378" class="sm" text-anchor="middle" style="fill:var(--fg)">SEALED — exact</text>
+    <text x="850" y="378" class="sm" text-anchor="middle" style="fill:var(--fg)">HOT — fresh</text>
+    <text x="706" y="398" class="sm" style="fill:var(--green-bright)">W = now − 2400s (~40 min) — MEASURED straggler tail 2,081s</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the racy read-modify-write is gone. Open sessions and in-flight heartbeats are handled
+    <em>by construction</em> rather than by bookkeeping. And the statement's mandated
+    <b>session-aware vs session-independent comparison becomes structural</b>: the hot tier <em>is</em>
+    the session-independent model, the sealed tier <em>is</em> the session-aware one, and the live
+    difference at the watermark is the freshness-vs-exactness trade-off made visible. One architecture,
+    three scored deliverables.
+  </figcaption>
+</figure>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Property</th><th>Hot tier — lease + uniqExact</th><th>Sealed tier — gap intervals → deltas</th></tr></thead>
+  <tbody>
+    <tr><td>Freshness</td><td class="ok">Immediate</td><td class="warn">Behind watermark W — <b>2400s / ~40 min</b> <span class="dim">AMENDED from "~10 min"</span></td></tr>
+    <tr><td>Exactness</td><td class="risk">Tail overcount ≤ ~2 min per interval close, <b>plus unbounded pause inflation</b> <span class="dim">AMENDED</span></td><td class="ok">Exact</td></tr>
+    <tr><td>Late / duplicate events</td><td class="ok">Absorbed for free — uniq is idempotent</td><td class="ok">Finalizer re-derives only touched sessions</td></tr>
+    <tr><td>Update mechanism</td><td class="ok">None needed</td><td class="ok">Append-only seal batches</td></tr>
+    <tr><td>Peak / average cost</td><td class="m">Window sum over a short hot window</td><td class="m">Pre-agg reads (E1)</td></tr>
+    <tr><td>Open sessions</td><td class="ok">Native — no close required</td><td class="ok">Provisional until W passes</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>E3 · Stragglers beyond the watermark — correction by deterministic diff</h3>
+<p>
+  One case E2 does not cover: a heartbeat arriving <em>older</em> than the sealed watermark. Because
+  derivation is deterministic and <code>ev_raw</code> retains everything, the fix needs no state at all
+  — recompute the affected session's deltas <strong>with</strong> and <strong>without</strong> the
+  straggler, and append the difference. <code>SimpleAggregateFunction(sum, Int64)</code> absorbs
+  negative corrective rows natively.
+</p>
+
+<figure>
+  <div class="figlabel">Figure 11 — Late arrival becomes an append, not a rebuild</div>
+  <svg class="dia" viewBox="0 0 1000 220" role="img" aria-label="Recomputing one session's deltas before and after a late heartbeat and appending only the difference rows">
+    <rect x="0" y="26" width="290" height="120" fill="none" stroke="var(--border)"/>
+    <text x="145" y="18" class="sm" text-anchor="middle">① SEALED STATE (session S)</text>
+    <text x="20" y="52" class="sm">+1 @ 10:42</text>
+    <text x="20" y="72" class="sm">−1 @ 11:05</text>
+    <text x="20" y="100" class="sm" style="fill:var(--faint)">interval [10:42 → 11:04]</text>
+    <text x="20" y="122" class="sm" style="fill:var(--faint)">closed by a 300s gap</text>
+
+    <path d="M290,86 H350" stroke="var(--muted)" marker-end="url(#ar4)"/>
+    <text x="320" y="76" class="sm" text-anchor="middle" style="fill:var(--tan)">late hb</text>
+    <text x="320" y="112" class="sm" text-anchor="middle" style="fill:var(--tan)">@ 11:03</text>
+
+    <rect x="355" y="26" width="290" height="120" fill="none" stroke="var(--border)"/>
+    <text x="500" y="18" class="sm" text-anchor="middle">② RECOMPUTE FROM ev_raw</text>
+    <text x="375" y="52" class="sm">+1 @ 10:42</text>
+    <text x="375" y="72" class="sm">−1 @ 11:05 → <tspan style="fill:var(--sage)">−1 @ 11:04</tspan></text>
+    <text x="375" y="100" class="sm" style="fill:var(--faint)">interval [10:42 → 11:03]</text>
+    <text x="375" y="122" class="sm" style="fill:var(--faint)">one session · ~78 rows read</text>
+
+    <path d="M645,86 H705" stroke="var(--muted)" marker-end="url(#ar4)"/>
+
+    <rect x="710" y="26" width="290" height="120" fill="none" stroke="var(--green-bright)"/>
+    <text x="855" y="18" class="sm" text-anchor="middle" style="fill:var(--green-bright)">③ APPEND THE DIFF ONLY</text>
+    <text x="730" y="56" class="sm" style="fill:var(--sage)">+1 @ 11:05  (undo old close)</text>
+    <text x="730" y="80" class="sm" style="fill:var(--maroon)">−1 @ 11:04  (apply new close)</text>
+    <text x="730" y="108" class="sm" style="fill:var(--faint)">2 rows. No UPDATE. No rebuild.</text>
+    <text x="730" y="128" class="sm" style="fill:var(--faint)">Idempotent if replayed with dedup on.</text>
+
+    <line x1="0" y1="168" x2="1000" y2="168" class="ax"/>
+    <text x="0" y="190" class="sm" style="fill:var(--green-bright)">DEMO VALUE:</text>
+    <text x="118" y="190">insert a 30-minute-late heartbeat live, show the served value change, show the query log proving one session was touched.</text>
+    <text x="0" y="208" class="sm">Turns a scored risk ("update handling") into the most convincing thirty seconds of the demo.</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the correction carries no state and is exactly as correct as a full rebuild, because it
+    <em>is</em> a rebuild — of one session. Cost scales with stragglers, not with history.
+  </figcaption>
+</figure>
+
+<h3>E4 · Serving-key hedges for the filter matrix</h3>
+<p>
+  Two cheap fixes for gaps in the filter story. First, <code>video_type</code> is a <em>named</em>
+  business dimension but lives behind a <code>content_id → dictGet</code>, which turns a video-type
+  filter into a several-thousand-id <code>IN</code> list with poor prefix pruning — materialise it into
+  the serving tables instead (cardinality ~4, nearly free in the key). Second, add a
+  <code>PROJECTION</code> reordered <code>(content_id, minute)</code> for content-first queries that skip
+  the <code>platform</code> prefix.
+</p>
+<div class="call">
+  <div class="ct">A third hedge, forced by ADR 0002 — and anticipated by it</div>
+  <p>
+    <code>ev_raw</code> is ordered
+    <code>(toStartOfHour(event_timestamp), platform, video_session_id, event_timestamp)</code> — a
+    <strong>measured 17.3× better</strong> on the dashboard shape than leading with the session id.
+    But the E2 finalizer and the E3 correction path are both <em>point lookups by
+    <code>video_session_id</code></em>, which is now third in the key rather than first.
+  </p>
+  <p>
+    ADR 0002 called this exact case in advance: <em>"if a 'single session lookup' access pattern ever
+    becomes hot, add a <code>PROJECTION</code> ordered by <code>video_session_id</code> rather than
+    reverting the key."</em> This design is what makes it hot. So: <strong>add the projection at H4 and
+    measure it — do not revert ADR 0002</strong>, whose win is on the access pattern that runs orders of
+    magnitude more often. Until the projection exists, the finalizer's per-session read cost is the
+    largest unmeasured quantity in the evolved design.
+  </p>
+</div>
+
+<figure>
+  <div class="figlabel">Figure 12 — Prefix pruning, and what a projection recovers</div>
+  <svg class="dia" viewBox="0 0 1000 240" role="img" aria-label="Granule strips comparing a dimension-first sort key with strong pruning, a query that skips the prefix with poor pruning, and a projection restoring pruning">
+    <text x="0" y="14" class="sm" style="fill:var(--sage)">A · ORDER BY (platform, country, content_id, minute) — QUERY FILTERS platform + minute</text>
+    <g>
+      <rect x="0" y="26" width="1000" height="18" fill="var(--panel2)" stroke="var(--border)"/>
+      <rect x="120" y="26" width="34" height="18" fill="var(--sage)"/>
+    </g>
+    <text x="0" y="60" class="sm">granules read: <tspan class="hi">5 / 611</tspan> — contiguous, prefix matches the key</text>
+
+    <text x="0" y="94" class="sm" style="fill:var(--maroon)">B · SAME TABLE — QUERY FILTERS content_id + minute ONLY (skips the platform prefix)</text>
+    <g>
+      <rect x="0" y="106" width="1000" height="18" fill="var(--panel2)" stroke="var(--border)"/>
+      <rect x="30" y="106" width="8" height="18" fill="var(--maroon)"/><rect x="128" y="106" width="8" height="18" fill="var(--maroon)"/>
+      <rect x="226" y="106" width="8" height="18" fill="var(--maroon)"/><rect x="324" y="106" width="8" height="18" fill="var(--maroon)"/>
+      <rect x="422" y="106" width="8" height="18" fill="var(--maroon)"/><rect x="520" y="106" width="8" height="18" fill="var(--maroon)"/>
+      <rect x="618" y="106" width="8" height="18" fill="var(--maroon)"/><rect x="716" y="106" width="8" height="18" fill="var(--maroon)"/>
+      <rect x="814" y="106" width="8" height="18" fill="var(--maroon)"/><rect x="912" y="106" width="8" height="18" fill="var(--maroon)"/>
+    </g>
+    <text x="0" y="140" class="sm">the content is smeared across every platform block — pruning collapses, the scan goes wide</text>
+
+    <text x="0" y="174" class="sm" style="fill:var(--green-bright)">C · + PROJECTION ORDER BY (content_id, minute)</text>
+    <g>
+      <rect x="0" y="186" width="1000" height="18" fill="var(--panel2)" stroke="var(--border)"/>
+      <rect x="600" y="186" width="30" height="18" fill="var(--green-bright)"/>
+    </g>
+    <text x="0" y="220" class="sm">granules read: <tspan class="hi">back to a contiguous handful</tspan> — the projection stores the same data under the other key</text>
+  </svg>
+  <figcaption>
+    <b>Read:</b> the repo has already measured <b>122×</b> fewer rows read for entity-first vs time-only
+    keys, and that a projection <em>"recovers the good key's row count exactly"</em>. Both hedges are
+    one-liners and both produce a bytes-read delta for the evidence file. <b>MEASURED</b> (prior
+    benchmark) / <b>DERIVED</b> (applies here).
+  </figcaption>
+</figure>
+
+<!-- ================= 06 SCORING ================= -->
+<h2><span class="num">06 — SCORING</span>Baseline vs evolved, criterion by criterion</h2>
+<div class="tw">
+<table>
+  <thead><tr><th>Criterion</th><th>Baseline</th><th>Evolved</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Correctness</td>
+      <td class="dim">gap model + /reconcile</td>
+      <td>+ <code>uniqExact</code>, pause handling, sensitivity sweep, and an invariant suite: non-negativity everywhere, <code>Σ minute-concurrency ≡ Σ interval durations</code>, starts−ends telescoping to zero.</td>
+    </tr>
+    <tr>
+      <td>Query performance</td>
+      <td class="dim">minute deltas, dim-first key</td>
+      <td>+ hour pre-agg (day peak reads 24 rows/combo, not 1,440); exact partition pruning from hour-clipping; projection hedge for content-first queries.</td>
+    </tr>
+    <tr>
+      <td>Update handling</td>
+      <td class="risk">compensating deltas — racy, unimplementable</td>
+      <td class="ok">Idempotent hot tier + append-only sealing + diff corrections. <strong>Nothing is ever rebuilt, provably.</strong></td>
+    </tr>
+    <tr>
+      <td>Design quality</td>
+      <td class="dim">two models compared</td>
+      <td>Comparison is <em>structural</em> rather than bolted on, and every trade-off carries a measured number.</td>
+    </tr>
+    <tr>
+      <td>The unseen day</td>
+      <td class="dim">traps documented</td>
+      <td>Pause / negative-id / open-session paths are config-or-covered rather than rewrites; the truncation test exercises the watermark for real.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================= 07 BUILD ================= -->
+<h2><span class="num">07 — BUILD ORDER</span>21 hours, with the MVP line marked</h2>
+<p class="lede">
+  The finalizer is required in <em>any</em> correct variant — the baseline's compensating deltas needed
+  one too, plus the bookkeeping. So the evolved design is not more work. It is the same work minus the
+  fragile part.
+</p>
+
+<div class="rail">
+  <div class="ph">
+    <h3>H0–H1 · Load and gate</h3>
+    <div class="est">~2h · blocks everything below</div>
+    <p>Provision Cloud, fill <code>.env</code>, load CSVs, confirm the measured shape on our own load. Then run the three gating measurements in §08. <strong>These can still change the model; nothing past H2 starts until they are in.</strong></p>
+  </div>
+  <div class="ph">
+    <h3>H2–H3 · The model</h3>
+    <div class="est">~4h</div>
+    <p>Interval derivation (batch, per-session window functions) → <code>session_intervals</code>. Hour-clipped delta emission → <code>cc_minute_delta</code>. <code>/reconcile</code> on a five-minute window against a brute-force per-minute explosion recomputed from <code>ev_raw</code>.</p>
+  </div>
+  <div class="ph mvp">
+    <h3>H4 · Finalizer + watermark — <span style="color:var(--green-bright)">MVP LINE</span></h3>
+    <div class="est">~2h · everything below is upside</div>
+    <p>Watermark advance, seal batches, truncation test proving open-session absorption. <strong>A complete, correct, defensible submission exists at this point</strong> — sealed tier plus the stateless baseline, with <b>~40-minute</b> freshness. <span class="dim">AMENDED — <code>W = 2400s</code>, set by the measured 2,081s straggler tail (2.2% of sessions emit after their <code>VideoSessionEnd</code>); the "~10 min" written here originally was a guess and 3.5× too narrow.</span></p>
+  </div>
+  <div class="ph">
+    <h3>H5 · Hot tier</h3>
+    <div class="est">~2h</div>
+    <p><code>mv_lease</code> + <code>cc_minute_hot</code> + the stitched serving view. Freshness drops from ~40 min to immediate, and the session-aware/independent comparison becomes live. <span class="risk">AMENDED — <b>BLOCKED</b>: the lease model counts paused time as watching (see §E2). Do not build until ADR 0005 is unblocked.</span></p>
+  </div>
+  <div class="ph">
+    <h3>H6 · Pre-aggregation and benchmarks</h3>
+    <div class="est">~3h</div>
+    <p><code>cc_hour_agg</code> (max + integral). All benchmark shapes at minute/hour/day grain with dimension filters. Capture bytes read, not just latency — the judges look at what queries <em>read</em>.</p>
+  </div>
+  <div class="ph">
+    <h3>H7–H8 · Integration, evidence, defence</h3>
+    <div class="est">~5h</div>
+    <p>ClickStack — <strong>watermark lag is <em>the</em> metric to instrument</strong>, since it is the observable expression of the whole design. Straggler correction path. Sensitivity sweep. ADRs 0002–0005. Minimal concurrency chart with a freshness indicator.</p>
+  </div>
+  <div class="ph">
+    <h3>Reserve</h3>
+    <div class="est">~3h</div>
+    <p>Unseen-day run, deck, two demo rehearsals. Do not compress this.</p>
+  </div>
+</div>
+
+<!-- ================= 08 GATES ================= -->
+<h2 id="gates"><span class="num">08 — GATING MEASUREMENTS</span>Three queries that could still change the model — <span style="color:var(--green-bright)">all three answered</span></h2>
+<p class="lede">
+  <b>AMENDED 2026-08-01.</b> Run against the real 905,558-event file on Cloud. Two of the three
+  premises this document was written on did not survive. Full write-up:
+  <code>docs/adr/0007-gate-answers-pause-needs-explicit-handling.md</code>.
+</p>
+<div class="tw">
+<table>
+  <thead><tr><th>Question</th><th>Why it gates</th><th class="m">Measured answer</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Do heartbeats continue while backgrounded?</td>
+      <td>The gap model detects backgrounding only if they stop. This is the load-bearing assumption of ADR 0001.</td>
+      <td class="ok"><b>PASS.</b> 0.047/min inside 13,948 closed bg→fg pairs vs 4.72/min active — a 100× drop. Gaps detect backgrounding. <b>ADR 0001 stands.</b></td>
+    </tr>
+    <tr>
+      <td>Do pause events exist, and do heartbeats survive them?</td>
+      <td>The statement excludes paused time explicitly. The <code>event</code> sub-column is uncensused.</td>
+      <td class="risk"><b>FAIL.</b> They exist in the <code>event</code> sub-column and heartbeats survive: 0.756/min across 21,068 closed pause→resume pairs — one event every ~79s, inside the 150s threshold. A gap-only model credits the whole pause. Fixed for the sealed tier by explicit pause subtraction; <b>the E2 hot tier is blocked.</b></td>
+    </tr>
+    <tr>
+      <td>How frequent are out-of-order arrivals?</td>
+      <td>Sets the watermark width — the single number trading freshness against correction volume.</td>
+      <td class="warn"><b>No arrival column exists</b>, so true lateness is unmeasurable from the file. Proxies: zero negative clock skew; <b>239 sessions (2.2%) emit up to 2,081 s after <code>VideoSessionEnd</code></b>. So <code>W = 2400s</code>, not the ~10 min assumed above.</td>
+    </tr>
+    <tr>
+      <td class="risk">Is the heartbeat periodic at all? <span class="dim">(not asked — assumed)</span></td>
+      <td>Every cadence-derived number in this document: the 150s threshold's justification, the 60s tail grace, the lease fan-out.</td>
+      <td class="risk"><b>NO — and we never thought to gate it.</b> The organiser's <code>dataset_details.md</code> says the heartbeat "is currently passed every 1 minute"; the shipped data says 4.72/min, p50 inter-arrival 0s. Logged as a Tier 1 mentor question, because if the private ground truth assumed a 1-minute beat, the discrepancy moves every number we report.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="call ok">
+  <div class="ct">What does not need measuring</div>
+  <p>
+    The delta model, hour-clipping and the non-summability of peak are <em>arithmetic</em> — they hold
+    regardless of what the data says. Build them in parallel with the gating queries. Only the
+    <strong>activity definition</strong> is data-dependent, and it is deliberately isolated behind two
+    tunables in one file so that a bad answer costs a re-run, not a rewrite.
+  </p>
+</div>
+
+<!-- ================= 09 ADR INDEX ================= -->
+<h2><span class="num">09 — DECISION RECORD</span>What lands in docs/adr/</h2>
+<div class="tw">
+<table>
+  <thead><tr><th>ADR</th><th>Decision</th><th class="m">Status</th></tr></thead>
+  <tbody>
+    <tr><td>0001</td><td>Heartbeat gaps over background events</td><td class="m ok">Accepted — §3.4 measurement <b>passed</b> (0.047/min while backgrounded)</td></tr>
+    <tr><td>0002</td><td>Lead the <code>ev_raw</code> sort key with a truncated hour, not the session id <span class="dim">(pre-existing on main)</span></td><td class="m ok">Accepted — measured 17.3×</td></tr>
+    <tr><td>0003</td><td>Clip active intervals at hour boundaries when emitting deltas</td><td class="m ok">Proposed</td></tr>
+    <tr><td>0004</td><td>Two-tier serving: idempotent hot tier stitched to append-only sealed tier</td><td class="m ok">Proposed</td></tr>
+    <tr><td>0005</td><td>Heartbeat lease semantics for the hot tier</td><td class="m risk"><b>BLOCKED</b> — superseded in part by 0007; leases renew through a pause</td></tr>
+    <tr><td>0006</td><td>Late arrivals corrected by deterministic diff, never by rebuild</td><td class="m ok">Proposed</td></tr>
+    <tr><td>0007</td><td>Heartbeat gaps detect backgrounding but NOT pause; pause needs explicit handling <span class="dim">(post-dates this document)</span></td><td class="m ok">Accepted — measured on 905,558 events</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="well">
+  <div class="wt">Hand back to Claude — next action <span class="dim">(AMENDED — the gates are done)</span></div>
+  <pre>The three §08 gates are measured (see docs/adr/0007-gate-answers-pause-needs-explicit-handling.md).
+Next: unblock ADR 0005. The hot tier's leases renew through a pause, so it would count paused time as
+watching; the sealed tier already subtracts explicit pause/resume windows in sql/30_build_intervals.sql.
+Pick between (1) pause-truncated leases with per-session state, (2) sum-of-deltas losing idempotence,
+or (3) relabelling the hot tier as the session-independent upper bound. Do not build [H5] before that.</pre>
+</div>
+
+<p class="foot">
+  clickathon-project · branch <code>sc-trapped-helium-8e8a</code> · 2026-08-01<br>
+  Sources read: docs/PROBLEM.md · ARCHITECTURE.md · DATA_DICTIONARY.md · CONVENTIONS.md · VERIFIED.md · TESTS.md · adr/0001 · sql/00_schema.sql · sql/10_intervals.sql · AGENT_WORKFLOW.md · TODOS.md<br>
+  Claims tagged MEASURED were originally from docs/DATA_DICTIONARY.md and docs/VERIFIED.md, written
+  before <code>data/</code> was loaded. Claims tagged DERIVED follow from the arithmetic. Claims tagged
+  UNVERIFIED are open questions, listed in §08.<br>
+  <b>AMENDED 2026-08-01</b> — corrections marked AMENDED throughout are measured on the real
+  905,558-event file on ClickHouse Cloud and are sourced from
+  <code>docs/adr/0007-gate-answers-pause-needs-explicit-handling.md</code>. Three claims in the original
+  text are now known false: the 60-second heartbeat cadence (§01, §03.1, §03.2, Fig. 6, §E2), the
+  bounded-error characterisation of the hot tier (§E2, Fig. 9 — pause inflation is unbounded by
+  <code>LEASE</code>), and the ~10-minute watermark (§E2, Fig. 10, §07 — it is 2400s). The cadence
+  claim came from the organiser's own <code>docs/upstream/dataset_details.md</code>; that contradiction
+  is logged as a Tier 1 question in <code>docs/MENTOR_QUESTIONS.md</code>.
+</p>
+
+</main>
+</body>
+</html>

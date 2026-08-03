@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  clickstack-otel:
+    image: clickhouse/clickstack-otel-collector:latest
+    container_name: clickstack-otel
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+    environment:
+      - CLICKHOUSE_ENDPOINT=https://dnvdvk0jau.ap-south-1.aws.clickhouse.cloud:8443
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

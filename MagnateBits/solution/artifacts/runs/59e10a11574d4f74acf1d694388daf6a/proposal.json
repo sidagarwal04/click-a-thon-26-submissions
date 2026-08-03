@@ -1,0 +1,221 @@
+{
+  "table_name": "f_abandoned_checkout_recovery_events",
+  "columns": [
+    {
+      "name": "app_version",
+      "type": "LowCardinality(String)",
+      "json_path": "app_version",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=3"
+    },
+    {
+      "name": "application_id",
+      "type": "String",
+      "json_path": "application_id",
+      "codec": "(ZSTD(1))",
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=2300"
+    },
+    {
+      "name": "channel",
+      "type": "LowCardinality(String)",
+      "json_path": "channel",
+      "codec": null,
+      "default": "''",
+      "comment": "events: reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=0.61; distinct=3"
+    },
+    {
+      "name": "city",
+      "type": "LowCardinality(String)",
+      "json_path": "city",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=7"
+    },
+    {
+      "name": "client_lib",
+      "type": "LowCardinality(String)",
+      "json_path": "client_lib",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=2"
+    },
+    {
+      "name": "destination",
+      "type": "LowCardinality(String)",
+      "json_path": "destination",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=14"
+    },
+    {
+      "name": "device_type",
+      "type": "LowCardinality(String)",
+      "json_path": "device_type",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=4"
+    },
+    {
+      "name": "drop_step",
+      "type": "LowCardinality(String)",
+      "json_path": "drop_step",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=4"
+    },
+    {
+      "name": "event",
+      "type": "LowCardinality(String)",
+      "json_path": "event",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=6"
+    },
+    {
+      "name": "geoip_country_code",
+      "type": "LowCardinality(String)",
+      "json_path": "geoip_country_code",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=7"
+    },
+    {
+      "name": "hours_since_drop",
+      "type": "UInt16",
+      "json_path": "hours_since_drop",
+      "codec": null,
+      "default": "0",
+      "comment": "events: reminder_sent; coverage=0.39; distinct=5"
+    },
+    {
+      "name": "id",
+      "type": "String",
+      "json_path": "id",
+      "codec": "(ZSTD(1))",
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=5919"
+    },
+    {
+      "name": "os",
+      "type": "LowCardinality(String)",
+      "json_path": "os",
+      "codec": null,
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=0.95; distinct=4"
+    },
+    {
+      "name": "timestamp",
+      "type": "DateTime64(3)",
+      "json_path": "timestamp",
+      "codec": "(Delta, ZSTD(1))",
+      "default": null,
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=4696"
+    },
+    {
+      "name": "user_id",
+      "type": "String",
+      "json_path": "user_id",
+      "codec": "(ZSTD(1))",
+      "default": "''",
+      "comment": "events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=2300"
+    }
+  ],
+  "engine": "MergeTree",
+  "order_by": [
+    "event",
+    "timestamp",
+    "user_id"
+  ],
+  "partition_by": "toYYYYMM(timestamp)",
+  "ttl": "toDateTime(timestamp) + INTERVAL 18 MONTH",
+  "settings": {
+    "ratio_of_defaults_for_sparse_serialization": 0.8571,
+    "index_granularity": 8192
+  },
+  "materialized_views": [
+    {
+      "name": "mv_abandoned_checkout_recovery_funnel_daily",
+      "target_table": "agg_abandoned_checkout_recovery_funnel_daily",
+      "select_sql": "SELECT\n    toDate(timestamp) AS day,\n    event,\n    device_type,\n    countState() AS events_state,\n    uniqStateIf(user_id, user_id != '') AS uniq_entities\nFROM f_abandoned_checkout_recovery_events\nGROUP BY day, event, device_type",
+      "justification": "Daily per-step, per-segment funnel counters. Every PM question in this spec is 'step X -> step Y, cut by a segment, over time', which this answers by reading the rollup instead of the raw stream. It is also the retention pair for the raw TTL: raw events expire at 18 months, this survives, so long-range trend queries keep working on a fraction of the bytes. Distinct counts are stored as uniqState and must be read with uniqMerge -- summing distinct counts across parts is wrong.",
+      "serves_questions": [
+        "Reconversion (recovery) rate by **drop_step** \u2014 which step is most recoverable?",
+        "Which **channel** recovers best (open \u2192 click \u2192 reconvert)?",
+        "Does timing (`hours_since_drop`) matter \u2014 send at 1h vs 24h vs 48h?",
+        "Segment cuts (device, geo, destination). Bonus: does recovery target the same drop-offs seen in the existing funnel tables?"
+      ],
+      "measured_source_rows": 5919,
+      "measured_target_rows": 473,
+      "reduction_factor": 12.51,
+      "kept": true
+    }
+  ],
+  "semantics": {
+    "feature_slug": "abandoned_checkout_recovery",
+    "table_fqn": "atlys.f_abandoned_checkout_recovery_events",
+    "event_column": "event",
+    "event_types": [
+      "abandonment_detected",
+      "reminder_sent",
+      "reminder_opened",
+      "reminder_cta_clicked",
+      "resumed_at_step",
+      "reconverted"
+    ],
+    "entity_key": "user_id",
+    "entity_key_confidence": 0.7,
+    "secondary_keys": [
+      "application_id"
+    ],
+    "ordered_steps": [
+      "abandonment_detected",
+      "reminder_sent",
+      "reminder_opened",
+      "reminder_cta_clicked",
+      "resumed_at_step",
+      "reconverted"
+    ],
+    "step_order_source": "spec",
+    "segment_dims": [
+      "client_lib",
+      "app_version",
+      "device_type",
+      "drop_step",
+      "city",
+      "geoip_country_code",
+      "destination",
+      "os"
+    ],
+    "measures": [
+      {
+        "column": "hours_since_drop",
+        "kind": "other",
+        "scoped_to_events": [
+          "reminder_sent"
+        ],
+        "unit": "elapsed time (integer units, see column name)"
+      }
+    ],
+    "flags": [],
+    "disconnected_event_types": [],
+    "partial_identity_columns": [],
+    "cross_reference_hints": []
+  },
+  "rationale": {
+    "order_by": "ORDER BY (event, timestamp, user_id). The 8 existing tables use (id, timestamp, user_id); id is unique, so the primary index prunes nothing for queries that filter by time and segment and never by id. Leading with the event discriminator (6 values) prunes hard and compresses well, timestamp second matches every time-windowed query, and user_id last keeps each entity's step sequence co-located for windowFunnel.",
+    "partition_by": "toYYYYMM(timestamp), matching the existing tables so cross-table segment queries prune consistently. Daily partitions would create thousands of tiny parts at this volume and slow merges for no pruning benefit over a monthly part.",
+    "types": "E=6 event types in one wide table, so an event-scoped column is ~(1 - 1/6) = 0.83 defaults -- under ClickHouse's 0.9375 sparse threshold, so it would stay dense. ratio_of_defaults_for_sparse_serialization is set to min(0.9, 1 - 1/(E+1)) = 0.8571 so those columns actually go sparse. id is a 32-char hex string with no dashes and is typed String, not UUID, which would reject the literal outright. timestamp is DateTime64(3) because the source carries milliseconds. Enums are LowCardinality(String); high-cardinality ids are plain String with ZSTD(1); currency-denominated values are Decimal(18,4) so sums are exact; genuinely approximate ratios stay Float64.",
+    "nullable": "No Nullable columns. A null map is a second column to read and it weakens index usage on exactly the columns we filter by; absent values use DEFAULT ''/0 instead. The trap this creates is recorded, not ignored: partial-coverage identity columns are none, and every distinct-user metric on them must be uniqIf(col, col != '') because a bare uniq() would count the empty string as a real user.",
+    "ttl": "TTL toDateTime(timestamp) + INTERVAL 18 MONTH on raw events, paired with a rollup that has no TTL. That pairing is what makes the MV worth its cost: the aggregate outlives raw expiry, so long-range trend queries keep answering.",
+    "mvs": "One daily per-step, per-segment rollup. Dimensions are chosen under a row budget (days x event types x cardinality <= row_count/8) so the rollup is materially smaller than the source; anything that fails the 5x measured reduction gate after load is dropped with the number recorded. At sample volume the MV is unnecessary; it is justified against projected annual volume, not against these rows.",
+    "contrast_with_legacy": "One wide table per feature instead of one table per event: every PM question here is a within-feature funnel, which is one windowFunnel on a wide table and an N-way join on the legacy shape. The existing one-table-per-event layout is an SDK artifact, not a design decision, and the id-first sorting key is a bug we do not copy.",
+    "generation_log": "attempt 0: LLM call failed: propose_ddl:abandoned_checkout_recovery: failed to produce a valid DDLProposal: RuntimeError: claude CLI failed (1):  ; fell back to the deterministic rule-based proposal ; fallback dry run ok=True "
+  },
+  "ddl_sql": [
+    "CREATE TABLE IF NOT EXISTS f_abandoned_checkout_recovery_events\n(\n    `app_version` LowCardinality(String) DEFAULT '' COMMENT 'json_path=app_version; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=3',\n    `application_id` String DEFAULT '' COMMENT 'json_path=application_id; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=2300' CODEC(ZSTD(1)),\n    `channel` LowCardinality(String) DEFAULT '' COMMENT 'json_path=channel; events: reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=0.61; distinct=3',\n    `city` LowCardinality(String) DEFAULT '' COMMENT 'json_path=city; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=7',\n    `client_lib` LowCardinality(String) DEFAULT '' COMMENT 'json_path=client_lib; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=2',\n    `destination` LowCardinality(String) DEFAULT '' COMMENT 'json_path=destination; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=14',\n    `device_type` LowCardinality(String) DEFAULT '' COMMENT 'json_path=device_type; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=4',\n    `drop_step` LowCardinality(String) DEFAULT '' COMMENT 'json_path=drop_step; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=4',\n    `event` LowCardinality(String) DEFAULT '' COMMENT 'json_path=event; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=6',\n    `geoip_country_code` LowCardinality(String) DEFAULT '' COMMENT 'json_path=geoip_country_code; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=7',\n    `hours_since_drop` UInt16 DEFAULT 0 COMMENT 'json_path=hours_since_drop; events: reminder_sent; coverage=0.39; distinct=5',\n    `id` String DEFAULT '' COMMENT 'json_path=id; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=5919' CODEC(ZSTD(1)),\n    `os` LowCardinality(String) DEFAULT '' COMMENT 'json_path=os; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=0.95; distinct=4',\n    `timestamp` DateTime64(3) COMMENT 'json_path=timestamp; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=4696' CODEC(Delta, ZSTD(1)),\n    `user_id` String DEFAULT '' COMMENT 'json_path=user_id; events: abandonment_detected,reminder_sent,reminder_opened,reminder_cta_clicked,resumed_at_step,reconverted; coverage=1.00; distinct=2300' CODEC(ZSTD(1))\n)\nENGINE = MergeTree\nPARTITION BY toYYYYMM(timestamp)\nORDER BY (event, timestamp, user_id)\nTTL toDateTime(timestamp) + INTERVAL 18 MONTH\nSETTINGS ratio_of_defaults_for_sparse_serialization = 0.8571, index_granularity = 8192",
+    "CREATE TABLE IF NOT EXISTS agg_abandoned_checkout_recovery_funnel_daily\nENGINE = AggregatingMergeTree\nPARTITION BY toYYYYMM(day)\nORDER BY (day, event, device_type)\nEMPTY AS\nSELECT\n    toDate(timestamp) AS day,\n    event,\n    device_type,\n    countState() AS events_state,\n    uniqStateIf(user_id, user_id != '') AS uniq_entities\nFROM f_abandoned_checkout_recovery_events\nGROUP BY day, event, device_type",
+    "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_abandoned_checkout_recovery_funnel_daily\nTO agg_abandoned_checkout_recovery_funnel_daily AS\nSELECT\n    toDate(timestamp) AS day,\n    event,\n    device_type,\n    countState() AS events_state,\n    uniqStateIf(user_id, user_id != '') AS uniq_entities\nFROM f_abandoned_checkout_recovery_events\nGROUP BY day, event, device_type"
+  ]
+}

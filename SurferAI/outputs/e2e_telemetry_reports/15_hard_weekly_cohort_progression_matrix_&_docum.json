@@ -1,0 +1,149 @@
+{
+  "call_id": "CALL-15-HARD",
+  "category": "Hard",
+  "title": "Weekly Cohort Progression Matrix & Document Retry Distribution",
+  "question": "For cohorts grouped by week of destination card click, what is the progression rate to application start, document upload, and purchase, and what are the document retry quantiles?",
+  "database": "default",
+  "target_tables": "destination_card_clicked, application_started, document_uploaded, purchase_completed",
+  "timestamp": "2026-08-02T00:14:36.022349+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 344.98,
+    "row_count": 27,
+    "columns_count": 9,
+    "columns": [
+      "cohort_week",
+      "card_clicked_cohort_size",
+      "started_application_users",
+      "document_uploaded_users",
+      "purchase_completed_users",
+      "click_to_start_conv_pct",
+      "end_to_end_cohort_conv_pct",
+      "doc_retry_p50",
+      "doc_retry_p95"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_hard_15",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/7042ef6cf622bc32ae0c85c3c74b3046",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    toStartOfWeek(c.timestamp) AS cohort_week,\n    count(DISTINCT c.user_id) AS card_clicked_cohort_size,\n    count(DISTINCT a.user_id) AS started_application_users,\n    count(DISTINCT d.user_id) AS document_uploaded_users,\n    count(DISTINCT p.user_id) AS purchase_completed_users,\n    round(count(DISTINCT a.user_id) * 100.0 / count(DISTINCT c.user_id), 2) AS click_to_start_conv_pct,\n    round(count(DISTINCT p.user_id) * 100.0 / count(DISTINCT c.user_id), 2) AS end_to_end_cohort_conv_pct,\n    round(quantilesExact(0.25, 0.5, 0.75, 0.95)(d.retry_count)[2], 1) AS doc_retry_p50,\n    round(quantilesExact(0.25, 0.5, 0.75, 0.95)(d.retry_count)[4], 1) AS doc_retry_p95\nFROM default.destination_card_clicked c\nLEFT JOIN default.application_started a ON c.user_id = a.user_id\nLEFT JOIN default.document_uploaded d ON a.application_id = d.application_id\nLEFT JOIN default.purchase_completed p ON a.application_id = p.application_id\nGROUP BY cohort_week\nORDER BY cohort_week ASC",
+  "result_sample": [
+    {
+      "cohort_week": "2025-12-28",
+      "card_clicked_cohort_size": 13650,
+      "started_application_users": 2135,
+      "document_uploaded_users": 297,
+      "purchase_completed_users": 108,
+      "click_to_start_conv_pct": 15.64,
+      "end_to_end_cohort_conv_pct": 0.79,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-01-04",
+      "card_clicked_cohort_size": 30373,
+      "started_application_users": 4672,
+      "document_uploaded_users": 591,
+      "purchase_completed_users": 210,
+      "click_to_start_conv_pct": 15.38,
+      "end_to_end_cohort_conv_pct": 0.69,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 3
+    },
+    {
+      "cohort_week": "2026-01-11",
+      "card_clicked_cohort_size": 31070,
+      "started_application_users": 4816,
+      "document_uploaded_users": 655,
+      "purchase_completed_users": 250,
+      "click_to_start_conv_pct": 15.5,
+      "end_to_end_cohort_conv_pct": 0.8,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-01-18",
+      "card_clicked_cohort_size": 31853,
+      "started_application_users": 5014,
+      "document_uploaded_users": 656,
+      "purchase_completed_users": 252,
+      "click_to_start_conv_pct": 15.74,
+      "end_to_end_cohort_conv_pct": 0.79,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 3
+    },
+    {
+      "cohort_week": "2026-01-25",
+      "card_clicked_cohort_size": 32602,
+      "started_application_users": 4954,
+      "document_uploaded_users": 674,
+      "purchase_completed_users": 250,
+      "click_to_start_conv_pct": 15.2,
+      "end_to_end_cohort_conv_pct": 0.77,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-02-01",
+      "card_clicked_cohort_size": 33199,
+      "started_application_users": 5157,
+      "document_uploaded_users": 677,
+      "purchase_completed_users": 237,
+      "click_to_start_conv_pct": 15.53,
+      "end_to_end_cohort_conv_pct": 0.71,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-02-08",
+      "card_clicked_cohort_size": 33880,
+      "started_application_users": 5195,
+      "document_uploaded_users": 729,
+      "purchase_completed_users": 246,
+      "click_to_start_conv_pct": 15.33,
+      "end_to_end_cohort_conv_pct": 0.73,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-02-15",
+      "card_clicked_cohort_size": 34580,
+      "started_application_users": 5418,
+      "document_uploaded_users": 725,
+      "purchase_completed_users": 259,
+      "click_to_start_conv_pct": 15.67,
+      "end_to_end_cohort_conv_pct": 0.75,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-02-22",
+      "card_clicked_cohort_size": 34934,
+      "started_application_users": 5446,
+      "document_uploaded_users": 738,
+      "purchase_completed_users": 261,
+      "click_to_start_conv_pct": 15.59,
+      "end_to_end_cohort_conv_pct": 0.75,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    },
+    {
+      "cohort_week": "2026-03-01",
+      "card_clicked_cohort_size": 35666,
+      "started_application_users": 5515,
+      "document_uploaded_users": 726,
+      "purchase_completed_users": 253,
+      "click_to_start_conv_pct": 15.46,
+      "end_to_end_cohort_conv_pct": 0.71,
+      "doc_retry_p50": 0,
+      "doc_retry_p95": 2
+    }
+  ],
+  "full_results_count": 27,
+  "summary": "Query executed successfully against ClickHouse default database in 344.98ms, returning 27 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Full 4-table cohort progression model grouping 1M users by calendar week, tracking attrition across all 4 stages with document retry quantiles."
+}

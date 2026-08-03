@@ -1,0 +1,88 @@
+{
+  "name": "agent-execution",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/domain/agent-execution/src/zentra_domain_agent_execution",
+  "targets": {
+    "lock": {
+      "executor": "@nxlv/python:lock",
+      "options": {
+        "update": false
+      }
+    },
+    "sync": {
+      "executor": "@nxlv/python:sync",
+      "options": {}
+    },
+    "add": {
+      "executor": "@nxlv/python:add",
+      "options": {}
+    },
+    "update": {
+      "executor": "@nxlv/python:update",
+      "options": {}
+    },
+    "remove": {
+      "executor": "@nxlv/python:remove",
+      "options": {}
+    },
+    "build": {
+      "executor": "@nxlv/python:build",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "outputPath": "{projectRoot}/dist",
+        "publish": false,
+        "lockedVersions": true,
+        "bundleLocalDependencies": true
+      },
+      "cache": true
+    },
+    "lint": {
+      "executor": "@nxlv/python:run-commands",
+      "outputs": [],
+      "options": {
+        "command": "uv run ruff check libs/domain/agent-execution/src libs/domain/agent-execution/tests && uv run lint-imports --config .importlinter",
+        "cwd": "."
+      },
+      "cache": true
+    },
+    "format": {
+      "executor": "@nxlv/python:ruff-format",
+      "outputs": [],
+      "options": {
+        "filePatterns": [
+          "src",
+          "tests"
+        ]
+      },
+      "cache": true
+    },
+    "test": {
+      "executor": "@nxlv/python:run-commands",
+      "outputs": [
+        "{workspaceRoot}/reports/{projectRoot}/unittests",
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
+      "options": {
+        "command": "uv run pytest tests/",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "install": {
+      "executor": "@nxlv/python:install",
+      "options": {
+        "silent": false,
+        "args": "",
+        "verbose": false,
+        "debug": false
+      }
+    }
+  },
+  "tags": ["layer:domain", "platform:python", "scope:core"],
+  "release": {
+    "version": {
+      "versionActions": "@nxlv/python/release/version-actions"
+    }
+  }
+}

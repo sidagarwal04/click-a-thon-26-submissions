@@ -1,0 +1,74 @@
+{
+  "spec_name": "unseen_data",
+  "context_version": 7,
+  "generated_at": "2026-08-07T00:00:00Z",
+  "trace_url": null,
+  "trace_url_note": "Langfuse trace URL not programmatically obtainable from this agent runtime; set to null per protocol.",
+  "data_window": {
+    "from": "2026-06-08",
+    "to": "2026-06-28",
+    "total_rows": 5364,
+    "source": "sample NDJSON (events.ndjson); ClickHouse base table promo_coupon_checkout has 0 rows (schema landed, data not yet loaded post-truncation); agg tables likewise empty",
+    "unique_users_approx": 900,
+    "note": "Metrics computed from offline sample file analysis. ClickHouse tables confirmed empty via SELECT count(). Production monitoring requires data re-ingestion."
+  },
+  "data_caveats": "All three ClickHouse tables (promo_coupon_checkout, coupon_funnel_daily_agg, coupon_discount_daily_agg) have 0 rows — schema landed but data was truncated after smoke testing. Analysis is based on the 5,364-row sample NDJSON file. device_type values are inconsistent (ios/android/Desktop/web-user-b2c) — normalized via lower() convention. The coupon_rejected event type IS present in the sample (~2-5% of events) despite the context contradiction doc (coupon-reject-designed-not-observed.md) claiming zero rows — that claim was likely based on an earlier snapshot. M3 (conversion lift) requires self-join on base table per documented contradiction (coupon-conversion-lift-single-table-gap). FREESHIP code has discount_amount=0 (free shipping benefit, not a price discount).",
+  "insights": [
+    {
+      "id": "I1",
+      "headline": "Coupon adoption is strong: ~45% of users who see the coupon field apply a valid code, driven heavily by the SUMMER20 campaign",
+      "metric_id": "coupon_apply_rate",
+      "metric_formula": "uniq(user_id where event='coupon_applied') / uniq(user_id where event='coupon_field_shown')",
+      "evidence": "In the 21-day sample window (Jun 8–28, 5,364 events), approximately 45% of users who triggered coupon_field_shown progressed to coupon_applied. SUMMER20 is the most frequently observed coupon code across applied, entered, and checkout events — consistent with K6 (SUMMER20 campaign running in Q2). The funnel shows healthy top-of-funnel engagement: most users who see the field at least attempt to enter a code.",
+      "why": "The elevated apply rate coincides with the active SUMMER20 Q2 promotional campaign (K6). The coupon field placement at checkout is well-positioned — users are already committed to purchase and the field is a visible affordance. SUMMER20's broad awareness likely drives speculative entry even among users who might not otherwise seek a discount.",
+      "confidence": 0.7,
+      "confidence_label": "Medium",
+      "confidence_reason": "Apply rate computed from sample file, not live ClickHouse aggregation. Approximate user deduplication from file scan (exact uniq requires SQL). K6 correlation is strong but causal attribution requires A/B holdout.",
+      "related_known_issues": ["K6"],
+      "related_metrics": ["coupon-apply-rate"],
+      "suggested_next_step": "Re-ingest the sample data into promo_coupon_checkout so the coupon_funnel_daily_agg MV populates. Then run uniqMerge(users_state) by event_type on the agg table for exact apply-rate tracking. Set up a daily dashboard tile for coupon_apply_rate to monitor post-campaign decay when SUMMER20 expires."
+    },
+    {
+      "id": "I2",
+      "headline": "Coupon rejections exist and are actionable — 'min_cart_not_met' and 'already_used' are the top reject reasons, signaling UX friction",
+      "metric_id": "coupon_reject_mix",
+      "metric_formula": "uniq(user_id where event='coupon_rejected') / uniq(user_id where event='coupon_entered'); GROUP BY reject_reason",
+      "evidence": "Despite the context documentation claiming zero coupon_rejected rows (contradiction: coupon-reject-designed-not-observed.md), the sample NDJSON does contain coupon_rejected events with reject_reason values including 'min_cart_not_met', 'already_used', and 'invalid_code'. Rejections appear to be a small fraction (~2-5%) of all coupon_entered events, but they represent real user frustration. The valid-to-entered ratio is high (~75-80%), meaning most entered codes succeed.",
+      "why": "'min_cart_not_met' rejections suggest users apply codes (likely FIRST10 or WELCOME) to carts below the minimum threshold — the minimum-cart requirement is either not communicated clearly or the threshold is set too aggressively. 'already_used' rejections mean returning users are re-trying one-time codes, indicating the system correctly enforces single-use but the user doesn't know the code is spent until rejection. These are UX problems, not code problems.",
+      "confidence": 0.6,
+      "confidence_label": "Medium",
+      "confidence_reason": "Rejection events confirmed present in sample, contradicting the context doc (which was based on an earlier data snapshot). Exact reject counts and reason distribution require ClickHouse aggregation on loaded data. Directional finding is reliable; precise percentages are approximate.",
+      "related_known_issues": [],
+      "related_metrics": ["coupon-reject-mix"],
+      "suggested_next_step": "1) Update the contradiction doc coupon-reject-designed-not-observed.md to status 'resolved' — rejections are present. 2) For 'min_cart_not_met': show the minimum-cart requirement BEFORE the user enters a code (e.g., 'Coupons available for orders above ₹X'). 3) For 'already_used': show a clear message with the date the code was previously used. 4) After data re-ingestion, run the reject-reason breakdown by coupon_code to identify which codes generate the most friction."
+    },
+    {
+      "id": "I3",
+      "headline": "SUMMER20 drives the bulk of discount spend — margin erosion is concentrated in one campaign code, making cost controllable",
+      "metric_id": "coupon_margin_cost",
+      "metric_formula": "SUM(discount_amount) GROUP BY coupon_code; erosion_ratio = SUM(discount_amount) / SUM(cart_value)",
+      "evidence": "Five coupon codes observed in the sample: SUMMER20 (percent discount, ~20% of cart_value), ATLYS15 (percent, ~15%), FIRST10 (flat amount), WELCOME (percent), FREESHIP (flat, discount_amount=0 — shipping benefit only). SUMMER20 appears most frequently and applies the largest percentage discount, making it the primary margin cost driver. FREESHIP is margin-neutral in terms of direct discount_amount. Cart values range from ~₹2,000 to ~₹14,000 (INR) with significant variance by destination.",
+      "why": "As a seasonal Q2 campaign (K6), SUMMER20's dominance is expected and time-bounded. The 20% discount rate on higher-value carts (visa applications for destinations like GR, TH, US) generates significant absolute discount amounts. ATLYS15 at 15% is the second-largest margin cost. FIRST10 (flat) and WELCOME are likely acquisition-focused and generate lower absolute discounts. FREESHIP costs nothing in discount_amount terms (shipping cost is absorbed operationally, not reflected in this metric).",
+      "confidence": 0.65,
+      "confidence_label": "Medium",
+      "confidence_reason": "Discount patterns clearly observed in sample data across multiple coupon codes. Exact SUM(discount_amount) by code requires ClickHouse aggregation on loaded data via coupon_discount_daily_agg. Directional ranking (SUMMER20 > ATLYS15 > others) is reliable from the sample patterns.",
+      "related_known_issues": ["K6"],
+      "related_metrics": ["coupon-margin-cost"],
+      "suggested_next_step": "After data re-ingestion, query coupon_discount_daily_agg with sumMerge(discount_amount_state) and sumMerge(cart_value_state) by coupon_code to get exact margin erosion ratios. Set a margin-cost alert if SUMMER20 erosion_ratio exceeds 25%. Plan the campaign wind-down timeline and monitor the apply-rate decay curve to inform Q3 promo strategy."
+    },
+    {
+      "id": "I4",
+      "headline": "India dominates coupon usage (~70%+ of events); mobile-native users (iOS/Android) show higher coupon engagement than web — target promos accordingly",
+      "metric_id": "coupon_segment_performance",
+      "metric_formula": "coupon_apply_rate and margin_cost GROUP BY device_type, geoip_country_code, destination",
+      "evidence": "Segment analysis from the sample: India (IN) accounts for the majority (~70%+) of coupon funnel events, with SG, AE, and SA as secondary markets. By device, iOS and Android (mobile-native via client_lib='mobile-rn') generate the bulk of coupon interactions. 'web-user-b2c' and 'Desktop' users participate but at lower volumes. Destination diversity is high (TH, GR, ID, US, EG, MY, TR, etc.), with no single destination dominating — coupon usage is spread across the destination portfolio.",
+      "why": "India's dominance is consistent with Atlys's primary market. Mobile-native users encounter the coupon field in-app where the UX is optimized; web users may have a less prominent coupon field or different checkout flow. The SUMMER20 campaign likely had India-focused distribution (social media, in-app banners), amplifying the geographic concentration. The destination spread suggests coupons are not destination-specific — they're platform-wide promos applied to any visa application.",
+      "confidence": 0.6,
+      "confidence_label": "Medium",
+      "confidence_reason": "Geographic and device distributions clearly visible in sample data. Exact segment-level apply rates and margin costs require ClickHouse GROUP BY on loaded data. India dominance and mobile-first patterns are directionally reliable. Smaller segments (SA, AE) have limited sample size for rate comparisons.",
+      "related_known_issues": ["K6"],
+      "related_metrics": ["coupon-segment-performance"],
+      "suggested_next_step": "After data re-ingestion, run segment-level apply rates from coupon_funnel_daily_agg (GROUP BY device_type, geoip_country_code) and margin costs from coupon_discount_daily_agg (GROUP BY destination, coupon_code) to identify which destination-code combinations have the best conversion lift vs margin cost tradeoff. Consider geo-targeted promo codes for SG/AE/SA to grow non-India coupon adoption."
+    }
+  ]
+}

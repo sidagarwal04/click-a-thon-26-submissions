@@ -1,0 +1,78 @@
+{
+  "uid": "sonyliv-concurrency",
+  "title": "SonyLIV — Concurrency Analysis (Naive vs Gold)",
+  "tags": ["clickhouse", "sonyliv", "click-a-thon", "concurrency"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Peak Concurrent Sessions — Naive (selected range)",
+      "description": "Max value of the delta-sum concurrency curve within the dashboard's currently selected time range. Naive: session_start_epoch -> VideoSessionEnd overlap, INCLUDES backgrounded time.",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT concurrency AS value FROM (SELECT time, sum(delta) OVER (ORDER BY time ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS concurrency FROM (SELECT toStartOfMinute(ts) AS time, sum(delta) AS delta FROM (SELECT fromUnixTimestamp64Milli(min(session_start_epoch)) AS ts, toInt32(1) AS delta FROM ch_hackathon_raw_data GROUP BY video_session_id UNION ALL SELECT fromUnixTimestamp64Milli(maxIf(event_timestamp, event_type = 'VideoSessionEnd')) AS ts, toInt32(-1) AS delta FROM ch_hackathon_raw_data GROUP BY video_session_id HAVING maxIf(event_timestamp, event_type = 'VideoSessionEnd') > 0) GROUP BY time)) WHERE $__timeFilter_ms(time) ORDER BY concurrency DESC LIMIT 1"
+      }]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Concurrent Sessions Over Time — Naive (start/end overlap)",
+      "description": "Delta-sum overlap of session_start_epoch -> VideoSessionEnd timestamp (still-open sessions have no end delta). Does NOT exclude backgrounded time — see Gold panels below for the foreground-only measure.",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 9 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 20, "lineWidth": 2, "spanNulls": true }, "color": { "fixedColor": "orange", "mode": "fixed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 0,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT time, concurrency FROM (SELECT time, sum(delta) OVER (ORDER BY time ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS concurrency FROM (SELECT toStartOfMinute(ts) AS time, sum(delta) AS delta FROM (SELECT fromUnixTimestamp64Milli(min(session_start_epoch)) AS ts, toInt32(1) AS delta FROM ch_hackathon_raw_data GROUP BY video_session_id UNION ALL SELECT fromUnixTimestamp64Milli(maxIf(event_timestamp, event_type = 'VideoSessionEnd')) AS ts, toInt32(-1) AS delta FROM ch_hackathon_raw_data GROUP BY video_session_id HAVING maxIf(event_timestamp, event_type = 'VideoSessionEnd') > 0) GROUP BY time)) WHERE $__timeFilter_ms(time) ORDER BY time"
+      }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Peak Concurrency — Foreground-Only (Gold)",
+      "description": "Max uniqExactMerge(cnt_a) per minute from gold_concurrency_minute. cnt_a = sessions whose foreground interval fully covers the minute (true concurrency, backgrounded time excluded).",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT max(c) AS value FROM (SELECT minute, uniqExactMerge(cnt_a) AS c FROM gold_concurrency_minute WHERE $__timeFilter(minute) GROUP BY minute)"
+      }]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Avg Concurrency — Foreground-Only (Gold)",
+      "description": "Average of the per-minute foreground-only concurrency (cnt_a) across the selected range.",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 4 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 1,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT round(avg(c), 2) AS value FROM (SELECT minute, uniqExactMerge(cnt_a) AS c FROM gold_concurrency_minute WHERE $__timeFilter(minute) GROUP BY minute)"
+      }]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Concurrency vs Reach — Foreground-Only (Gold)",
+      "description": "cnt_a (concurrency: session's foreground interval fully covers the minute) vs cnt_b (reach: interval touches the minute at all). Reach >= concurrency always.",
+      "gridPos": { "x": 0, "y": 17, "w": 24, "h": 9 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10, "lineWidth": 2, "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "refId": "A", "editorType": "sql", "format": 0,
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-main" },
+        "rawSql": "SELECT minute AS time, uniqExactMerge(cnt_a) AS concurrency, uniqExactMerge(cnt_b) AS reach FROM gold_concurrency_minute WHERE $__timeFilter(minute) GROUP BY minute ORDER BY minute"
+      }]
+    }
+  ]
+}

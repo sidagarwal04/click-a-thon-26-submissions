@@ -1,0 +1,129 @@
+ {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jalagaaragang.dev/clickathon2026/evidence_bundle.schema.json",
+  "title": "EvidenceBundle",
+  "description": "The single contract that flows through the whole system. The RCA engine PRODUCES it, the Narrator and Dashboard CONSUME it. Every number the LLM is allowed to say must exist somewhere in this object. If a number is not in the bundle, the narrator may not print it.",
+  "type": "object",
+  "required": ["investigation_id", "created_at", "metric", "target_window", "baseline_window", "anomaly", "factor_decomposition", "drilldown", "ruled_out", "queries"],
+  "properties": {
+    "investigation_id": { "type": "string", "description": "uuid v4" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "metric": { "type": "string", "enum": ["revenue", "fill_rate", "impressions", "ctr", "ecpm", "requests", "rpr"] },
+    "grain": { "type": "string", "enum": ["hour", "day"], "default": "hour" },
+    "target_window": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" }
+      }
+    },
+    "baseline_window": {
+      "type": "object",
+      "description": "Like-for-like comparison window. NEVER a flat global average.",
+      "required": ["method", "description"],
+      "properties": {
+        "method": { "type": "string", "enum": ["same_weekday_trailing_weeks", "same_hour_trailing_weeks", "trailing_median"] },
+        "description": { "type": "string", "example": "same weekday + hour-of-day, median over trailing 3 weeks" },
+        "weeks": { "type": "integer", "default": 3 }
+      }
+    },
+    "anomaly": {
+      "type": "object",
+      "required": ["detected", "observed", "expected", "abs_delta", "pct_delta", "score", "direction"],
+      "properties": {
+        "detected": { "type": "boolean" },
+        "observed": { "type": "number" },
+        "expected": { "type": "number", "description": "baseline value" },
+        "abs_delta": { "type": "number" },
+        "pct_delta": { "type": "number", "description": "signed fraction, e.g. -0.152 for -15.2%" },
+        "score": { "type": "number", "description": "robust z-score (MAD-based) or similar; how surprising" },
+        "direction": { "type": "string", "enum": ["drop", "spike"] }
+      }
+    },
+    "factor_decomposition": {
+      "type": "object",
+      "description": "Walk the revenue identity: Revenue ~= Requests x FillRate x eCPM/1000. Which FACTOR moved before asking which SEGMENT.",
+      "required": ["method", "factors", "primary_factor"],
+      "properties": {
+        "method": { "type": "string", "enum": ["log_additive", "additive"], "default": "log_additive" },
+        "factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["factor", "contribution_pct", "from", "to"],
+            "properties": {
+              "factor": { "type": "string", "enum": ["requests", "fill_rate", "render_rate", "ecpm"] },
+              "contribution_pct": { "type": "number", "description": "share of the total metric delta explained by this factor, signed" },
+              "from": { "type": "number" },
+              "to": { "type": "number" }
+            }
+          }
+        },
+        "primary_factor": { "type": "string" }
+      }
+    },
+    "drilldown": {
+      "type": "array",
+      "description": "Ordered path from broad to narrow. Each node is one dimension split that was kept because it carried most of the delta.",
+      "items": {
+        "type": "object",
+        "required": ["depth", "split_dimension", "segment", "contribution_pct", "status", "query_id"],
+        "properties": {
+          "depth": { "type": "integer" },
+          "split_dimension": { "type": "string", "enum": ["country", "region", "os_version", "device_model", "ad_format", "category", "publisher_tier", "vertical", "campaign_type", "app_id", "advertiser_id"] },
+          "segment": { "type": "object", "description": "cumulative filter at this node, e.g. {country: IN, os_version: Android 13}" },
+          "metric_from": { "type": "number" },
+          "metric_to": { "type": "number" },
+          "contribution_pct": { "type": "number", "description": "share of parent delta this segment carries" },
+          "status": { "type": "string", "enum": ["culprit", "contributor", "normal"] },
+          "query_id": { "type": "string" }
+        }
+      }
+    },
+    "localized_segment": {
+      "type": "object",
+      "description": "The final named culprit, e.g. {country: IN, os_version: Android 13, app_id: app_00123}"
+    },
+    "ruled_out": {
+      "type": "array",
+      "description": "The trust-builder. Hypotheses the engine checked and CLEARED, each with a number.",
+      "items": {
+        "type": "object",
+        "required": ["hypothesis", "evidence", "query_id"],
+        "properties": {
+          "hypothesis": { "type": "string", "example": "request_volume | ctr_quality | seasonality | device_mix" },
+          "evidence": { "type": "string", "example": "requests within 1.2% of baseline (+0.3 sigma)" },
+          "query_id": { "type": "string" }
+        }
+      }
+    },
+    "queries": {
+      "type": "array",
+      "description": "Every SQL that produced a number in this bundle. This IS the traceability deliverable. No query, no credit.",
+      "items": {
+        "type": "object",
+        "required": ["id", "sql"],
+        "properties": {
+          "id": { "type": "string" },
+          "sql": { "type": "string" },
+          "result_summary": { "type": "object", "description": "the rows/scalars the SQL returned, small" },
+          "langfuse_span_id": { "type": "string" }
+        }
+      }
+    },
+    "narrative": {
+      "type": ["string", "null"],
+      "description": "Filled by the Narrator. MUST contain only numbers present elsewhere in this bundle."
+    },
+    "narrative_verification": {
+      "type": ["object", "null"],
+      "description": "Filled by the Narrator's guardrail: did every number in the prose trace back to the bundle?",
+      "properties": {
+        "passed": { "type": "boolean" },
+        "unverified_numbers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "trace_url": { "type": ["string", "null"], "description": "Langfuse trace URL for this whole investigation." }
+  }
+}

@@ -1,0 +1,109 @@
+# One command for the whole stack: `docker compose up -d` from the repo root.
+# Brings up LibreChat (chat UI + its database + the official ClickHouse MCP
+# server) and this project's own two services -- the dashboard and its MCP
+# server -- instead of running `rca serve` / `rca mcp-serve` on the host in
+# separate terminals plus a separate `librechat && docker compose up`.
+#
+# Secrets stay where they already lived (implementation/.env, librechat/.env)
+# -- nothing needed at the repo root.
+services:
+  rca-dashboard:
+    container_name: rca-dashboard
+    build:
+      context: ./implementation
+    ports:
+      - "8000:8000"
+    env_file:
+      - implementation/.env
+    volumes:
+      - ./implementation/out:/app/out
+      - ./implementation/traces:/app/traces
+      - ./implementation/state:/app/state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/meta', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  rca-mcp:
+    container_name: rca-mcp
+    build:
+      context: ./implementation
+    command: ["rca", "mcp-serve"]
+    ports:
+      - "8001:8001"
+    env_file:
+      - implementation/.env
+    volumes:
+      - ./implementation/out:/app/out
+      - ./implementation/traces:/app/traces
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; socket.create_connection(('localhost', 8001), 3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  librechat:
+    container_name: librechat
+    # Pinned to the exact build create_followup_agent.py's selectors were
+    # tested against -- `:latest` is a moving target, and a newer build can
+    # change the Agent Builder UI enough to break the Playwright automation
+    # (this is exactly what happened to a teammate: a `text=TOOLS` selector
+    # timeout because their `:latest` pull landed on a different UI version
+    # than the one this script was written against).
+    image: registry.librechat.ai/danny-avila/librechat-dev@sha256:598c70f97a4987e5e5f2841fc3708c9c287544bd7b72176446e35dd9f02075e7
+    ports:
+      - "${PORT:-3080}:${PORT:-3080}"
+    depends_on:
+      mongodb:
+        condition: service_started
+      clickhouse-mcp:
+        condition: service_started
+      rca-mcp:
+        condition: service_healthy
+    restart: unless-stopped
+    env_file:
+      - librechat/.env
+    environment:
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - SEARCH=false
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3080/login', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - type: bind
+        source: ./librechat/.env
+        target: /app/.env
+      - type: bind
+        source: ./librechat/librechat.yaml
+        target: /app/librechat.yaml
+
+  mongodb:
+    container_name: librechat-mongodb
+    image: mongo:8.0.20
+    restart: unless-stopped
+    command: mongod --noauth
+    volumes:
+      - ./librechat/data-node:/data/db
+
+  clickhouse-mcp:
+    container_name: clickhouse-mcp
+    image: mcp/clickhouse
+    restart: unless-stopped
+    env_file:
+      - librechat/.env
+    environment:
+      CLICKHOUSE_SECURE: ${CLICKHOUSE_SECURE:-true}
+      CLICKHOUSE_VERIFY: "true"
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: http
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: 8000
+      CLICKHOUSE_MCP_AUTH_DISABLED: "true"

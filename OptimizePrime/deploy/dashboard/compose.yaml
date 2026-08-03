@@ -1,0 +1,73 @@
+services:
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      CH_HOST: ${CH_HOST:?CH_HOST is required}
+      CH_PORT: ${CH_PORT:-8443}
+      CH_USER: ${CH_USER:-default}
+      CH_PASSWORD: ${CH_PASSWORD:?CH_PASSWORD is required}
+      CH_SECURE: ${CH_SECURE:-true}
+      CH_DATABASE: ${DASHBOARD_DATABASE:-sonyliv_final}
+      DASHBOARD_DATABASES: ${DASHBOARD_DATABASES:-sonyliv_final}
+      DASHBOARD_PRODUCT_NAME: ${DASHBOARD_PRODUCT_NAME:-Viewers Without Borders}
+      DASHBOARD_QUERY_TIMEOUT: ${DASHBOARD_QUERY_TIMEOUT:-20s}
+      DASHBOARD_MAX_MINUTE_RANGE: ${DASHBOARD_MAX_MINUTE_RANGE:-72h}
+      DASHBOARD_MAX_FILTERED_RANGE: ${DASHBOARD_MAX_FILTERED_RANGE:-744h}
+      DASHBOARD_MAX_CONCURRENT: ${DASHBOARD_MAX_CONCURRENT:-8}
+    expose:
+      - "8080"
+    networks:
+      - public
+
+  # Optional because installing/upgrading schema is an explicit one-time
+  # migration. Once enabled, raw INSERTs require no build/publish command:
+  # mv_session_dirty records touched sessions and this service drains them.
+  publisher:
+    profiles: ["publisher"]
+    build:
+      context: ../..
+      dockerfile: deploy/publisher/Dockerfile
+    restart: unless-stopped
+    environment:
+      TARGET: cloud
+      CH_HOST: ${CH_HOST:?CH_HOST is required}
+      CH_PORT: ${CH_PORT:-8443}
+      CH_USER: ${CH_USER:-default}
+      CH_PASSWORD: ${CH_PASSWORD:?CH_PASSWORD is required}
+      PUBLISH_DATABASE: ${PUBLISH_DATABASE:-${DASHBOARD_DATABASE:-sonyliv_final}}
+      PUBLISH_LOOP_SECONDS: ${PUBLISH_LOOP_SECONDS:-10}
+      PUBLISH_ALLOW_PROD: ${PUBLISH_ALLOW_PROD:-0}
+    networks:
+      - public
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    environment:
+      DASHBOARD_HOSTNAME: ${DASHBOARD_HOSTNAME:-viewers-without-borders.barundebnath.com}
+      DASHBOARD_ORIGIN_IP: ${DASHBOARD_ORIGIN_IP:?DASHBOARD_ORIGIN_IP is required}
+      LIBRECHAT_HOSTNAME: ${LIBRECHAT_HOSTNAME:-chat-viewers-without-borders.barundebnath.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - public
+
+networks:
+  public:
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,43 @@
+{
+  "name": "@open-zentra/foundation-design-system",
+  "version": "0.0.1",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "nx": {
+    "name": "foundation-design-system",
+    "tags": [
+      "layer:foundation",
+      "foundation:design-system",
+      "platform:react",
+      "scope:core",
+      "visibility:public"
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "tsc --build libs/foundation/design-system/tsconfig.lib.json",
+          "cwd": "."
+        }
+      },
+      "storybook": {
+        "syncGenerators": [
+          "@juristr/nx-tailwind-sync:source-directives"
+        ]
+      },
+      "build-storybook": {
+        "syncGenerators": [
+          "@juristr/nx-tailwind-sync:source-directives"
+        ]
+      }
+    }
+  }
+}

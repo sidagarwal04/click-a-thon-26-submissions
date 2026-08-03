@@ -1,0 +1,371 @@
+{
+  "exportedAt": "2026-08-02T04:43:02Z",
+  "purpose": "investigation-export",
+  "investigation": {
+    "id": "inv-b6b57556-9484-d041-33a5-5bab862dfe4d",
+    "status": "complete",
+    "alert": {
+      "id": "b6b57556-9484-d041-33a5-5bab862dfe4d",
+      "metric": "revenue",
+      "direction": "down",
+      "pctChange": -12.5,
+      "windowStart": "2026-07-09T14:00:00Z",
+      "windowEnd": "2026-07-09T14:59:59Z",
+      "baselineKind": "same_hour_4w_seasonality",
+      "severity": "high",
+      "advertiserId": "adv_0000"
+    },
+    "decomposition": [
+      {
+        "factor": "requests",
+        "label": "Requests",
+        "baseline": 1637.75,
+        "observed": 1699,
+        "deltaPct": 3.7,
+        "status": "neutral"
+      },
+      {
+        "factor": "fill_rate",
+        "label": "Fill rate",
+        "baseline": 1,
+        "observed": 1,
+        "deltaPct": 0,
+        "status": "ruled_out"
+      },
+      {
+        "factor": "render_rate",
+        "label": "Render rate",
+        "baseline": 0.9813768890245764,
+        "observed": 0.9793996468510888,
+        "deltaPct": -0.2,
+        "status": "ruled_out"
+      },
+      {
+        "factor": "ecpm",
+        "label": "eCPM",
+        "baseline": 2.4981636335355426,
+        "observed": 2.112225360576924,
+        "deltaPct": -15.4,
+        "status": "culprit"
+      },
+      {
+        "factor": "ctr",
+        "label": "CTR",
+        "baseline": 0.010110437081972313,
+        "observed": 0.009615384615384616,
+        "deltaPct": -4.9,
+        "status": "neutral"
+      }
+    ],
+    "segments": [
+      {
+        "dimension": "category",
+        "value": "ecommerce",
+        "metric": "revenue",
+        "deltaPct": -73,
+        "contributionPct": 1.5
+      },
+      {
+        "dimension": "country",
+        "value": "US",
+        "metric": "revenue",
+        "deltaPct": -49.8,
+        "contributionPct": 124.5
+      },
+      {
+        "dimension": "os_version",
+        "value": "Android 12",
+        "metric": "revenue",
+        "deltaPct": -51.4,
+        "contributionPct": 97.4
+      },
+      {
+        "dimension": "ad_format",
+        "value": "video",
+        "metric": "revenue",
+        "deltaPct": -37.7,
+        "contributionPct": 93.8
+      },
+      {
+        "dimension": "category",
+        "value": "news",
+        "metric": "revenue",
+        "deltaPct": 133.8,
+        "contributionPct": -89.5
+      },
+      {
+        "dimension": "country",
+        "value": "ES",
+        "metric": "revenue",
+        "deltaPct": -58.1,
+        "contributionPct": 67.8
+      }
+    ],
+    "ruledOut": [
+      {
+        "reason": "CTR",
+        "detail": "CTR -4.9%; not a direct revenue factor in the CPM identity."
+      },
+      {
+        "reason": "Seasonality checked",
+        "detail": "Same-hour × 4-week seasonality applied (flat prior-day was -4.6%). Residual vs seasonal baseline is -12.5% — still anomalous."
+      }
+    ],
+    "diagnosis": {
+      "text": "Revenue for adv_0000 down 12.5%, primarily driven by eCPM ($2.50 → $2.11, -15.4%). Top segments: Category=ecommerce (-73.0%, contrib 1.5%); Country=US (-49.8%, contrib 124.5%); OS=Android 12 (-51.4%, contrib 97.4%). Ruled out: CTR. Counterfactual: holding eCPM recovers 128.3% of the gap.",
+      "citations": [
+        {
+          "label": "Revenue change",
+          "value": "-12.5%"
+        },
+        {
+          "label": "Actual",
+          "value": "3.5147"
+        },
+        {
+          "label": "Expected",
+          "value": "4.0152"
+        },
+        {
+          "label": "Z-score",
+          "value": "-6.40"
+        },
+        {
+          "label": "eCPM change",
+          "value": "-15.4%"
+        },
+        {
+          "label": "Category: ecommerce",
+          "value": "-73.0% · contrib 1.5%"
+        },
+        {
+          "label": "Country: US",
+          "value": "-49.8% · contrib 124.5%"
+        },
+        {
+          "label": "OS: Android 12",
+          "value": "-51.4% · contrib 97.4%"
+        },
+        {
+          "label": "Counterfactual recovery",
+          "value": "0.6422 recovered (128.3% of gap) if eCPM held"
+        }
+      ]
+    },
+    "trace": [
+      {
+        "step": "alerts_live",
+        "detail": "Loaded alert b6b57556-9484-d041-33a5-5bab862dfe4d advertiser=adv_0000 metric=revenue z=-6.40",
+        "durationMs": 729
+      },
+      {
+        "step": "baseline",
+        "detail": "metric_hourly_snapshot vs same_hour_4w_seasonality (+ flat prior-day check)",
+        "durationMs": 1689
+      },
+      {
+        "step": "decompose",
+        "detail": "Revenue identity walk; culprit=ecpm",
+        "durationMs": 1
+      },
+      {
+        "step": "slice",
+        "detail": "Loaded contributors + snapshot dims (8)",
+        "durationMs": 3210
+      },
+      {
+        "step": "seasonality",
+        "detail": "Same-hour × 4-week seasonality applied (flat prior-day was -4.6%). Residual vs seasonal baseline is -12.5% — still anomalous.",
+        "durationMs": 0
+      },
+      {
+        "step": "evidence",
+        "detail": "Packaged evidence + waterfall + counterfactual + hypotheses",
+        "durationMs": 250
+      },
+      {
+        "step": "narrate",
+        "detail": "Narration deferred to Node/Gemini from evidence only",
+        "durationMs": 0
+      }
+    ],
+    "seasonality": {
+      "status": "residual_remains",
+      "flatDeltaPct": -4.6,
+      "seasonalDeltaPct": -12.5,
+      "detail": "Same-hour × 4-week seasonality applied (flat prior-day was -4.6%). Residual vs seasonal baseline is -12.5% — still anomalous."
+    },
+    "waterfall": [
+      {
+        "factor": "requests",
+        "label": "Requests",
+        "revenueImpact": 0,
+        "sharePct": 0,
+        "status": "neutral"
+      },
+      {
+        "factor": "fill_rate",
+        "label": "Fill rate",
+        "revenueImpact": 0,
+        "sharePct": 0,
+        "status": "ruled_out"
+      },
+      {
+        "factor": "render_rate",
+        "label": "Render rate",
+        "revenueImpact": 0,
+        "sharePct": 0,
+        "status": "ruled_out"
+      },
+      {
+        "factor": "ecpm",
+        "label": "eCPM",
+        "revenueImpact": -0.5004,
+        "sharePct": 100,
+        "status": "culprit"
+      }
+    ],
+    "counterfactual": {
+      "culprit": "ecpm",
+      "observedRevenue": 3.5147,
+      "counterfactualRevenue": 4.1569,
+      "recoveredRevenue": 0.6422,
+      "recoveredPctOfGap": 128.3,
+      "detail": "If eCPM had stayed at baseline, estimated revenue would be 4.1569 instead of 3.5147 (recover 128.3% of the gap)."
+    },
+    "hypotheses": [
+      {
+        "rank": 1,
+        "factor": "ecpm",
+        "label": "eCPM",
+        "confidencePct": 79.8,
+        "why": "Selected as primary culprit from revenue-identity walk. eCPM moved -15.4% vs baseline. Top slice: Category=ecommerce (1.5% contribution)."
+      },
+      {
+        "rank": 2,
+        "factor": "requests",
+        "label": "Requests",
+        "confidencePct": 19.2,
+        "why": "Requests moved +3.7% vs baseline. Demoted because absolute % move is smaller than the primary factor."
+      }
+    ],
+    "evidence": {
+      "hash": "0daed60dd57db7579b099edc833d6289e6ff2dbd5374b7c421ca50507cfc7e88",
+      "generatedAt": "2026-08-02T04:43:01Z",
+      "sources": [
+        "insightiq.alerts_live",
+        "insightiq.metric_hourly_snapshot",
+        "insightiq.alert_dimension_contributors",
+        "insightiq.alert_observations"
+      ]
+    }
+  },
+  "immutableTrace": [
+    {
+      "step": "alerts_live",
+      "detail": "Loaded alert b6b57556-9484-d041-33a5-5bab862dfe4d advertiser=adv_0000 metric=revenue z=-6.40",
+      "durationMs": 729
+    },
+    {
+      "step": "baseline",
+      "detail": "metric_hourly_snapshot vs same_hour_4w_seasonality (+ flat prior-day check)",
+      "durationMs": 1689
+    },
+    {
+      "step": "decompose",
+      "detail": "Revenue identity walk; culprit=ecpm",
+      "durationMs": 1
+    },
+    {
+      "step": "slice",
+      "detail": "Loaded contributors + snapshot dims (8)",
+      "durationMs": 3210
+    },
+    {
+      "step": "seasonality",
+      "detail": "Same-hour × 4-week seasonality applied (flat prior-day was -4.6%). Residual vs seasonal baseline is -12.5% — still anomalous.",
+      "durationMs": 0
+    },
+    {
+      "step": "evidence",
+      "detail": "Packaged evidence + waterfall + counterfactual + hypotheses",
+      "durationMs": 250
+    },
+    {
+      "step": "narrate",
+      "detail": "Narration deferred to Node/Gemini from evidence only",
+      "durationMs": 0
+    }
+  ],
+  "evidenceHash": "0daed60dd57db7579b099edc833d6289e6ff2dbd5374b7c421ca50507cfc7e88",
+  "evidence": {
+    "hash": "0daed60dd57db7579b099edc833d6289e6ff2dbd5374b7c421ca50507cfc7e88",
+    "generatedAt": "2026-08-02T04:43:01Z",
+    "sources": [
+      "insightiq.alerts_live",
+      "insightiq.metric_hourly_snapshot",
+      "insightiq.alert_dimension_contributors",
+      "insightiq.alert_observations"
+    ]
+  },
+  "seasonality": {
+    "status": "residual_remains",
+    "flatDeltaPct": -4.6,
+    "seasonalDeltaPct": -12.5,
+    "detail": "Same-hour × 4-week seasonality applied (flat prior-day was -4.6%). Residual vs seasonal baseline is -12.5% — still anomalous."
+  },
+  "waterfall": [
+    {
+      "factor": "requests",
+      "label": "Requests",
+      "revenueImpact": 0,
+      "sharePct": 0,
+      "status": "neutral"
+    },
+    {
+      "factor": "fill_rate",
+      "label": "Fill rate",
+      "revenueImpact": 0,
+      "sharePct": 0,
+      "status": "ruled_out"
+    },
+    {
+      "factor": "render_rate",
+      "label": "Render rate",
+      "revenueImpact": 0,
+      "sharePct": 0,
+      "status": "ruled_out"
+    },
+    {
+      "factor": "ecpm",
+      "label": "eCPM",
+      "revenueImpact": -0.5004,
+      "sharePct": 100,
+      "status": "culprit"
+    }
+  ],
+  "counterfactual": {
+    "culprit": "ecpm",
+    "observedRevenue": 3.5147,
+    "counterfactualRevenue": 4.1569,
+    "recoveredRevenue": 0.6422,
+    "recoveredPctOfGap": 128.3,
+    "detail": "If eCPM had stayed at baseline, estimated revenue would be 4.1569 instead of 3.5147 (recover 128.3% of the gap)."
+  },
+  "hypotheses": [
+    {
+      "rank": 1,
+      "factor": "ecpm",
+      "label": "eCPM",
+      "confidencePct": 79.8,
+      "why": "Selected as primary culprit from revenue-identity walk. eCPM moved -15.4% vs baseline. Top slice: Category=ecommerce (1.5% contribution)."
+    },
+    {
+      "rank": 2,
+      "factor": "requests",
+      "label": "Requests",
+      "confidencePct": 19.2,
+      "why": "Requests moved +3.7% vs baseline. Demoted because absolute % move is smaller than the primary factor."
+    }
+  ]
+}

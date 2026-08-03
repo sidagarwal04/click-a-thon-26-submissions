@@ -1,0 +1,58 @@
+{
+  "spec_name": "02_group_family",
+  "database": "atlys",
+  "base_table": "group_family",
+  "discriminator": "payload.event",
+  "event_types": ["group_started", "traveller_added", "traveller_removed", "group_submitted"],
+  "aggregate_table": "group_family_daily",
+  "materialized_view": "group_family_daily_mv",
+  "unit_of_analysis": "group_id",
+  "metrics": [
+    {
+      "name": "group_completion_rate",
+      "pm_question": "Completion rate (group_started -> group_submitted) by group size — where do large groups fall off?",
+      "formula": "uniq(group_id WHERE event='group_submitted') / uniq(group_id WHERE event='group_started')",
+      "numerator_path": "payload.group_id (event=group_submitted)",
+      "denominator_path": "payload.group_id (event=group_started)",
+      "dimensions": ["group_size", "destination", "event_date"],
+      "served_by": "group_family_daily_mv",
+      "confirmed_by_user": true
+    },
+    {
+      "name": "traveller_churn",
+      "pm_question": "Travellers added vs removed per group; add/remove churn?",
+      "formula": "sum(event='traveller_added') vs sum(event='traveller_removed')",
+      "numerator_path": "count(event=traveller_added)",
+      "denominator_path": "count(event=traveller_removed)",
+      "dimensions": ["group_size", "destination", "event_date"],
+      "served_by": "group_family_daily_mv",
+      "confirmed_by_user": false
+    },
+    {
+      "name": "docs_incomplete_share",
+      "pm_question": "Is per-traveller docs_complete the bottleneck for big groups?",
+      "formula": "sum(event='traveller_added' AND docs_complete=false) / sum(event='traveller_added')",
+      "numerator_path": "count(event=traveller_added AND docs_complete=false)",
+      "denominator_path": "count(event=traveller_added)",
+      "dimensions": ["group_size", "destination", "event_date"],
+      "served_by": "group_family_daily_mv",
+      "confirmed_by_user": false
+    },
+    {
+      "name": "group_apps_by_destination",
+      "pm_question": "Which destinations/segments drive group applications?",
+      "formula": "uniq(group_id WHERE event='group_started')",
+      "numerator_path": "payload.group_id (event=group_started)",
+      "denominator_path": null,
+      "dimensions": ["destination", "group_size", "event_date"],
+      "served_by": "group_family_daily_mv",
+      "confirmed_by_user": false
+    }
+  ],
+  "deviations": [
+    "D1: skip-indexed paths (os, docs_complete) are typed in the JSON hint (required — untyped set/bloom on JSON paths errors with Code 36).",
+    "D2: aggregate table TTL keyed on event_date (not ch_insert_time) since the agg has no insert watermark.",
+    "D3: group_id indexed via CAST(...) bloom_filter because it is the metric unit but not in the ORDER BY key.",
+    "D4: MV uses uniqIfState (not uniqState+if(...NULL)) to keep AggregateFunction(uniq, String) non-nullable and match the target column type."
+  ]
+}

@@ -1,0 +1,80 @@
+version: 1.3.13
+
+cache: true
+
+interface:
+  customWelcome: "Ask FeatureLens what changed, why it matters, and what to do next."
+  modelSelect: false
+  parameters: false
+  presets: false
+  mcpServers:
+    use: true
+  defaultPinnedTools:
+    - mcp
+
+endpoints:
+  custom:
+    - name: "OpenRouter"
+      apiKey: "${OPENROUTER_KEY}"
+      baseURL: "https://openrouter.ai/api/v1"
+      models:
+        default:
+          - "openai/gpt-4.1-mini"
+        fetch: false
+      titleConvo: true
+      titleModel: "openai/gpt-4.1-mini"
+      dropParams:
+        - "stop"
+      modelDisplayLabel: "FeatureLens AI"
+
+modelSpecs:
+  enforce: true
+  prioritize: true
+  list:
+    - name: "featurelens-product-intelligence"
+      label: "FeatureLens"
+      description: "Product intelligence grounded in governed ClickHouse evidence."
+      default: true
+      showOnLanding: true
+      artifacts: true
+      mcpServers:
+        - "featurelens"
+      conversation_starters:
+        - "Which features need product attention?"
+        - "Compare conversion across all released features."
+        - "Where is Express Checkout underperforming?"
+        - "What changed in the latest context version?"
+      preset:
+        endpoint: "OpenRouter"
+        model: "openai/gpt-4.1-mini"
+        temperature: 0.2
+        instructions: |
+          You are the FeatureLens Product Intelligence assistant for Product Managers.
+          Always use FeatureLens MCP tools for business and analytics questions.
+          Use ask_feature_portfolio for questions spanning features.
+          Use ask_business_question for a single known feature.
+          Preserve active_features when answering contextual follow-up questions.
+          Never invent metrics, event meanings, SQL results, or schema state.
+          Include context version, confidence, evidence, reasoning, and next action.
+
+mcpSettings:
+  allowedAddresses:
+    - "host.docker.internal:8080"
+    - "featurelens:8080"
+
+mcpServers:
+  featurelens:
+    title: "FeatureLens Context Agents"
+    description: "Approval-gated instrumentation, versioned business context, and role-aware Atlys analytics."
+    type: streamable-http
+    url: "${FEATURELENS_MCP_URL}"
+    requiresOAuth: false
+    timeout: 120000
+    initTimeout: 10000
+    serverInstructions: |
+      You are the Product Manager interface to FeatureLens.
+      Use submit_feature when a Markdown feature spec and NDJSON sample are supplied.
+      Never claim schema execution before approve_schema succeeds.
+      Use ask_feature_portfolio for cross-feature analytics and preserve active_features on follow-ups.
+      Use ask_business_question for single-feature analytics; do not invent event semantics or query raw event tables outside the published context contract.
+      State the context version, schema version, confidence, evidence, and recommended action in every business answer.

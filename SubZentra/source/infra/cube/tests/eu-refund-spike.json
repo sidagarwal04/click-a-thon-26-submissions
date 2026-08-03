@@ -1,0 +1,35 @@
+{
+  "query": {
+    "measures": [
+      "Commerce.orderCount",
+      "Commerce.refundAmount",
+      "Commerce.refundRate"
+    ],
+    "timeDimensions": [
+      {
+        "dimension": "Commerce.orderedAt",
+        "granularity": "month",
+        "dateRange": ["2026-06-01", "2026-07-31"]
+      }
+    ],
+    "filters": [
+      {
+        "member": "Commerce.region",
+        "operator": "equals",
+        "values": ["EU"]
+      }
+    ]
+  },
+  "expected": {
+    "2026-06": {
+      "orderCount": 4,
+      "refundAmount": 20,
+      "refundRate": 25
+    },
+    "2026-07": {
+      "orderCount": 4,
+      "refundAmount": 260,
+      "refundRate": 75
+    }
+  }
+}

@@ -1,0 +1,73 @@
+/**
+ * useDLGet<%= className %>Query Hook
+ *
+ * Fetches a single <%= name %> by ID.
+ */
+
+import type { ApiQueryDescriptor } from '@open-zentra/foundation-data-model';
+import {
+  useDLGetOne,
+  type QueryDescriptorArgs,
+  type UseDLGetOptions,
+} from '@open-zentra/foundation-data-layer';
+import type { <%= className %> } from '<%= dataModel %>';
+import { <%= propertyName %>Keys } from './<%= fileName %>-keys';
+
+type <%= className %>DetailArgs = Readonly<Record<string, unknown>> & {
+  readonly <%= idField %>: string;
+};
+
+export const default<%= className %>DetailQuery: ApiQueryDescriptor<
+  <%= className %>DetailArgs,
+  <%= className %>
+> = {
+  path: (args) => `<%= endpoint %>/${String(args.<%= idField %>)}`,
+};
+
+/**
+ * Options for useDLGet<%= className %>Query
+ */
+export type UseDLGet<%= className %>QueryOptions<
+  TQuery extends ApiQueryDescriptor<<%= className %>DetailArgs, <%= className %>>
+> = Omit<
+  UseDLGetOptions<TQuery, <%= className %>>,
+  'query' | 'args' | 'table' | 'entityId' | 'queryKey'
+>;
+
+/**
+ * Input for useDLGet<%= className %>Query
+ */
+export interface UseDLGet<%= className %>QueryInput<
+  TQuery extends ApiQueryDescriptor<<%= className %>DetailArgs, <%= className %>>
+> {
+  readonly query?: TQuery;
+  readonly args?: Omit<QueryDescriptorArgs<TQuery>, '<%= idField %>'>;
+  readonly options?: UseDLGet<%= className %>QueryOptions<TQuery>;
+}
+
+/**
+ * Fetch a single <%= name %> by ID
+ */
+export function useDLGet<%= className %>Query<
+  TQuery extends ApiQueryDescriptor<<%= className %>DetailArgs, <%= className %>> = typeof default<%= className %>DetailQuery
+>(
+  id: string,
+  input: UseDLGet<%= className %>QueryInput<TQuery> = {}
+) {
+  const { query, args, options } = input;
+  const resolvedQuery = (query ?? default<%= className %>DetailQuery) as TQuery;
+  const resolvedArgs = {
+    ...(args ?? {}),
+    <%= idField %>: id,
+  } as QueryDescriptorArgs<TQuery>;
+
+  return useDLGetOne<TQuery, <%= className %>>({
+    query: resolvedQuery,
+    args: resolvedArgs,
+    table: '<%= propertyName %>s',
+    entityId: id,
+    queryKey: <%= propertyName %>Keys.detail(id),
+    ...options,
+    enabled: Boolean(id) && (options?.enabled ?? true),
+  });
+}

@@ -1,0 +1,160 @@
+CLICKSTACK HOSTED DASHBOARDS — full signed-in tile verification + user-level build-out
+target:  ClickHouse Cloud service c483b8ed-1c82-4b6a-af31-08a0725362ad (HyperDX built in)
+date:    2026-08-01 · every number below read back THROUGH HyperDX's own query path
+         (clickstack MCP query_tile / clickstack_table), never asserted from ClickHouse directly.
+scope:   Q13 — fix broken user sources, verify all tiles, build the 7th (user-level) dashboard,
+         add the caution captions. Final state: 7 dashboards · 53 tiles · 24 sources · 5 searches.
+
+════════════════════════════════════════════════════════════════════════════════
+0. THE REPORTED BUG — user sources SELECTing `concurrent` from `concurrent_users` views
+════════════════════════════════════════════════════════════════════════════════
+
+Audited ALL 24 persisted sources (control-plane GET /clickstack/sources) against the
+live view columns (system.columns): defaultTableSelectExpression + timestamp expression
+token-checked per source.
+
+  RESULT: 0 broken sources. The two user sources already read `concurrent_users`:
+    User concurrency (minute)       → sonyliv.v_user_concurrency_minute_total
+                                      select: "minute, concurrent_users"        ✓
+    User concurrency by dimension   → sonyliv.v_user_concurrency_minute
+                                      select: "minute, platform, country, content_id,
+                                               concurrent_users"                ✓
+  The PUT-patch recorded in docs/worksheets/2026-08-01-clickstack-dashboards.md
+  ("sources PUT-patched, script corrected, tile re-verified") is genuinely persisted on
+  the control plane — the brief's premise was stale by one session.
+
+Proven returning rows end to end through HyperDX's query path (2026-07-14 → 2026-07-27):
+  User concurrency (minute):      max(concurrent_users) = 2,844  over 3,732 rows   ✓
+  User concurrency by dimension:  10 platform groups, 91,692 rows read; NOTE its
+    grain is (platform, country, content_id, minute) so max() per platform is the max
+    single COMBINATION (ANDROID_PHONE 308) — correct for that view, and exactly why the
+    user-level dashboard does NOT chart this source per dimension (the 285-vs-1,837 trap).
+
+All 5 saved searches token-checked against their sources' real columns: all ok.
+
+════════════════════════════════════════════════════════════════════════════════
+1. PRE-CHANGE SWEEP — all 41 tiles of the six existing dashboards
+════════════════════════════════════════════════════════════════════════════════
+
+Product dashboards verified over the July data window; observability dashboards over
+operator time (2026-07-31 → 2026-08-01). PASS = ≥1 real data row, no query error.
+
+SonyLIV concurrency (10/10 PASS)
+  Peak — ACCURATE                    2,917                        ✓ the graded number
+  Peak — stateless baseline          2,894                        ✓
+  Peak — NAIVE session-span          3,743 (its OWN peak @10:59)  ✓
+  Peak — distinct users              2,844                        ✓ ← the tile the bug blocked
+  ACCURATE money chart               31 pts, peak 2,917 @ 10:56   ✓
+  ACCURATE / STATELESS / NAIVE trio  at 10:56: 2,917 / 2,894 / 3,708  ✓ (21.3% over-count)
+  Distinct users curve               2,844 @ 10:56                ✓
+  Rolling 15-min peak                holds 2,917 through 11:10    ✓
+
+SonyLIV drilldown — sessions & users (8/8 PASS)
+  Sessions vs users                  2,917 / 2,844 @ 10:56        ✓
+  by platform                        ANDROID_PHONE 1,836 @ 10:56  ✓
+  by country                         india 2,917                  ✓
+  by app_version                     6.34.8 → 1,492               ✓
+  by audio_language                  hin 1,781 · HIN 328 · hin-hindi 100 · hin-Hindi 1
+                                     (the documented un-normalised Hindi-four-ways)  ✓
+  by subtitle_language               UNK 2,362                    ✓
+  by player_version                  1.8.2 → 2,427                ✓
+  by title (top 20)                  1,389 title rows @ peak min  ✓
+
+SonyLIV content (7/7 PASS)
+  Top titles by peak                 "wekek ked" 392 @ peak min   ✓
+  NOW by title / video_type / category  return rows; current=0 for most labels — as_of
+    is each label's LAST minute on the frozen file (~11:31), where most labels are idle.
+    Documented behaviour, not a defect.                            ✓
+  by video_type                      vod 1,464 · live 394 · "" 51 (blank series real) ✓
+  by category (top 20)               top cdbgg 389                ✓
+  Top titles over time               rows returned                ✓
+
+SonyLIV time-window trend (4/4 PASS)
+  Rolling peaks                      peak_5m = peak_15m = 2,917   ✓
+  Rolling averages                   avg_5m ≈ 2,884 @ 11:00       ✓
+  Tumbling 15-min (raw SQL, parameterised view)  peak 2,917 @ window 10:45  ✓
+  Tumbling 1-hour (cc_hour_agg)      hour peak 2,917 @ 10:00      ✓
+
+SonyLIV pipeline health (cloud) (7/7 PASS)
+  Watermark sealed lag               −116 s (NEGATIVE = healthy)  ✓
+  Hour tier last hour complete       0 — the frozen file's last hour (11:00–11:31) is
+    genuinely partial; expected on a frozen dataset               ✓
+  Raw→sealed gap                     1.93 min                     ✓
+  Build-stage duration / rows        e.g. session_intervals 2,582 ms · 127,468 rows   ✓
+  Reconcile gate runs                e.g. 53 runs in the 13:00 bucket                 ✓
+  Query exceptions                   3 real exceptions on 2026-08-01 (10:00/11:00/16:00
+    buckets) — other worktrees' operator queries failing, i.e. the tile OBSERVING
+    correctly, not a broken tile. Left visible on purpose.        ✓
+
+SonyLIV query cost (5/5 PASS)
+  Latency p95/p50/max                worst hour 12:00 → p95 3,282 ms / p50 46 ms      ✓
+  BYTES read                         peak hour 13:00 → 50.7 GB total, 1.10 GB max     ✓
+  Rows read                          660.6 M total @ 13:00        ✓
+  Peak memory                        ≈1.78 GB max                 ✓
+  Heaviest query shapes              top shape 81.9 GB / 101 runs ✓
+
+════════════════════════════════════════════════════════════════════════════════
+2. THE BUILD-OUT — captions + the 7th dashboard
+════════════════════════════════════════════════════════════════════════════════
+
+tools/clickstack-cloud.sh extended (still the single source of truth, still idempotent,
+still PUT-converges). Run with CLICKSTACK_SKIP_APPLY=1 — a NEW guard added this session
+so a control-plane-only run cannot touch the graded database at all (the DDL step is
+skipped; sql/87_viz.sql views were verified already present). Validate → PUT/POST:
+
+  updated  SonyLIV concurrency          (+ caption "The gap IS the thesis")
+  updated  SonyLIV drilldown            (+ caption "⚠ Peak is NOT summable across dimensions")
+  updated  SonyLIV content              (+ caption "⚠ Read the labels carefully")
+  updated  SonyLIV time-window trend    (unchanged)
+  updated  SonyLIV pipeline health      (unchanged)
+  updated  SonyLIV query cost           (unchanged)
+  created  SonyLIV user-level           https://hyperdx.clickhouse.cloud/dashboards/6a6e289aa561469a8f4ee7bd
+
+Caption figures corrected against docs/EXPLAINER.md §E.1 (re-measured 2026-08-01):
+peak-not-summable is +2.4% (platform) and +94.7% (content) — NOT the older
++2.0% / +53.6% pair the task brief quoted. 33.6% excluded watch time and the 21.3%
+over-count are carried as stated.
+
+════════════════════════════════════════════════════════════════════════════════
+3. POST-CHANGE VERIFICATION — SonyLIV user-level, every tile signed-in
+════════════════════════════════════════════════════════════════════════════════
+
+(9 tiles: 1 markdown caption — static, no query — and 8 data tiles, all PASS.)
+
+  Peak — concurrent users (uniqExact)          2,844               ✓
+  Peak — concurrent sessions (ACCURATE)        2,917               ✓
+  Multi-session gap at the accurate peak
+    minute (raw-SQL join, sessions − users)    73                  ✓
+  Users vs sessions over time (raw-SQL join)   @10:56: 2,844 / 2,917; gap visible on
+                                               every bucket        ✓
+  Sessions per user ratio                      1.0257 @ 10:56 (peak-window range
+                                               1.0257–1.0322)      ✓
+  Users by platform (count_distinct(user_id)
+    over session-minutes — set cardinality,
+    NOT the by-dimension source's max())       ANDROID_PHONE 1,822 · IPHONE 352 ·
+                                               SONY_ANDROID_TV 232 @ 10:56       ✓
+  Users by country                             india 2,844 @ 10:56 — independently
+    CROSS-CHECKS the uniqExact tier: drilldown count_distinct == v_user_concurrency
+    tier at 1-min zoom, two different aggregation paths, same number.             ✓
+  Users by title (top 20)                      1,389 title rows @ peak min        ✓
+
+Raw-SQL join tiles carry a non-fatal control-plane warning ($__filters/$__sourceTable
+missing): expected and intentional — those tiles JOIN the session tier to the user tier,
+so no single sourceId applies. Dashboard filters (Platform/Country) are wired to the
+session-minutes source and apply to the three per-dimension tiles only; the caption says
+users are not summable across those splits.
+
+════════════════════════════════════════════════════════════════════════════════
+4. LIMITS OF THIS EVIDENCE
+════════════════════════════════════════════════════════════════════════════════
+
+- Pixel screenshots of the HyperDX UI require console SSO (a human login) — verified
+  again this session; the API key drives the control plane, not the browser session.
+  What IS committed: dashboard-preview.png rendered headless from the SAME serving
+  views the tiles read (see README.md in this directory), plus this signed-in,
+  through-HyperDX query evidence for every tile.
+- Tile IDs regenerate on every PUT — reference dashboards by name/URL, never by tile id.
+- Dashboard default time range is not settable via API: product dashboards need
+  2026-07-14 → 2026-07-26 set by hand before a demo; observability dashboards use a
+  recent range. This remains the #1 "everything looks broken" trap, after the
+  cold-service one (warm with `tools/ch -c "SELECT 1"` first; ~29 s when idle).

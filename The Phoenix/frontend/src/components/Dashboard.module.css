@@ -1,0 +1,127 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  flex: 1;
+}
+
+/* The rail column now holds the dataset switch above the filters. They share the seam: one
+   border-right for the whole column, so the switch reads as the first control of the rail rather
+   than a separate panel stacked on it. FilterRail keeps its own padding; the switch gets matching
+   padding here and a hairline under it. */
+.railColumn {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  min-width: 240px;
+}
+
+.railColumn > :first-child {
+  padding: 1.3rem 1.2rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* FilterRail draws its own right border; inside the column that would double the seam. */
+.railColumn > :nth-child(2) {
+  border-right: 0;
+}
+
+.main {
+  padding: 1.3rem 1.6rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.errorTag {
+  font-size: 0.75rem;
+  color: var(--alert);
+  letter-spacing: 0.04em;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+/* Hero row and secondary row are each ONE instrument strip, not a grid of separate cards and not
+   a panel floating in its own tinted box either: no fill, no enclosing border, no radius, just
+   the two hairline rules a strip of gauges would be scored by, with the same dividers between
+   segments. The chassis surface (page background + grid texture) runs straight through. A row of
+   boxed KPI cards is the single most generic "AI dashboard" tell there is; a whole screen built
+   from bordered panels is the same tell at a larger scale. */
+.statsHero,
+.statsSecondary {
+  display: grid;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.statsHero {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.statsSecondary {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.statsHero > *,
+.statsSecondary > * {
+  border-left: 1px solid var(--line);
+}
+
+.statsHero > *:first-child,
+.statsSecondary > *:first-child {
+  border-left: none;
+}
+
+/* Diagnostics: engineering readouts, not audience metrics, kept small, quiet, and out of the
+   way at the end of the group instead of matching the hero cards' visual weight. */
+.statsMeta {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* Query provenance under the readouts: the file that produced the numbers above it. */
+.provenance {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.6;
+  color: var(--ink-faint);
+}
+
+.provenance code {
+  color: var(--ink-dim);
+}
+
+.footnote {
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--ink-dim);
+  max-width: 90ch;
+}
+
+.footnote code {
+  color: var(--cool);
+}
+
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+}

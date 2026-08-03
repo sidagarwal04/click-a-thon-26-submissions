@@ -1,0 +1,142 @@
+# LibreChat — Clickathon multi-agent RCA
+# Adapted from https://github.com/ClickHouse/agentic-data-stack
+#
+# ModelSpecs use persisted Agents (endpoint: agents + agent_id).
+# Orchestrator spawns Detector / Factor / Localizer as subagents.
+# Glossary: Clickathon-RCA tools locked to sidagarwal04/click-a-thon-2026 only
+# (no general GitHub MCP — agents cannot query other repos).
+# Re-seed:  uv run python stack/scripts/seed_librechat_agents.py
+# then: docker compose -f stack/docker-compose.yml --env-file .env up -d --force-recreate librechat
+
+version: 1.3.1
+
+cache: true
+
+interface:
+  fileCitations: true
+  modelSelect: true
+  endpointsMenu: true
+  # gpt-5.6-sol rejects non-default sampling params (e.g. temperature 0.2)
+  parameters: false
+  agents: true
+  mcpServers:
+    use: true
+    share: false
+    create: true
+    public: false
+
+# ModelSpecs bind to persisted Agents (endpoint agents + agent_id).
+# Orchestrator subagents: Detector, Factor Analyst, Localizer.
+modelSpecs:
+  prioritize: true
+  enforce: false
+  addedEndpoints:
+    - agents
+    - openAI
+  list:
+    - name: "inmobi-rca-orchestrator"
+      label: "InMobi RCA Orchestrator"
+      description: "Delegates to Detector / Factor / Localizer; full-dataset anomaly scan"
+      default: true
+      mcpServers:
+        - Clickathon-RCA
+        - ClickHouse-Cloud-MCP
+      subagents:
+        enabled: true
+        allowSelf: false
+        agent_ids:
+          - "agent_TX5huA3RlM2sfaJm7n0HS"
+          - "agent_0H4Vcbkf4zITmExnI5fFq"
+          - "agent_wEmJdxuv3dygzCG6HBO0t"
+      preset:
+        endpoint: "agents"
+        agent_id: "agent_vDyEt-xuvWe81OHZxFoXU"
+        model: "gpt-5.6-sol"
+
+    - name: "inmobi-rca-detector"
+      label: "RCA Detector"
+      description: "Full-dataset or ranged same-DOW anomaly scan"
+      mcpServers:
+        - Clickathon-RCA
+        - ClickHouse-Cloud-MCP
+      preset:
+        endpoint: "agents"
+        agent_id: "agent_TX5huA3RlM2sfaJm7n0HS"
+        model: "gpt-5.6-sol"
+
+    - name: "inmobi-rca-factor"
+      label: "RCA Factor Analyst"
+      description: "Requests vs fill vs eCPM decomposition"
+      mcpServers:
+        - Clickathon-RCA
+      preset:
+        endpoint: "agents"
+        agent_id: "agent_0H4Vcbkf4zITmExnI5fFq"
+        model: "gpt-5.6-sol"
+
+    - name: "inmobi-rca-localizer"
+      label: "RCA Localizer"
+      description: "Dimension and combo contribution drill"
+      mcpServers:
+        - Clickathon-RCA
+        - ClickHouse-Cloud-MCP
+      preset:
+        endpoint: "agents"
+        agent_id: "agent_wEmJdxuv3dygzCG6HBO0t"
+        model: "gpt-5.6-sol"
+
+endpoints:
+  agents:
+    recursionLimit: 50
+    maxRecursionLimit: 100
+    disableBuilder: false
+    capabilities:
+      - tools
+      - actions
+      - context
+      - chain
+      - subagents
+      - skills
+      - artifacts
+      - deferred_tools
+  openAI:
+    fetch: true
+  anthropic:
+    fetch: true
+  google:
+    fetch: true
+
+mcpSettings:
+  allowedDomains:
+    - "http://clickhouse-mcp:8000"
+    - "http://rca-mcp:8001"
+    - "http://host.docker.internal:8001"
+    - "https://mcp.clickhouse.cloud/mcp"
+    - "host.docker.internal"
+
+mcpServers:
+  Clickathon-RCA:
+    type: streamable-http
+    url: http://rca-mcp:8001/mcp
+    timeout: 120000
+    headers: {}
+    serverInstructions: |
+      Metric definitions come ONLY from get_metrics_glossary_tool /
+      get_clickathon_github_file, which are locked to
+      sidagarwal04/click-a-thon-2026 (InMobi/metrics_glossary.md).
+      Incidents come ONLY from list_all_anomalies (eda.rca_incidents),
+      built by clickathon materialize — do not invent anomalies.
+      Dig deeper with ClickHouse MCP on rca_segment_day / rca_combo_day.
+      Verify tools/SQL via list_langfuse_sessions_tool / get_langfuse_session_tool /
+      list_langfuse_clickhouse_queries_tool (Langfuse).
+      Do not invent formulas. Sum/sum ratios; NAM not NA.
+  ClickHouse-Cloud-MCP:
+    type: streamable-http
+    url: http://clickhouse-mcp:8000/mcp
+    timeout: 60000
+    headers:
+      Authorization: "Bearer ${CLICKHOUSE_MCP_AUTH_TOKEN}"
+  ClickHouse-Cloud-Hosted:
+    type: streamable-http
+    url: https://mcp.clickhouse.cloud/mcp
+    timeout: 60000

@@ -1,0 +1,54 @@
+/* Not a boxed tab-bank: no enclosing border, no fill. Each switch is scored by its own
+   bottom rule and the row shares one hairline underneath, the same seam-not-plate language
+   as the rest of the chassis, the active state is which rule lights up, not which cell has
+   a background. */
+.bank {
+  display: inline-flex;
+  gap: 1.7rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.switch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.5rem 0 0.6rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.switch:hover {
+  border-bottom-color: var(--line-bright);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  color: var(--ink-dim);
+}
+
+.hint {
+  font-size: 0.6rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.switch.active {
+  border-bottom-color: var(--signal);
+}
+
+.switch.active .label {
+  color: var(--ink);
+}
+
+.switch.active .hint {
+  color: var(--signal);
+}

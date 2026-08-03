@@ -1,0 +1,63 @@
+{
+  "spec": "07_landing_page_scrolled",
+  "database": "atlys",
+  "base_table": "landing_page_scrolled",
+  "event": "landing_page_scrolled",
+  "agg_table": "landing_scroll_engagement_agg",
+  "mv": "landing_scroll_engagement_agg_mv",
+  "metrics": [
+    {
+      "name": "median_scroll_and_time_by_page_version",
+      "pm_question": "What is the median scroll_depth_pct and time_on_page_s by page_version? Does v4 drive deeper engagement than v3?",
+      "formula": "quantileMerge(0.5)(scroll_median) and quantileMerge(0.5)(time_median) grouped by page_version",
+      "numerator_paths": ["payload.scroll_depth_pct", "payload.time_on_page_s"],
+      "dimensions": ["page_version"],
+      "served_by_mv": "landing_scroll_engagement_agg_mv",
+      "status": "clear"
+    },
+    {
+      "name": "scroll_depth_threshold_to_application_conversion",
+      "pm_question": "Is there a scroll-depth threshold above which application_started conversion is significantly higher?",
+      "formula": "conversion = distinct users in 10_application_started / distinct users in landing_page_scrolled, bucketed by scroll_depth_pct band (e.g. 0-25,25-50,50-75,75-100)",
+      "numerator_paths": ["10_application_started.payload.user_id"],
+      "denominator_paths": ["landing_page_scrolled.payload.user_id"],
+      "dimensions": ["scroll_depth_pct_band"],
+      "served_by_mv": null,
+      "cross_spec": "10_application_started",
+      "status": "query-time-join",
+      "note": "Ambiguous + cross-spec; resolved via query-time join, NO MV (consistent with spec 08 conversion metrics)."
+    },
+    {
+      "name": "paid_vs_organic_engagement",
+      "pm_question": "Do paid users (gclid/fbclid) engage differently with the landing page compared to organic users?",
+      "formula": "median/avg scroll_depth_pct and time_on_page_s grouped by is_paid (gclid!='' OR fbclid!='')",
+      "numerator_paths": ["payload.scroll_depth_pct", "payload.time_on_page_s"],
+      "dimensions": ["is_paid"],
+      "served_by_mv": "landing_scroll_engagement_agg_mv",
+      "status": "clear",
+      "note": "Engagement half MV-served. Conversion half is cross-spec query-time join to 10_application_started."
+    },
+    {
+      "name": "destinations_by_avg_scroll_depth",
+      "pm_question": "Which destinations have the highest average scroll depth, suggesting strong content interest?",
+      "formula": "avgMerge(scroll_avg) grouped by destination, ordered desc",
+      "numerator_paths": ["payload.scroll_depth_pct"],
+      "dimensions": ["destination"],
+      "served_by_mv": "landing_scroll_engagement_agg_mv",
+      "status": "clear"
+    },
+    {
+      "name": "mobile_vs_desktop_engagement",
+      "pm_question": "Does mobile vs desktop show a meaningful difference in scroll depth or time-on-page?",
+      "formula": "median/avg scroll_depth_pct and time_on_page_s grouped by device_type",
+      "numerator_paths": ["payload.scroll_depth_pct", "payload.time_on_page_s"],
+      "dimensions": ["device_type"],
+      "served_by_mv": "landing_scroll_engagement_agg_mv",
+      "status": "clear"
+    }
+  ],
+  "deviations": [
+    "D1: skip-indexed string/bool paths typed in payload(...); numeric metric paths untyped and minmax-indexed via CAST(...).",
+    "D2: agg TTL keyed on agg_insert_time DEFAULT now64(3), not event day."
+  ]
+}

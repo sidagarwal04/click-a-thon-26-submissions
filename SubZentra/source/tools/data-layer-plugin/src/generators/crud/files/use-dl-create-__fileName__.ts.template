@@ -1,0 +1,50 @@
+/**
+ * useDLCreate<%= className %> Hook
+ *
+ * Creates a new <%= name %>.
+ */
+
+import type { ApiMutationDescriptor } from '@open-zentra/foundation-data-model';
+import {
+  useDLCreate,
+  type MutationDescriptorArgs,
+  type MutationDescriptorData,
+  type UseDLCreateOptions,
+} from '@open-zentra/foundation-data-layer';
+import { <%= propertyName %>Keys } from './<%= fileName %>-keys';
+
+export const default<%= className %>CreateMutation: ApiMutationDescriptor = {
+  method: 'POST',
+  path: '<%= endpoint %>',
+  body: (args) => args,
+};
+
+/**
+ * Options for useDLCreate<%= className %>
+ */
+export type UseDLCreate<%= className %>Options<
+  TMutation extends ApiMutationDescriptor = typeof default<%= className %>CreateMutation
+> = Omit<
+  UseDLCreateOptions<TMutation, MutationDescriptorData<TMutation>, MutationDescriptorArgs<TMutation>>,
+  'mutation' | 'table' | 'listQueryKey'
+> & {
+  readonly mutation?: TMutation;
+};
+
+/**
+ * Create a new <%= name %>
+ */
+export function useDLCreate<%= className %><
+  TMutation extends ApiMutationDescriptor = typeof default<%= className %>CreateMutation
+>(
+  options: UseDLCreate<%= className %>Options<TMutation>
+) {
+  const { mutation = default<%= className %>CreateMutation as TMutation, ...rest } = options;
+
+  return useDLCreate<TMutation, MutationDescriptorData<TMutation>, MutationDescriptorArgs<TMutation>>({
+    ...rest,
+    mutation,
+    table: '<%= propertyName %>s',
+    listQueryKey: <%= propertyName %>Keys.list(),
+  });
+}

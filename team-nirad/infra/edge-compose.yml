@@ -1,0 +1,180 @@
+# The OSS edge stack -- identical on a laptop (WSL docker) and on the demo
+# VM. One file, so "works on my machine" and "works on the demo box" are the
+# same claim.
+#
+#   docker compose --env-file .env.edge -f edge-compose.yml up -d
+#
+# Secrets live in .env.edge (never committed): GOOGLE_KEY, CH_PASSWORD.
+# The analytics dashboard itself is NOT here -- it is stateless and runs on
+# Cloud Run; this stack is ingest (Redpanda/Redis), observability
+# (ClickStack, Langfuse) and the chat surface (LibreChat + MCP).
+
+services:
+  # ---- streaming ingest ---------------------------------------------------
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp=1
+      - --memory=512M
+      - --reserve-memory=0M
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      # Producers run on this host (replay.py / stream_pipeline.py), so the
+      # advertised address stays loopback; nothing brokers from the internet.
+      - --advertise-kafka-addr=PLAINTEXT://127.0.0.1:9092
+    ports: ["9092:9092", "9644:9644"]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports: ["6379:6379"]
+    restart: unless-stopped
+
+  # ---- observability ------------------------------------------------------
+  # ClickStack all-in-one: OTel collector (4317 gRPC / 4318 HTTP) + HyperDX
+  # UI (8080) + an embedded ClickHouse that stores telemetry in its own
+  # otel_* tables. Application traces are exported by scripts/otel.py --
+  # every ClickHouse query the product issues becomes a span, so "show me
+  # the graded run's queries" is a HyperDX search, not an assertion.
+  clickstack:
+    image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one:latest
+    container_name: clickstack
+    environment:
+      # The UI builds its own links (auth redirects included) from this;
+      # the default is localhost:8080, which sends a remote visitor home.
+      FRONTEND_URL: ${CLICKSTACK_PUBLIC_URL:-http://localhost:8080}
+      HYPERDX_APP_URL: ${CLICKSTACK_PUBLIC_URL:-http://localhost:8080}
+    ports: ["8080:8080", "4317:4317", "4318:4318"]
+    restart: unless-stopped
+
+  langfuse-db:
+    image: postgres:15-alpine
+    container_name: langfuse-db
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes: ["langfuse-pg:/var/lib/postgresql/data"]
+    restart: unless-stopped
+
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: langfuse
+    depends_on: [langfuse-db]
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-nirad-clickathon-2026-secret}
+      SALT: ${LANGFUSE_SALT:-nirad-clickathon-2026-salt}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:?set in .env.edge}
+      NEXTAUTH_URL: ${LANGFUSE_PUBLIC_URL:-http://localhost:3000}
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+      # Headless bootstrap: org, project, login and API keys exist from first
+      # boot -- no signup form between a judge and the traces. Keys come from
+      # .env.edge; the same pair is handed to the MCP container below.
+      LANGFUSE_INIT_ORG_ID: team-nirad
+      LANGFUSE_INIT_ORG_NAME: Team Nirad
+      LANGFUSE_INIT_PROJECT_ID: watchhouse
+      LANGFUSE_INIT_PROJECT_NAME: watchhouse
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PK:?set in .env.edge}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SK:?set in .env.edge}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_USER_EMAIL:?set in .env.edge}
+      LANGFUSE_INIT_USER_NAME: Team Nirad
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_USER_PASSWORD:?set in .env.edge}
+    ports: ["3000:3000"]
+    restart: unless-stopped
+
+  # ---- chat surface -------------------------------------------------------
+  librechat-db:
+    image: mongo:7
+    container_name: librechat-db
+    volumes: ["librechat-mongo:/data/db"]
+    restart: unless-stopped
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: librechat
+    depends_on: [librechat-db, mcp]
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://librechat-db:27017/LibreChat
+      ENDPOINTS: google,agents
+      GOOGLE_KEY: ${GOOGLE_KEY:?set in .env.edge}
+      GOOGLE_MODELS: gemini-3.1-flash-lite,gemini-3.1-flash,gemini-3.1-pro
+      ALLOW_REGISTRATION: "true"
+      ALLOW_EMAIL_LOGIN: "true"
+      SEARCH: "false"
+      MEILI_ENABLED: "false"
+      JWT_SECRET: ${LIBRECHAT_JWT_SECRET:-nirad-clickathon-jwt-secret-2026}
+      JWT_REFRESH_SECRET: ${LIBRECHAT_JWT_REFRESH:-nirad-clickathon-refresh-2026}
+      CREDS_KEY: ${LIBRECHAT_CREDS_KEY:?set in .env.edge}
+      CREDS_IV: ${LIBRECHAT_CREDS_IV:?set in .env.edge}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-nirad-litellm-2026}
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+    ports: ["3080:3080"]
+    restart: unless-stopped
+
+  # ---- model plane: LibreChat -> LiteLLM -> Gemini, traced to Langfuse ----
+  # LibreChat does not export model telemetry natively; LiteLLM sits in the
+  # call path and reports real token usage, cost and latency per generation.
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    depends_on: [langfuse]
+    networks:
+      default:
+        aliases: [litellm.internal]
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      GEMINI_API_KEY: ${GOOGLE_KEY:?set in .env.edge}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-nirad-litellm-2026}
+      LANGFUSE_HOST: http://langfuse:3000
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PK:?set in .env.edge}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SK:?set in .env.edge}
+    volumes:
+      - ./litellm.yaml:/app/config.yaml:ro
+    # Published so the dashboard's decline-watch can narrate through it from
+    # Cloud Run; every request requires the master key, like OTLP's ingest key.
+    ports: ["4000:4000"]
+    restart: unless-stopped
+
+  # ---- the data tools LibreChat calls -------------------------------------
+  # Same tool definitions as `python scripts/mcp_server.py` on stdio; the
+  # transport is the only difference. On this network LibreChat reaches it
+  # at http://mcp:8765/mcp -- the container boundary stdio could not cross.
+  mcp:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.mcp
+    container_name: mcp
+    networks:
+      default:
+        # LibreChat's URL validator wants a dotted hostname; a bare service
+        # name reads as "not a domain" and is refused before any request.
+        aliases: [mcp.internal]
+    environment:
+      CH_HOST: ${CH_HOST:?set in .env.edge}
+      CH_PORT: ${CH_PORT:-8443}
+      CH_SECURE: "1"
+      CH_USER: ${CH_USER:-default}
+      CH_PASSWORD: ${CH_PASSWORD:?set in .env.edge}
+      CH_DB: ${CH_DB:-sony}
+      # Every chat tool call becomes a Langfuse trace: the graded evidence
+      # that the chat flow ran through this pipeline, exportable as JSON.
+      LANGFUSE_HOST: http://langfuse:3000
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PK:?set in .env.edge}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SK:?set in .env.edge}
+    ports: ["8765:8765"]
+    restart: unless-stopped
+
+volumes:
+  langfuse-pg:
+  librechat-mongo:

@@ -1,0 +1,102 @@
+# TrueCCU — the whole demo, declaratively.
+#
+#   docker compose up -d --build     start everything
+#   docker compose ps                what is running
+#   docker compose logs -f api       follow a service
+#   docker compose down              stop (KEEPS the telemetry volumes)
+#   docker compose down -v           stop and WIPE telemetry (back to first-run)
+#
+# WHY THIS EXISTS
+# The API and the dashboard were being started by hand in two terminals, so a
+# closed lid, a reboot, or a closed tab took the demo down and nothing brought
+# it back. Every service here declares `restart: unless-stopped`, so Docker
+# restores the whole stack after a restart without anyone remembering the
+# commands.
+#
+# WHAT IS *NOT* HERE
+# ClickHouse Cloud. The SonyLIV data lives there and is not containerised --
+# the problem statement mandates ClickHouse as the primary datastore, and the
+# managed service is what gives us SharedMergeTree plus a real network hop
+# (which is what makes the cross-system traces meaningful). The `clickstack`
+# service below runs a SECOND, unrelated ClickHouse that stores telemetry only
+# and holds zero SonyLIV tables.
+#
+# BEFORE THE FIRST RUN
+#   cp .env.local.example .env.local   and fill in CH_HOST / CH_USER / CH_PASS
+# Then see the note on `clickstack` about first-run setup -- until a team exists
+# in the HyperDX UI, the collector has no OTLP receivers and silently drops
+# every span you send it.
+
+services:
+  # --- telemetry: HyperDX UI + OTel collector + its own ClickHouse + Mongo ---
+  clickstack:
+    image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one
+    container_name: trueccu-clickstack
+    restart: unless-stopped
+    ports:
+      # Host ports are shifted off the documented 8080/4317/4318 on purpose:
+      # 8080 collided with an unrelated local process, and Docker Desktop runs
+      # its own collector on 4317/4318. Container-side ports are unchanged.
+      - "8081:8080"   # HyperDX UI
+      - "4417:4317"   # OTLP gRPC
+      - "4418:4318"   # OTLP HTTP
+    volumes:
+      # NAMED volumes, not the image's anonymous ones. `up` recreates the
+      # container, which orphans an anonymous volume and silently starts from
+      # empty -- taking the pipeline-run traces that are our evidence with it.
+      # Mongo must persist too, or the team, login and ingest key vanish and
+      # the collector loses its receivers all over again.
+      - clickstack-ch:/var/lib/clickhouse
+      - clickstack-mongo:/data/db
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # --- the read-only API in front of the gold serving layer -----------------
+  api:
+    build: ./app/server
+    container_name: trueccu-api
+    restart: unless-stopped
+    env_file:
+      # CH_HOST / CH_USER / CH_PASS. Gitignored; never baked into the image.
+      - .env.local
+    environment:
+      # Overrides whatever .env.local says, and it must. That file holds
+      # `http://localhost:4418` for running the API natively -- inside the
+      # compose network `localhost` is this container, so spans would be posted
+      # into the void. On the network the collector is `clickstack:4318`.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
+      OTEL_SERVICE_NAME: trueccu-api
+      PORT: 8787
+    ports:
+      - "8787:8787"
+    depends_on:
+      # Only `started`, not `healthy`: telemetry is fail-open by design, and
+      # waiting on the observability stack to serve business traffic would
+      # invert the dependency -- an outage in the thing that watches would take
+      # down the thing being watched.
+      clickstack:
+        condition: service_started
+
+  # --- the dashboard: built bundle served by nginx, /api proxied to `api` ---
+  web:
+    build: ./app/web
+    container_name: trueccu-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  clickstack-ch:
+    external: true
+    # Pre-existing volumes, adopted rather than recreated -- they already hold
+    # the HyperDX account, the ingest key and every span recorded so far.
+    name: trueccu-clickstack-ch
+  clickstack-mongo:
+    external: true
+    name: trueccu-clickstack-mongo

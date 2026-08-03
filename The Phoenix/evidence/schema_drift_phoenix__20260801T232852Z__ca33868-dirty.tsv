@@ -1,0 +1,38 @@
+# evidence: schema_drift_phoenix
+# what: live structure of phoenix against sql/schema/, via an empty reference database
+# run_utc: 2026-08-01 23:28:52
+# git: ca33868-dirty
+# host: ss-cric
+# row_count: 1245774
+# event_watermark: 2026-08-01 23:28:38.285
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 23:28:38   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+target_database	phoenix
+reference_database	phoenix_schema_ref	(empty, built from sql/schema/)
+drift_allow	<none>
+differences	17	(required 0)
+allowed_differences	0
+verdict	FAIL
+difference	> column	_skeptic_touched	video_session_id	String			
+difference	> column	concurrency_deltas_naive	app_version	LowCardinality(String)			
+difference	> column	concurrency_deltas_naive	content_id	Int64			
+difference	> column	concurrency_deltas_naive	country	LowCardinality(String)			
+difference	> column	concurrency_deltas_naive	delta	Int32			
+difference	> column	concurrency_deltas_naive	minute	DateTime			
+difference	> column	concurrency_deltas_naive	platform	LowCardinality(String)			
+difference	> column	concurrency_deltas_naive	video_type	LowCardinality(String)			
+difference	< column	raw_events	arrival_timestamp	DateTime64(3)	DEFAULT	toDateTime64(0, 3)	
+difference	> column	raw_events	event_id	String			
+difference	> column	raw_events_landing	event_id	String			
+difference	< column	raw_events_mv	arrival_timestamp	DateTime64(3)			
+difference	> column	raw_events_mv	event_id	String			
+difference	< mv_body	raw_events_mv	CREATE MATERIALIZED VIEW DB.raw_events_mv TO DB.raw_events (`video_session_id` String, `user_id` String, `content_id` Int64, `event_type` LowCardinality(String), `event` LowCardinality(String), `event_timestamp` DateTime64(3), `platform` LowCardinality(String), `app_version` LowCardinality(String), `country` LowCardinality(String), `audio_language` LowCardinality(String), `subtitle_language` LowCardinality(String), `player_version` LowCardinality(String), `session_start_epoch` DateTime64(3), `arrival_timestamp` DateTime64(3)) AS SELECT video_session_id, user_id, content_id, event_type, event, fromUnixTimestamp64Milli(event_timestamp) AS event_timestamp, platform, app_version, country, audio_language, subtitle_language, player_version, fromUnixTimestamp64Milli(session_start_epoch) AS session_start_epoch, now64(3) AS arrival_timestamp FROM DB.raw_events_landing
+difference	> mv_body	raw_events_mv	CREATE MATERIALIZED VIEW DB.raw_events_mv TO DB.raw_events (`video_session_id` String, `user_id` String, `content_id` Int64, `event_type` LowCardinality(String), `event` LowCardinality(String), `event_timestamp` DateTime64(3), `platform` LowCardinality(String), `app_version` LowCardinality(String), `country` LowCardinality(String), `audio_language` LowCardinality(String), `subtitle_language` LowCardinality(String), `player_version` LowCardinality(String), `session_start_epoch` DateTime64(3), `event_id` String) AS SELECT video_session_id, user_id, content_id, event_type, event, fromUnixTimestamp64Milli(event_timestamp) AS event_timestamp, platform, app_version, country, audio_language, subtitle_language, player_version, fromUnixTimestamp64Milli(session_start_epoch) AS session_start_epoch, event_id FROM DB.raw_events_landing
+difference	> table	_skeptic_touched	Memory				
+difference	> table	concurrency_deltas_naive	SharedSummingMergeTree	platform, country, video_type, content_id, app_version, minute	toYYYYMMDD(minute)	platform, country, video_type, content_id, app_version, minute	

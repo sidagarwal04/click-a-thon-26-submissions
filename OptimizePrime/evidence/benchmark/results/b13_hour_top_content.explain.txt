@@ -1,0 +1,30 @@
+Expression ((Project names + (Before ORDER BY + (Projection + (WHERE + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + (Projection + Change column names to column identifiers))))))))))) [lifted up part]))
+  Limit (preliminary LIMIT)
+    Sorting (Sorting for ORDER BY)
+      Expression ((Before ORDER BY + (Projection + (WHERE + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + (Projection + Change column names to column identifiers))))))))))))
+        Filter (((WHERE + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + (Projection + Change column names to column identifiers))))))))))[split])
+          ReadFromMergeTree (sonyliv.cc_hour_agg)
+          Indexes:
+            MinMax
+              Keys:
+                hour
+              Condition: (hour in [1785060000, 1785060000])
+              Parts: 1/1
+              Granules: 4/4
+            Partition
+              Keys:
+                toYYYYMM(hour)
+              Condition: (toYYYYMM(hour) in [202607, 202607])
+              Parts: 1/1
+              Granules: 4/4
+            PrimaryKey
+              Keys:
+                platform
+                country
+                content_id
+                hour
+              Condition: and((hour in [1785060000, 1785060000]), and((content_id not in [-1, -1]), and((country in ['*', '*']), (platform in ['*', '*']))))
+              Parts: 1/1
+              Granules: 1/4
+              Search Algorithm: generic exclusion search
+            Ranges: 1

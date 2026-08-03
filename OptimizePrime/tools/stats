@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# tools/stats — run a query and print its X-ClickHouse-Summary (rows/bytes/ms) with NO
+# SYSTEM FLUSH LOGS and no second query. wait_end_of_query=1 so result_rows is populated.
+set -euo pipefail
+[ -f .env ] && set -a && . ./.env && set +a
+Q="${1:?usage: tools/stats \"SQL\"}"
+H=$(mktemp)
+curl -sS -D "$H" -o /tmp/ch_body.$$ \
+  "${CH_LOCAL_URL}/?user=app&password=${CH_PASSWORD_LOCAL}&wait_end_of_query=1" --data-binary "$Q"
+echo "--- result ---"; head -c 2000 /tmp/ch_body.$$; echo
+echo "--- stats ---"; grep -i '^x-clickhouse-summary' "$H" | tail -1
+rm -f "$H" /tmp/ch_body.$$

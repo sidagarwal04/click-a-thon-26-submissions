@@ -1,0 +1,60 @@
+RECONCILE — serving layer vs ev_raw
+target: cloud   commit: d6c85e2
+
+== 1. THE GATE — truth recomputed from ev_raw, five minutes
+   (peak, both data boundaries, two arbitrary; any non-zero delta is a failure)
+
+    ┌─ord─┬─scope────┬─c1─────────────────────┬─c2─────────────┬─c3──────────────┬─c4────────┬─verdict──┐
+ 1. │   0 │ SUMMARY  │ minutes_compared=17028 │ mismatched=177 │ max_abs_diff=39 │ peak=2887 │ MISMATCH │
+ 2. │   1 │ MISMATCH │ 2026-07-26 10:47:00    │ 2526           │ 2554            │ 28        │ MISMATCH │
+ 3. │   1 │ MISMATCH │ 2026-07-26 10:52:00    │ 2730           │ 2758            │ 28        │ MISMATCH │
+ 4. │   1 │ MISMATCH │ 2026-07-26 10:55:00    │ 2833           │ 2860            │ 27        │ MISMATCH │
+ 5. │   1 │ MISMATCH │ 2026-07-26 10:56:00    │ 2887           │ 2917            │ 30        │ MISMATCH │
+ 6. │   1 │ MISMATCH │ 2026-07-26 10:57:00    │ 2854           │ 2885            │ 31        │ MISMATCH │
+ 7. │   1 │ MISMATCH │ 2026-07-26 10:58:00    │ 2828           │ 2855            │ 27        │ MISMATCH │
+ 8. │   1 │ MISMATCH │ 2026-07-26 10:59:00    │ 2857           │ 2890            │ 33        │ MISMATCH │
+ 9. │   1 │ MISMATCH │ 2026-07-26 11:00:00    │ 2836           │ 2873            │ 37        │ MISMATCH │
+10. │   1 │ MISMATCH │ 2026-07-26 11:01:00    │ 2826           │ 2865            │ 39        │ MISMATCH │
+11. │   1 │ MISMATCH │ 2026-07-26 11:02:00    │ 2810           │ 2846            │ 36        │ MISMATCH │
+12. │   1 │ MISMATCH │ 2026-07-26 11:03:00    │ 2771           │ 2803            │ 32        │ MISMATCH │
+13. │   1 │ MISMATCH │ 2026-07-26 11:04:00    │ 2763           │ 2789            │ 26        │ MISMATCH │
+14. │   1 │ MISMATCH │ 2026-07-26 11:05:00    │ 2703           │ 2732            │ 29        │ MISMATCH │
+15. │   1 │ MISMATCH │ 2026-07-26 11:06:00    │ 2650           │ 2679            │ 29        │ MISMATCH │
+16. │   1 │ MISMATCH │ 2026-07-26 11:07:00    │ 2612           │ 2645            │ 33        │ MISMATCH │
+17. │   1 │ MISMATCH │ 2026-07-26 11:08:00    │ 2535           │ 2571            │ 36        │ MISMATCH │
+18. │   1 │ MISMATCH │ 2026-07-26 11:09:00    │ 2512           │ 2547            │ 35        │ MISMATCH │
+19. │   1 │ MISMATCH │ 2026-07-26 11:10:00    │ 2450           │ 2483            │ 33        │ MISMATCH │
+20. │   1 │ MISMATCH │ 2026-07-26 11:11:00    │ 2358           │ 2386            │ 28        │ MISMATCH │
+21. │   1 │ MISMATCH │ 2026-07-26 11:12:00    │ 2296           │ 2324            │ 28        │ MISMATCH │
+22. │   2 │ sample   │ 2026-07-14 15:43:00    │ 1              │ 1               │ 0         │ PASS     │
+23. │   2 │ sample   │ 2026-07-16 12:35:00    │ 0              │ 0               │ 0         │ PASS     │
+24. │   2 │ sample   │ 2026-07-17 08:56:00    │ 0              │ 0               │ 0         │ PASS     │
+25. │   2 │ sample   │ 2026-07-26 10:56:00    │ 2887           │ 2917            │ 30        │ MISMATCH │
+26. │   2 │ sample   │ 2026-07-26 11:30:00    │ 193            │ 197             │ 4         │ MISMATCH │
+    └─────┴──────────┴────────────────────────┴────────────────┴─────────────────┴───────────┴──────────┘
+
+== 2. MODEL COMPARISON — the same minutes under three definitions
+
+   ┌──────────────minute─┬─session_aware─┬─stateless─┬─naive_session_span─┬─naive_overcount─┬─pct_overcount─┐
+1. │ 2026-07-14 15:43:00 │             1 │         1 │                  1 │               0 │             0 │
+2. │ 2026-07-26 06:09:00 │            16 │        13 │                 25 │               9 │            36 │
+3. │ 2026-07-26 10:56:00 │          2917 │      2894 │               3708 │             791 │          21.3 │
+4. │ 2026-07-26 11:10:00 │          2483 │      2397 │               3163 │             680 │          21.5 │
+5. │ 2026-07-26 11:31:00 │             5 │         0 │                  0 │              -5 │          -inf │
+   └─────────────────────┴───────────────┴───────────┴────────────────────┴─────────────────┴───────────────┘
+
+== 3. HEADLINE — total counted watch time
+
+Row 1:
+──────
+session_aware_hours: 1978.1
+naive_span_hours:    2976.9
+pct_excluded:        33.6
+
+Note on 2026-07-26 11:31: naive reads 0 while the model reads 5. That is TAIL_S —
+the model credits one cadence past the last event, which at the very end of the
+dataset extends beyond max(event_timestamp). Expected, not a discrepancy.
+
+The gap is backgrounded and paused time. Heartbeats stop while backgrounded
+(0.047/min vs 4.72/min active) but SURVIVE a pause (0.756/min), so gaps alone
+cannot find paused time — it is excluded explicitly. See ADR 0007.

@@ -1,0 +1,94 @@
+{
+  "feature_slug": "express_checkout",
+  "table_fqn": "atlys.f_express_checkout_events",
+  "event_column": "event",
+  "event_types": [
+    "express_checkout_shown",
+    "express_checkout_selected",
+    "saved_method_used",
+    "otp_entered",
+    "express_payment_confirmed"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "express_checkout_shown",
+    "express_checkout_selected",
+    "saved_method_used",
+    "otp_entered",
+    "express_payment_confirmed"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "device_type",
+    "os",
+    "geoip_country_code",
+    "destination",
+    "saved_method_type"
+  ],
+  "measures": [
+    {
+      "column": "shown_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "express_checkout_shown"
+      ],
+      "unit": "currency"
+    },
+    {
+      "column": "payment_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "express_payment_confirmed"
+      ],
+      "unit": "payment_currency"
+    },
+    {
+      "column": "payment_latency_ms",
+      "kind": "duration_ms",
+      "scoped_to_events": [
+        "express_payment_confirmed"
+      ],
+      "unit": "ms"
+    },
+    {
+      "column": "otp_attempts",
+      "kind": "count",
+      "scoped_to_events": [
+        "otp_entered"
+      ],
+      "unit": "attempts"
+    }
+  ],
+  "flags": [
+    "eligible",
+    "otp_success"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "user_id",
+      "matches": "shared_key",
+      "targets": [
+        "pay_now_clicked",
+        "purchase_completed"
+      ],
+      "join_key": "user_id",
+      "evidence": "Express Checkout is an alternative path to the same conversion event captured by the legacy pay_now_clicked -> purchase_completed funnel; both share the 28-char user_id identity space, so answering 'does Express lift conversion vs standard checkout' requires joining f_express_checkout_events against purchase_completed/pay_now_clicked on user_id + time window rather than treating Express as the only checkout path."
+    },
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "destination_card_clicked",
+        "application_started"
+      ],
+      "join_key": "destination",
+      "evidence": "destination is the same ISO-2 vocabulary (14 distinct values observed here: AU, SG, FR, TR, ...) used in destination_card_clicked and application_started, enabling a segment-level (not identity-level) comparison of Express adoption/performance by destination against the overall funnel, consistent with business_def's 'always cut by device, geo, destination'."
+    }
+  ]
+}

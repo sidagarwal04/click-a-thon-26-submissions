@@ -1,0 +1,1 @@
+# ZentraOS model provider adapter

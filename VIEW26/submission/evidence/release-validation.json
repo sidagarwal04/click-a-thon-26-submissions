@@ -1,0 +1,134 @@
+{
+  "generated_at": "2026-08-02T03:45:13Z",
+  "release": {
+    "id": "20260802T034156Z-f96aeec",
+    "commit": "f96aeec",
+    "branch": "view26-submission",
+    "url": "https://clickathon-2026.view26.com"
+  },
+  "health": {
+    "status": "ok",
+    "service": "featurelens-go",
+    "context_version": 6,
+    "tracing": {
+      "enabled": true,
+      "provider": "langfuse",
+      "status": "streaming"
+    },
+    "analytics_agent": {
+      "enabled": true,
+      "mode": "llm",
+      "model": "openai/gpt-4.1-mini",
+      "prompt_version": "analytics-insight:v2",
+      "provider": "openrouter"
+    }
+  },
+  "totals": {
+    "completed_runs": 6,
+    "evaluations_passed": 54,
+    "evaluations_total": 54
+  },
+  "runs": [
+    {
+      "run_id": "run_600a65ebcf281c14",
+      "feature": "Express Checkout",
+      "stage": "completed",
+      "execution_mode": "clickhouse",
+      "context_version": 1,
+      "schema_version": 1,
+      "evaluations_passed": 9,
+      "evaluations_total": 9,
+      "trace_id": "5089a0c4abab69dd667646e551008fda",
+      "updated_at": "2026-08-02T01:51:31.37651Z"
+    },
+    {
+      "run_id": "run_f47513a713dde385",
+      "feature": "Group / Family",
+      "stage": "completed",
+      "execution_mode": "clickhouse",
+      "context_version": 2,
+      "schema_version": 2,
+      "evaluations_passed": 9,
+      "evaluations_total": 9,
+      "trace_id": "7d74cb95dd0cee7e2db374e322d04ce7",
+      "updated_at": "2026-08-02T01:51:53.407821Z"
+    },
+    {
+      "run_id": "run_f9f799a75821339d",
+      "feature": "Status Sharing",
+      "stage": "completed",
+      "execution_mode": "clickhouse",
+      "context_version": 3,
+      "schema_version": 2,
+      "evaluations_passed": 9,
+      "evaluations_total": 9,
+      "trace_id": "3b2e13acc74f6fe6e6db8f4d2b156334",
+      "updated_at": "2026-08-02T01:52:06.548313Z"
+    },
+    {
+      "run_id": "run_b1ca62003bb19734",
+      "feature": "Abandoned Checkout Recovery",
+      "stage": "completed",
+      "execution_mode": "clickhouse",
+      "context_version": 4,
+      "schema_version": 2,
+      "evaluations_passed": 9,
+      "evaluations_total": 9,
+      "trace_id": "3ea00b0c7e6aa2b263e09f4a8f0953b2",
+      "updated_at": "2026-08-02T01:52:20.688254Z"
+    },
+    {
+      "run_id": "run_b833d7e0bd3e9e83",
+      "feature": "Instant Forex",
+      "stage": "completed",
+      "execution_mode": "clickhouse",
+      "context_version": 5,
+      "schema_version": 2,
+      "evaluations_passed": 9,
+      "evaluations_total": 9,
+      "trace_id": "f2da45df334a51c6f03bd798b5f14a11",
+      "updated_at": "2026-08-02T01:52:37.204862Z"
+    },
+    {
+      "run_id": "run_9322a8acbe7571f8",
+      "feature": "Promo / Coupon at Checkout",
+      "stage": "completed",
+      "execution_mode": "clickhouse",
+      "context_version": 6,
+      "schema_version": 6,
+      "evaluations_passed": 9,
+      "evaluations_total": 9,
+      "trace_id": "8d660ea714fb42620a0d87f048d4513f",
+      "updated_at": "2026-08-02T01:52:58.865291Z"
+    }
+  ],
+  "semantic_routing_probe": {
+    "question": "Where are we losing conversions, and for which segments (device / geo / destination)?",
+    "trace_id": "eca7315d63b91cf0529a67003970cd72",
+    "headline": "Group / Family leads observed feature completion at 57.3%",
+    "checks": [
+      {
+        "feature": "Group / Family",
+        "playbook": "playbook:group-segments:v1",
+        "grain": "application_id",
+        "passed": true
+      },
+      {
+        "feature": "Status Sharing",
+        "playbook": "playbook:segment-completion:v1",
+        "grain": "share_id",
+        "completion_event": "recipient_cta_clicked",
+        "passed": true
+      },
+      {
+        "feature": "Promo / Coupon at Checkout",
+        "playbook": "playbook:segment-completion:v1",
+        "grain": "application_id",
+        "completion_event": "checkout_with_coupon",
+        "excluded_branch_event": "coupon_rejected",
+        "passed": true
+      }
+    ]
+  },
+  "graded_trace_index": "traces.md"
+}

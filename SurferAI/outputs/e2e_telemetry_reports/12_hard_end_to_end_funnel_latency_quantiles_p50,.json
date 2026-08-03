@@ -1,0 +1,127 @@
+{
+  "call_id": "CALL-12-HARD",
+  "category": "Hard",
+  "title": "End-to-End Funnel Latency Quantiles (P50, P90, P99) by Device & OS",
+  "question": "What is the turnaround duration in seconds between application start to document upload, and document upload to purchase completion, measured at p50, p90, and p99 percentiles?",
+  "database": "default",
+  "target_tables": "application_started, document_uploaded, purchase_completed",
+  "timestamp": "2026-08-02T00:14:34.290396+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 256.6,
+    "row_count": 8,
+    "columns_count": 9,
+    "columns": [
+      "a.device_type",
+      "a.os",
+      "completed_funnel_journeys",
+      "start_to_doc_p50_seconds",
+      "start_to_doc_p90_seconds",
+      "start_to_doc_p99_seconds",
+      "doc_to_purchase_p50_seconds",
+      "doc_to_purchase_p90_seconds",
+      "doc_to_purchase_p99_seconds"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_hard_12",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/d5df0091c5df634863b103a26c1e20e9",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    a.device_type,\n    a.os,\n    count() AS completed_funnel_journeys,\n    round(quantilesExact(0.5, 0.9, 0.99)(dateDiff('second', a.timestamp, d.timestamp))[1], 1) AS start_to_doc_p50_seconds,\n    round(quantilesExact(0.5, 0.9, 0.99)(dateDiff('second', a.timestamp, d.timestamp))[2], 1) AS start_to_doc_p90_seconds,\n    round(quantilesExact(0.5, 0.9, 0.99)(dateDiff('second', a.timestamp, d.timestamp))[3], 1) AS start_to_doc_p99_seconds,\n    round(quantilesExact(0.5, 0.9, 0.99)(dateDiff('second', d.timestamp, p.timestamp))[1], 1) AS doc_to_purchase_p50_seconds,\n    round(quantilesExact(0.5, 0.9, 0.99)(dateDiff('second', d.timestamp, p.timestamp))[2], 1) AS doc_to_purchase_p90_seconds,\n    round(quantilesExact(0.5, 0.9, 0.99)(dateDiff('second', d.timestamp, p.timestamp))[3], 1) AS doc_to_purchase_p99_seconds\nFROM default.application_started a\nJOIN default.document_uploaded d ON a.application_id = d.application_id\nJOIN default.purchase_completed p ON a.application_id = p.application_id\nWHERE d.timestamp >= a.timestamp AND p.timestamp >= d.timestamp\nGROUP BY a.device_type, a.os\nORDER BY completed_funnel_journeys DESC",
+  "result_sample": [
+    {
+      "a.device_type": "ios",
+      "a.os": "iOS",
+      "completed_funnel_journeys": 1530,
+      "start_to_doc_p50_seconds": 3960,
+      "start_to_doc_p90_seconds": 9180,
+      "start_to_doc_p99_seconds": 12180,
+      "doc_to_purchase_p50_seconds": 3840,
+      "doc_to_purchase_p90_seconds": 9300,
+      "doc_to_purchase_p99_seconds": 12540
+    },
+    {
+      "a.device_type": "android",
+      "a.os": "Android",
+      "completed_funnel_journeys": 814,
+      "start_to_doc_p50_seconds": 4080,
+      "start_to_doc_p90_seconds": 9300,
+      "start_to_doc_p99_seconds": 11880,
+      "doc_to_purchase_p50_seconds": 3900,
+      "doc_to_purchase_p90_seconds": 9480,
+      "doc_to_purchase_p99_seconds": 12420
+    },
+    {
+      "a.device_type": "web-user-b2c",
+      "a.os": "Windows",
+      "completed_funnel_journeys": 397,
+      "start_to_doc_p50_seconds": 4320,
+      "start_to_doc_p90_seconds": 9420,
+      "start_to_doc_p99_seconds": 12420,
+      "doc_to_purchase_p50_seconds": 4200,
+      "doc_to_purchase_p90_seconds": 9360,
+      "doc_to_purchase_p99_seconds": 12840
+    },
+    {
+      "a.device_type": "web-user-b2c",
+      "a.os": "Mac OS X",
+      "completed_funnel_journeys": 184,
+      "start_to_doc_p50_seconds": 3300,
+      "start_to_doc_p90_seconds": 8100,
+      "start_to_doc_p99_seconds": 11460,
+      "doc_to_purchase_p50_seconds": 3660,
+      "doc_to_purchase_p90_seconds": 9420,
+      "doc_to_purchase_p99_seconds": 12720
+    },
+    {
+      "a.device_type": "Desktop",
+      "a.os": "Windows",
+      "completed_funnel_journeys": 175,
+      "start_to_doc_p50_seconds": 3960,
+      "start_to_doc_p90_seconds": 9540,
+      "start_to_doc_p99_seconds": 12540,
+      "doc_to_purchase_p50_seconds": 3660,
+      "doc_to_purchase_p90_seconds": 8820,
+      "doc_to_purchase_p99_seconds": 12960
+    },
+    {
+      "a.device_type": "android",
+      "a.os": null,
+      "completed_funnel_journeys": 166,
+      "start_to_doc_p50_seconds": 4140,
+      "start_to_doc_p90_seconds": 9180,
+      "start_to_doc_p99_seconds": 11700,
+      "doc_to_purchase_p50_seconds": 4380,
+      "doc_to_purchase_p90_seconds": 9060,
+      "doc_to_purchase_p99_seconds": 11640
+    },
+    {
+      "a.device_type": "Desktop",
+      "a.os": "Mac OS X",
+      "completed_funnel_journeys": 76,
+      "start_to_doc_p50_seconds": 3420,
+      "start_to_doc_p90_seconds": 9120,
+      "start_to_doc_p99_seconds": 11700,
+      "doc_to_purchase_p50_seconds": 4740,
+      "doc_to_purchase_p90_seconds": 9600,
+      "doc_to_purchase_p99_seconds": 11400
+    },
+    {
+      "a.device_type": "web-user-b2c",
+      "a.os": "Linux",
+      "completed_funnel_journeys": 24,
+      "start_to_doc_p50_seconds": 3780,
+      "start_to_doc_p90_seconds": 10440,
+      "start_to_doc_p99_seconds": 11460,
+      "doc_to_purchase_p50_seconds": 4860,
+      "doc_to_purchase_p90_seconds": 8580,
+      "doc_to_purchase_p99_seconds": 11640
+    }
+  ],
+  "full_results_count": 8,
+  "summary": "Query executed successfully against ClickHouse default database in 256.6ms, returning 8 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "3-table inner join calculating exact temporal differences across pipeline stages with ClickHouse quantilesExact(0.5, 0.9, 0.99) percentile distributions."
+}

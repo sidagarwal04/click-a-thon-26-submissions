@@ -1,0 +1,44 @@
+{
+  "call_id": "CALL-01-EASY",
+  "category": "Easy",
+  "title": "Destination Card Browse Volume & Guest Ratio",
+  "question": "What is the total number of destination card clicks, distinct users, and guest browse proportion across the 1M card clicks in H1 2026?",
+  "database": "default",
+  "target_tables": "destination_card_clicked",
+  "timestamp": "2026-08-02T00:14:26.622330+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 1511.91,
+    "row_count": 1,
+    "columns_count": 6,
+    "columns": [
+      "total_card_clicks",
+      "unique_users",
+      "guest_browses",
+      "guest_browse_pct",
+      "earliest_click",
+      "latest_click"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_easy_01",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/9ac7ba10cadec998daf44a8f919e668c",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    count() AS total_card_clicks,\n    uniqExact(user_id) AS unique_users,\n    countIf(is_guest_browse = 1) AS guest_browses,\n    round(countIf(is_guest_browse = 1) * 100.0 / count(), 2) AS guest_browse_pct,\n    min(timestamp) AS earliest_click,\n    max(timestamp) AS latest_click\nFROM default.destination_card_clicked",
+  "result_sample": [
+    {
+      "total_card_clicks": 1000000,
+      "unique_users": 1000000,
+      "guest_browses": 349525,
+      "guest_browse_pct": 34.95,
+      "earliest_click": "2026-01-01 00:00:35",
+      "latest_click": "2026-06-30 23:59:40"
+    }
+  ],
+  "full_results_count": 1,
+  "summary": "Query executed successfully against ClickHouse default database in 1511.91ms, returning 1 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Single-table aggregation on destination_card_clicked (1M rows). Validates basic COUNT, uniqExact, and conditional aggregates."
+}

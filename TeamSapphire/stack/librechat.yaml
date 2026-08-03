@@ -1,0 +1,21 @@
+version: 1.2.1
+
+interface:
+  mcpServers:
+    use: true
+
+# Recent LibreChat versions default-deny outbound MCP connections to private/internal
+# addresses (SSRF protection) — our MCP servers are internal Docker hostnames, so they
+# need an explicit exemption here or LibreChat refuses to connect ("... is not allowed").
+mcpSettings:
+  allowedAddresses:
+    - "mcp-clickhouse-stage:8000"
+    - "mcp-clickhouse-prod:8000"
+
+mcpServers:
+  clickhouse-stage:
+    type: sse
+    url: http://mcp-clickhouse-stage:8000/sse
+  clickhouse-prod:
+    type: sse
+    url: http://mcp-clickhouse-prod:8000/sse

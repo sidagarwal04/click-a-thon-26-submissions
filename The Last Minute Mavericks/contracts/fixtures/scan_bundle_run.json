@@ -1,0 +1,1478 @@
+{
+  "scan_summary": {
+    "database": "rca",
+    "metrics_scanned": [
+      "requests",
+      "fill_rate",
+      "ecpm"
+    ],
+    "real_incidents": 4,
+    "ruled_out": 7,
+    "gates": {
+      "candidates": 168,
+      "volume": 5810,
+      "significant": 75,
+      "effect": 60,
+      "unique": 4
+    },
+    "wall_clock_s": 12.05,
+    "baseline": "same-weekday like-for-like, incident window excluded"
+  },
+  "investigations": [
+    {
+      "id": "inv_ecpm_2026-06-19",
+      "metric": "ecpm",
+      "window": [
+        "2026-06-19",
+        "2026-06-22"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": {
+        "observed": 0.0016,
+        "baseline": 0.0025,
+        "delta_abs": -41.4513,
+        "delta_pct": -34.683,
+        "robust_z": -35.81,
+        "breached": true,
+        "explained_share_pct": 91.65,
+        "residual_share_pct": 8.35,
+        "ev": "ev_6"
+      },
+      "headline_text": "ecpm -34.7% at category=finance",
+      "culprit": {
+        "dimension": "category",
+        "segment": "finance",
+        "value": "finance",
+        "contribution_share_pct": 91.65,
+        "ev_share": "ev_7",
+        "segment_observed": 0.001613,
+        "segment_baseline": 0.00247,
+        "relative_change": -0.346825,
+        "deviation_pct": -34.7,
+        "explanatory_power": 0.9165,
+        "explanatory_power_net": 1.0199,
+        "surprise_js": 0.3108,
+        "size_share": 0.0701,
+        "lift": 13.07,
+        "co_cut": null,
+        "denominator": 48390,
+        "ev": "ev_6"
+      },
+      "deviation_ev": "ev_6",
+      "attribution": {
+        "method": "Adtributor (explanatory power + JS surprise)",
+        "best_lift": 13.07,
+        "best_explanatory_power": 0.9165,
+        "lift_floor": 2.0,
+        "ep_floor": 0.2,
+        "concentration_rule": "2-D iff child EP \u2265 0.6 and lift \u2265 2.0",
+        "advertiser_blank_excluded": [
+          "campaign_type",
+          "vertical"
+        ],
+        "queries": [
+          {
+            "dim": "region",
+            "sql": "SELECT region k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "0f693d52-c6d5-46d9-b5db-fe7aea54dc9c"
+          },
+          {
+            "dim": "country",
+            "sql": "SELECT country k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "98464f69-2080-4f74-8caa-11cf0b45b7ef"
+          },
+          {
+            "dim": "device_model",
+            "sql": "SELECT device_model k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "7b797525-f9da-420b-a403-53f31320f457"
+          },
+          {
+            "dim": "os_version",
+            "sql": "SELECT os_version k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "1e1dd9dd-2ca5-4a06-9c84-1af004779f39"
+          },
+          {
+            "dim": "category",
+            "sql": "SELECT category k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "b88d5a0f-5deb-44da-86e2-f1654107ee9f"
+          },
+          {
+            "dim": "publisher_tier",
+            "sql": "SELECT publisher_tier k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "8cd05fb5-dd8b-4cc1-934d-dff865db39d1"
+          },
+          {
+            "dim": "ad_format",
+            "sql": "SELECT ad_format k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "1aa5c770-2820-4782-a866-ffa9e9fcb1ab"
+          },
+          {
+            "dim": "vertical",
+            "sql": "SELECT vertical k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube WHERE vertical != '' GROUP BY k",
+            "query_id": "5caf64fc-f2ee-4053-88b8-d521155ff14c"
+          },
+          {
+            "dim": "campaign_type",
+            "sql": "SELECT campaign_type k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube WHERE campaign_type != '' GROUP BY k",
+            "query_id": "c3999675-3417-4bff-832b-426efa948351"
+          }
+        ]
+      },
+      "decomposition": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.2,
+        "stable": true,
+        "delta_revenue_per_day": -13.0491,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays as 2026-06-19..2026-06-22, window excluded",
+        "factors": [
+          {
+            "factor": "requests",
+            "window_value": 16116.25,
+            "baseline": 17549.2222,
+            "deviation_pct": -8.2,
+            "log_change": -0.085182,
+            "lmdi_contribution": -2.170977,
+            "shapley_contribution": -2.197055,
+            "pct_effect": 16.64,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_1"
+          },
+          {
+            "factor": "fill_rate",
+            "window_value": 0.766,
+            "baseline": 0.7668,
+            "deviation_pct": -0.1,
+            "log_change": -0.001127,
+            "lmdi_contribution": -0.028736,
+            "shapley_contribution": -0.029184,
+            "pct_effect": 0.22,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_2"
+          },
+          {
+            "factor": "render_rate",
+            "window_value": 0.98,
+            "baseline": 0.9798,
+            "deviation_pct": 0.0,
+            "log_change": 0.00022,
+            "lmdi_contribution": 0.005597,
+            "shapley_contribution": 0.005685,
+            "pct_effect": -0.04,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_3"
+          },
+          {
+            "factor": "ecpm",
+            "window_value": 1.6132,
+            "baseline": 2.4699,
+            "deviation_pct": -34.7,
+            "log_change": -0.42591,
+            "lmdi_contribution": -10.854945,
+            "shapley_contribution": -10.828506,
+            "pct_effect": 83.19,
+            "verdict": "primary_driver",
+            "verdict_label": "driver",
+            "ev": "ev_4"
+          },
+          {
+            "factor": "ctr",
+            "window_value": 0.0102,
+            "baseline": 0.0116,
+            "deviation_pct": -12.2,
+            "log_change": -0.129983,
+            "lmdi_contribution": null,
+            "shapley_contribution": null,
+            "pct_effect": null,
+            "verdict": "context",
+            "verdict_label": "context (not a CPM revenue factor)",
+            "ev": "ev_5"
+          }
+        ]
+      },
+      "ruled_out": [
+        {
+          "segment": "52 segments across 7 dimensions=all",
+          "deviation_pct": -47.1,
+          "residual_after_exclusion_pct": null,
+          "why": "uniform \u2014 every segment moved together; the most extreme (country=BR) still absorbs only 1.03\u00d7 its share of traffic, so naming it would be a false positive",
+          "ev": "ev_8"
+        },
+        {
+          "segment": "ad_format=interstitial",
+          "deviation_pct": -11.1,
+          "residual_after_exclusion_pct": -4.7,
+          "why": "explained by finance \u2014 excluding it, this segment moves -4.7% (was -11.1%)",
+          "ev": "ev_9",
+          "ev_residual": "ev_10"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ finance",
+          "value": 16116.25,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ finance",
+          "value": 0.766,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ finance",
+          "value": 0.98,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ finance",
+          "value": 1.6132,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ finance",
+          "value": 0.0102,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        {
+          "id": "ev_6",
+          "label": "deviation @ finance",
+          "value": -34.7,
+          "sql": "SELECT category k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "b88d5a0f-5deb-44da-86e2-f1654107ee9f"
+        },
+        {
+          "id": "ev_7",
+          "label": "explanatory power @ finance",
+          "value": 91.65,
+          "sql": "SELECT category k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "b88d5a0f-5deb-44da-86e2-f1654107ee9f"
+        },
+        {
+          "id": "ev_8",
+          "label": "deviation @ 52 segments across 7 dimensions=all",
+          "value": -47.1,
+          "sql": null,
+          "query_id": null
+        },
+        {
+          "id": "ev_9",
+          "label": "deviation @ ad_format=interstitial",
+          "value": -11.1,
+          "sql": "SELECT ad_format k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "1aa5c770-2820-4782-a866-ffa9e9fcb1ab"
+        },
+        {
+          "id": "ev_10",
+          "label": "deviation @ ad_format=interstitial excluding the culprit",
+          "value": -4.7,
+          "sql": "SELECT ad_format k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "1aa5c770-2820-4782-a866-ffa9e9fcb1ab"
+        }
+      ],
+      "hypotheses": {
+        "supported": [
+          {
+            "segment": "finance",
+            "dimension": "category",
+            "explanatory_power": 0.9165,
+            "ev": "ev_6"
+          }
+        ],
+        "ruled_out": [
+          {
+            "segment": "52 segments across 7 dimensions=all",
+            "why": "uniform \u2014 every segment moved together; the most extreme (country=BR) still absorbs only 1.03\u00d7 its share of traffic, so naming it would be a false positive",
+            "ev": "ev_8"
+          },
+          {
+            "segment": "ad_format=interstitial",
+            "why": "explained by finance \u2014 excluding it, this segment moves -4.7% (was -11.1%)",
+            "ev": "ev_9"
+          }
+        ],
+        "inconclusive": []
+      },
+      "scores": {
+        "explained_variance": 0.9165,
+        "localization_lift": 13.07,
+        "robust_z": -35.81
+      },
+      "evidence_store": {
+        "ev_1": {
+          "id": "ev_1",
+          "label": "requests @ finance",
+          "value": 16116.25,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        "ev_2": {
+          "id": "ev_2",
+          "label": "fill_rate @ finance",
+          "value": 0.766,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        "ev_3": {
+          "id": "ev_3",
+          "label": "render_rate @ finance",
+          "value": 0.98,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        "ev_4": {
+          "id": "ev_4",
+          "label": "ecpm @ finance",
+          "value": 1.6132,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        "ev_5": {
+          "id": "ev_5",
+          "label": "ctr @ finance",
+          "value": 0.0102,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-19' AND '2026-06-22') rqw,sumIf(requests,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rqb, sumIf(fills,day BETWEEN '2026-06-19' AND '2026-06-22') fw,sumIf(fills,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) fb, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') iw,sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) ib, sumIf(clicks,day BETWEEN '2026-06-19' AND '2026-06-22') cw,sumIf(clicks,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) cb, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') rw,sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) rb, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wd, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd FROM rca.cube WHERE category='finance'",
+          "query_id": "b2012bb1-04c6-4a2a-b054-2e019f207f1e"
+        },
+        "ev_6": {
+          "id": "ev_6",
+          "label": "deviation @ finance",
+          "value": -34.7,
+          "sql": "SELECT category k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "b88d5a0f-5deb-44da-86e2-f1654107ee9f"
+        },
+        "ev_7": {
+          "id": "ev_7",
+          "label": "explanatory power @ finance",
+          "value": 91.65,
+          "sql": "SELECT category k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "b88d5a0f-5deb-44da-86e2-f1654107ee9f"
+        },
+        "ev_8": {
+          "id": "ev_8",
+          "label": "deviation @ 52 segments across 7 dimensions=all",
+          "value": -47.1,
+          "sql": null,
+          "query_id": null
+        },
+        "ev_9": {
+          "id": "ev_9",
+          "label": "deviation @ ad_format=interstitial",
+          "value": -11.1,
+          "sql": "SELECT ad_format k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "1aa5c770-2820-4782-a866-ffa9e9fcb1ab"
+        },
+        "ev_10": {
+          "id": "ev_10",
+          "label": "deviation @ ad_format=interstitial excluding the culprit",
+          "value": -4.7,
+          "sql": "SELECT ad_format k, sumIf(revenue,day BETWEEN '2026-06-19' AND '2026-06-22') wn, sumIf(revenue,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bn, sumIf(impressions,day BETWEEN '2026-06-19' AND '2026-06-22') wd, sumIf(impressions,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bd, countDistinctIf(day,day BETWEEN '2026-06-19' AND '2026-06-22') wdays, countDistinctIf(day,day IN ('2026-06-01','2026-06-05','2026-06-06','2026-06-07','2026-06-08','2026-06-12','2026-06-13','2026-06-14','2026-06-15')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "1aa5c770-2820-4782-a866-ffa9e9fcb1ab"
+        }
+      },
+      "diagnosis": {
+        "diagnosis": "The ecpm metric moved by -34.7% in the finance category segment. The sibling factors checked\u2014requests at 16116.25, fill_rate at 0.766, and render_rate at 0.98\u2014were found normal and ruled out.",
+        "citations": [
+          "ev_1",
+          "ev_2",
+          "ev_3",
+          "ev_6"
+        ],
+        "source": "llm+validator",
+        "rejected": 0
+      }
+    },
+    {
+      "id": "inv_requests_2026-06-21",
+      "metric": "requests",
+      "window": [
+        "2026-06-21",
+        "2026-06-21"
+      ],
+      "verdict": "GLOBAL_UNLOCALIZED",
+      "headline": {
+        "observed": null,
+        "baseline": null,
+        "delta_abs": null,
+        "delta_pct": -43.494,
+        "robust_z": -14.03,
+        "breached": true,
+        "explained_share_pct": 0.0,
+        "residual_share_pct": 100.0,
+        "ev": "ev_6"
+      },
+      "headline_text": "requests moved -43.5% \u2014 global, no single segment",
+      "culprit": null,
+      "deviation_ev": "ev_6",
+      "attribution": {
+        "method": "Adtributor (explanatory power + JS surprise)",
+        "best_lift": 1.03,
+        "best_explanatory_power": 0.2039,
+        "lift_floor": 2.0,
+        "ep_floor": 0.2,
+        "concentration_rule": "2-D iff child EP \u2265 0.6 and lift \u2265 2.0",
+        "advertiser_blank_excluded": [
+          "campaign_type",
+          "vertical"
+        ],
+        "queries": [
+          {
+            "dim": "region",
+            "sql": "SELECT region k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "f216a2fd-d0d7-40bc-a8e0-78a8a252a34d"
+          },
+          {
+            "dim": "country",
+            "sql": "SELECT country k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "f1e6343e-57aa-4a9e-aa62-cfc3af52bc15"
+          },
+          {
+            "dim": "device_model",
+            "sql": "SELECT device_model k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "89667580-86f5-4db3-b924-52a4186e9457"
+          },
+          {
+            "dim": "os_version",
+            "sql": "SELECT os_version k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "86625f7c-6516-4f4d-8740-fe3328c47583"
+          },
+          {
+            "dim": "category",
+            "sql": "SELECT category k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "e8187ea3-f894-4ea0-b9c1-0749ff06bf17"
+          },
+          {
+            "dim": "publisher_tier",
+            "sql": "SELECT publisher_tier k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "daba611b-3346-4fb1-9f02-26517ab3ae5d"
+          },
+          {
+            "dim": "ad_format",
+            "sql": "SELECT ad_format k, sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') wn, sumIf(requests,day IN ('2026-06-07','2026-06-14')) bn, toUInt64(0) wd, toUInt64(0) bd, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "a4e739de-3e51-4e77-8512-24f5b166d704"
+          }
+        ]
+      },
+      "decomposition": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.1,
+        "stable": true,
+        "delta_revenue_per_day": -190.4538,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays as 2026-06-21..2026-06-21, window excluded",
+        "factors": [
+          {
+            "factor": "requests",
+            "window_value": 126052.0,
+            "baseline": 223079.0,
+            "deviation_pct": -43.5,
+            "log_change": -0.570831,
+            "lmdi_contribution": -182.894365,
+            "shapley_contribution": -182.699077,
+            "pct_effect": 96.03,
+            "verdict": "primary_driver",
+            "verdict_label": "driver",
+            "ev": "ev_1"
+          },
+          {
+            "factor": "fill_rate",
+            "window_value": 0.7855,
+            "baseline": 0.7849,
+            "deviation_pct": 0.1,
+            "log_change": 0.000757,
+            "lmdi_contribution": 0.242673,
+            "shapley_contribution": 0.249242,
+            "pct_effect": -0.13,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_2"
+          },
+          {
+            "factor": "render_rate",
+            "window_value": 0.9794,
+            "baseline": 0.9798,
+            "deviation_pct": -0.0,
+            "log_change": -0.000476,
+            "lmdi_contribution": -0.152358,
+            "shapley_contribution": -0.156472,
+            "pct_effect": 0.08,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_3"
+          },
+          {
+            "factor": "ecpm",
+            "window_value": 2.4186,
+            "baseline": 2.4771,
+            "deviation_pct": -2.4,
+            "log_change": -0.023876,
+            "lmdi_contribution": -7.649764,
+            "shapley_contribution": -7.847507,
+            "pct_effect": 4.02,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_4"
+          },
+          {
+            "factor": "ctr",
+            "window_value": 0.0109,
+            "baseline": 0.0109,
+            "deviation_pct": 0.0,
+            "log_change": 0.000477,
+            "lmdi_contribution": null,
+            "shapley_contribution": null,
+            "pct_effect": null,
+            "verdict": "context",
+            "verdict_label": "context (not a CPM revenue factor)",
+            "ev": "ev_5"
+          }
+        ]
+      },
+      "ruled_out": [
+        {
+          "segment": "52 segments across 7 dimensions=all",
+          "deviation_pct": -47.1,
+          "residual_after_exclusion_pct": null,
+          "why": "uniform \u2014 every segment moved together; the most extreme (country=BR) still absorbs only 1.03\u00d7 its share of traffic, so naming it would be a false positive",
+          "ev": "ev_7"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ global",
+          "value": 126052.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ global",
+          "value": 0.7855,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ global",
+          "value": 0.9794,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ global",
+          "value": 2.4186,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ global",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        {
+          "id": "ev_6",
+          "label": "requests deviation @ global (uniform)",
+          "value": -43.5,
+          "sql": null,
+          "query_id": null
+        },
+        {
+          "id": "ev_7",
+          "label": "deviation @ 52 segments across 7 dimensions=all",
+          "value": -47.1,
+          "sql": null,
+          "query_id": null
+        }
+      ],
+      "hypotheses": {
+        "supported": [],
+        "ruled_out": [
+          {
+            "segment": "52 segments across 7 dimensions=all",
+            "why": "uniform \u2014 every segment moved together; the most extreme (country=BR) still absorbs only 1.03\u00d7 its share of traffic, so naming it would be a false positive",
+            "ev": "ev_7"
+          }
+        ],
+        "inconclusive": []
+      },
+      "scores": {
+        "explained_variance": 0.0,
+        "localization_lift": 1.03,
+        "robust_z": -14.03
+      },
+      "evidence_store": {
+        "ev_1": {
+          "id": "ev_1",
+          "label": "requests @ global",
+          "value": 126052.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        "ev_2": {
+          "id": "ev_2",
+          "label": "fill_rate @ global",
+          "value": 0.7855,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        "ev_3": {
+          "id": "ev_3",
+          "label": "render_rate @ global",
+          "value": 0.9794,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        "ev_4": {
+          "id": "ev_4",
+          "label": "ecpm @ global",
+          "value": 2.4186,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        "ev_5": {
+          "id": "ev_5",
+          "label": "ctr @ global",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-21' AND '2026-06-21') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-21' AND '2026-06-21') fw,sumIf(fills,day IN ('2026-06-07','2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-21' AND '2026-06-21') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-21' AND '2026-06-21') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-21' AND '2026-06-21') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-14')) rb, countDistinctIf(day,day BETWEEN '2026-06-21' AND '2026-06-21') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-14')) bd FROM rca.cube ",
+          "query_id": "4a7e6296-38c8-4fca-aa54-d208fcef1aa8"
+        },
+        "ev_6": {
+          "id": "ev_6",
+          "label": "requests deviation @ global (uniform)",
+          "value": -43.5,
+          "sql": null,
+          "query_id": null
+        },
+        "ev_7": {
+          "id": "ev_7",
+          "label": "deviation @ 52 segments across 7 dimensions=all",
+          "value": -47.1,
+          "sql": null,
+          "query_id": null
+        }
+      },
+      "diagnosis": {
+        "diagnosis": "The metric requests moved by -43.5% globally with no single segment affected. The sibling factors checked were fill_rate 0.7855, render_rate 0.9794, and ecpm 2.4186, all found normal and ruled out.",
+        "citations": [
+          "ev_2",
+          "ev_3",
+          "ev_4",
+          "ev_6"
+        ],
+        "source": "llm+validator",
+        "rejected": 0
+      }
+    },
+    {
+      "id": "inv_fill_rate_2026-06-23",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-23",
+        "2026-06-25"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": {
+        "observed": 0.4333,
+        "baseline": 0.785,
+        "delta_abs": -28420.1531,
+        "delta_pct": -44.805,
+        "robust_z": -112.79,
+        "breached": true,
+        "explained_share_pct": 97.2,
+        "residual_share_pct": 2.8,
+        "ev": "ev_6"
+      },
+      "headline_text": "fill_rate -44.8% at os_version=Android 15",
+      "culprit": {
+        "dimension": "os_version",
+        "segment": "Android 15",
+        "value": "Android 15",
+        "contribution_share_pct": 97.2,
+        "ev_share": "ev_7",
+        "segment_observed": 0.43331,
+        "segment_baseline": 0.785049,
+        "relative_change": -0.448047,
+        "deviation_pct": -44.8,
+        "explanatory_power": 0.972,
+        "explanatory_power_net": 0.9838,
+        "surprise_js": 0.3014,
+        "size_share": 0.0958,
+        "lift": 10.15,
+        "co_cut": null,
+        "denominator": 80799,
+        "ev": "ev_6"
+      },
+      "deviation_ev": "ev_6",
+      "attribution": {
+        "method": "Adtributor (explanatory power + JS surprise)",
+        "best_lift": 10.15,
+        "best_explanatory_power": 0.972,
+        "lift_floor": 2.0,
+        "ep_floor": 0.2,
+        "concentration_rule": "2-D iff child EP \u2265 0.6 and lift \u2265 2.0",
+        "advertiser_blank_excluded": [
+          "campaign_type",
+          "vertical"
+        ],
+        "queries": [
+          {
+            "dim": "region",
+            "sql": "SELECT region k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "889b71c9-82de-4695-a456-cc3a1e319ef8"
+          },
+          {
+            "dim": "country",
+            "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "a3b954d3-2f40-4bc4-9c38-da2397f8ccd5"
+          },
+          {
+            "dim": "device_model",
+            "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+          },
+          {
+            "dim": "os_version",
+            "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "cbaa360b-a5d2-4ab4-8ad2-bef8e172b215"
+          },
+          {
+            "dim": "category",
+            "sql": "SELECT category k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "3562ee8b-2040-499b-9482-a88bb25d26cb"
+          },
+          {
+            "dim": "publisher_tier",
+            "sql": "SELECT publisher_tier k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "49275d9b-94da-4257-9e32-fd3acd5de0e2"
+          },
+          {
+            "dim": "ad_format",
+            "sql": "SELECT ad_format k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "82810055-0bb1-407f-b9af-d5f1a819d830"
+          }
+        ]
+      },
+      "decomposition": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.24,
+        "stable": true,
+        "delta_revenue_per_day": -21.0534,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays as 2026-06-23..2026-06-25, window excluded",
+        "factors": [
+          {
+            "factor": "requests",
+            "window_value": 26933.0,
+            "baseline": 25817.2222,
+            "deviation_pct": 4.3,
+            "log_change": 0.042311,
+            "lmdi_contribution": 1.59131,
+            "shapley_contribution": 1.641326,
+            "pct_effect": -7.56,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_1"
+          },
+          {
+            "factor": "fill_rate",
+            "window_value": 0.4333,
+            "baseline": 0.785,
+            "deviation_pct": -44.8,
+            "log_change": -0.594293,
+            "lmdi_contribution": -22.351516,
+            "shapley_contribution": -22.392976,
+            "pct_effect": 106.17,
+            "verdict": "primary_driver",
+            "verdict_label": "driver",
+            "ev": "ev_2"
+          },
+          {
+            "factor": "render_rate",
+            "window_value": 0.979,
+            "baseline": 0.98,
+            "deviation_pct": -0.1,
+            "log_change": -0.001009,
+            "lmdi_contribution": -0.03793,
+            "shapley_contribution": -0.039046,
+            "pct_effect": 0.18,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_3"
+          },
+          {
+            "factor": "ecpm",
+            "window_value": 2.4559,
+            "baseline": 2.4727,
+            "deviation_pct": -0.7,
+            "log_change": -0.006788,
+            "lmdi_contribution": -0.255309,
+            "shapley_contribution": -0.262749,
+            "pct_effect": 1.21,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_4"
+          },
+          {
+            "factor": "ctr",
+            "window_value": 0.0107,
+            "baseline": 0.011,
+            "deviation_pct": -3.2,
+            "log_change": -0.032567,
+            "lmdi_contribution": null,
+            "shapley_contribution": null,
+            "pct_effect": null,
+            "verdict": "context",
+            "verdict_label": "context (not a CPM revenue factor)",
+            "ev": "ev_5"
+          }
+        ]
+      },
+      "ruled_out": [
+        {
+          "segment": "country=UK",
+          "deviation_pct": -10.2,
+          "residual_after_exclusion_pct": 0.1,
+          "why": "explained by Android 15 \u2014 excluding it, this segment moves +0.1% (was -10.2%)",
+          "ev": "ev_8",
+          "ev_residual": "ev_9"
+        },
+        {
+          "segment": "device_model=Galaxy S23",
+          "deviation_pct": -12.3,
+          "residual_after_exclusion_pct": -0.2,
+          "why": "explained by Android 15 \u2014 excluding it, this segment moves -0.2% (was -12.3%)",
+          "ev": "ev_10",
+          "ev_residual": "ev_11"
+        },
+        {
+          "segment": "device_model=Redmi Note 12",
+          "deviation_pct": -10.7,
+          "residual_after_exclusion_pct": 0.3,
+          "why": "explained by Android 15 \u2014 excluding it, this segment moves +0.3% (was -10.7%)",
+          "ev": "ev_12",
+          "ev_residual": "ev_13"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ Android 15",
+          "value": 26933.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ Android 15",
+          "value": 0.4333,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ Android 15",
+          "value": 0.979,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ Android 15",
+          "value": 2.4559,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ Android 15",
+          "value": 0.0107,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        {
+          "id": "ev_6",
+          "label": "deviation @ Android 15",
+          "value": -44.8,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "cbaa360b-a5d2-4ab4-8ad2-bef8e172b215"
+        },
+        {
+          "id": "ev_7",
+          "label": "explanatory power @ Android 15",
+          "value": 97.2,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "cbaa360b-a5d2-4ab4-8ad2-bef8e172b215"
+        },
+        {
+          "id": "ev_8",
+          "label": "deviation @ country=UK",
+          "value": -10.2,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "a3b954d3-2f40-4bc4-9c38-da2397f8ccd5"
+        },
+        {
+          "id": "ev_9",
+          "label": "deviation @ country=UK excluding the culprit",
+          "value": 0.1,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "a3b954d3-2f40-4bc4-9c38-da2397f8ccd5"
+        },
+        {
+          "id": "ev_10",
+          "label": "deviation @ device_model=Galaxy S23",
+          "value": -12.3,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        },
+        {
+          "id": "ev_11",
+          "label": "deviation @ device_model=Galaxy S23 excluding the culprit",
+          "value": -0.2,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        },
+        {
+          "id": "ev_12",
+          "label": "deviation @ device_model=Redmi Note 12",
+          "value": -10.7,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        },
+        {
+          "id": "ev_13",
+          "label": "deviation @ device_model=Redmi Note 12 excluding the culprit",
+          "value": 0.3,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        }
+      ],
+      "hypotheses": {
+        "supported": [
+          {
+            "segment": "Android 15",
+            "dimension": "os_version",
+            "explanatory_power": 0.972,
+            "ev": "ev_6"
+          }
+        ],
+        "ruled_out": [
+          {
+            "segment": "country=UK",
+            "why": "explained by Android 15 \u2014 excluding it, this segment moves +0.1% (was -10.2%)",
+            "ev": "ev_8"
+          },
+          {
+            "segment": "device_model=Galaxy S23",
+            "why": "explained by Android 15 \u2014 excluding it, this segment moves -0.2% (was -12.3%)",
+            "ev": "ev_10"
+          },
+          {
+            "segment": "device_model=Redmi Note 12",
+            "why": "explained by Android 15 \u2014 excluding it, this segment moves +0.3% (was -10.7%)",
+            "ev": "ev_12"
+          }
+        ],
+        "inconclusive": []
+      },
+      "scores": {
+        "explained_variance": 0.972,
+        "localization_lift": 10.15,
+        "robust_z": -112.79
+      },
+      "evidence_store": {
+        "ev_1": {
+          "id": "ev_1",
+          "label": "requests @ Android 15",
+          "value": 26933.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        "ev_2": {
+          "id": "ev_2",
+          "label": "fill_rate @ Android 15",
+          "value": 0.4333,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        "ev_3": {
+          "id": "ev_3",
+          "label": "render_rate @ Android 15",
+          "value": 0.979,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        "ev_4": {
+          "id": "ev_4",
+          "label": "ecpm @ Android 15",
+          "value": 2.4559,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        "ev_5": {
+          "id": "ev_5",
+          "label": "ctr @ Android 15",
+          "value": 0.0107,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') rqw,sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') fw,sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-25') iw,sumIf(impressions,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-25') cw,sumIf(clicks,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-25') rw,sumIf(revenue,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) rb, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wd, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd FROM rca.cube WHERE os_version='Android 15'",
+          "query_id": "6c5a3104-3c3f-433f-8ae1-8f58835e2296"
+        },
+        "ev_6": {
+          "id": "ev_6",
+          "label": "deviation @ Android 15",
+          "value": -44.8,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "cbaa360b-a5d2-4ab4-8ad2-bef8e172b215"
+        },
+        "ev_7": {
+          "id": "ev_7",
+          "label": "explanatory power @ Android 15",
+          "value": 97.2,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "cbaa360b-a5d2-4ab4-8ad2-bef8e172b215"
+        },
+        "ev_8": {
+          "id": "ev_8",
+          "label": "deviation @ country=UK",
+          "value": -10.2,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "a3b954d3-2f40-4bc4-9c38-da2397f8ccd5"
+        },
+        "ev_9": {
+          "id": "ev_9",
+          "label": "deviation @ country=UK excluding the culprit",
+          "value": 0.1,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "a3b954d3-2f40-4bc4-9c38-da2397f8ccd5"
+        },
+        "ev_10": {
+          "id": "ev_10",
+          "label": "deviation @ device_model=Galaxy S23",
+          "value": -12.3,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        },
+        "ev_11": {
+          "id": "ev_11",
+          "label": "deviation @ device_model=Galaxy S23 excluding the culprit",
+          "value": -0.2,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        },
+        "ev_12": {
+          "id": "ev_12",
+          "label": "deviation @ device_model=Redmi Note 12",
+          "value": -10.7,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        },
+        "ev_13": {
+          "id": "ev_13",
+          "label": "deviation @ device_model=Redmi Note 12 excluding the culprit",
+          "value": 0.3,
+          "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-25') wn, sumIf(fills,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bn, sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-25') wd, sumIf(requests,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bd, countDistinctIf(day,day BETWEEN '2026-06-23' AND '2026-06-25') wdays, countDistinctIf(day,day IN ('2026-06-02','2026-06-03','2026-06-04','2026-06-09','2026-06-10','2026-06-11','2026-06-16','2026-06-17','2026-06-18')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "42c7366f-9f95-4b1b-9241-6c6b4068b084"
+        }
+      },
+      "diagnosis": {
+        "diagnosis": "The fill_rate metric decreased by -44.8% in the segment os_version=Android 15. The factors checked and found normal include requests (26933.0), render_rate (0.979), and ecpm (2.4559).",
+        "citations": [
+          "ev_1",
+          "ev_3",
+          "ev_4",
+          "ev_6"
+        ],
+        "source": "llm+validator",
+        "rejected": 0
+      }
+    },
+    {
+      "id": "inv_fill_rate_2026-06-28",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-28",
+        "2026-06-30"
+      ],
+      "verdict": "LOCALIZED_2D",
+      "headline": {
+        "observed": 0.3879,
+        "baseline": 0.7852,
+        "delta_abs": -7907.2001,
+        "delta_pct": -50.605,
+        "robust_z": -36.93,
+        "breached": true,
+        "explained_share_pct": 64.2,
+        "residual_share_pct": 35.8,
+        "ev": "ev_6"
+      },
+      "headline_text": "fill_rate -50.6% at os_version=iOS 18.1 \u00d7 region=APAC",
+      "culprit": {
+        "dimension": "os_version\u00d7region",
+        "segment": "os_version=iOS 18.1 \u00d7 region=APAC",
+        "value": "os_version=iOS 18.1 \u00d7 region=APAC",
+        "contribution_share_pct": 98.65,
+        "ev_share": "ev_7",
+        "segment_observed": 0.387859,
+        "segment_baseline": 0.785225,
+        "relative_change": -0.506054,
+        "deviation_pct": -50.6,
+        "explanatory_power": 0.9865,
+        "explanatory_power_net": 1.0009,
+        "surprise_js": 0.1688,
+        "size_share": 0.2506,
+        "lift": 3.94,
+        "co_cut": {
+          "region": "APAC"
+        },
+        "denominator": 19899,
+        "ev": "ev_6"
+      },
+      "deviation_ev": "ev_6",
+      "attribution": {
+        "method": "Adtributor (explanatory power + JS surprise)",
+        "best_lift": 6.54,
+        "best_explanatory_power": 0.642,
+        "lift_floor": 2.0,
+        "ep_floor": 0.2,
+        "concentration_rule": "2-D iff child EP \u2265 0.6 and lift \u2265 2.0",
+        "advertiser_blank_excluded": [
+          "campaign_type",
+          "vertical"
+        ],
+        "queries": [
+          {
+            "dim": "region",
+            "sql": "SELECT region k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "e6ead203-6ebc-4d0d-b25c-50af1b8c387a"
+          },
+          {
+            "dim": "country",
+            "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "993bf507-fe3c-48bf-8895-14a0f9251d88"
+          },
+          {
+            "dim": "device_model",
+            "sql": "SELECT device_model k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "ebc6cc99-9f6b-4cbc-a9ea-c56399af4c8e"
+          },
+          {
+            "dim": "os_version",
+            "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+          },
+          {
+            "dim": "category",
+            "sql": "SELECT category k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "96c632b3-8b09-4939-b7a0-8d2cf13321b6"
+          },
+          {
+            "dim": "publisher_tier",
+            "sql": "SELECT publisher_tier k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "47ce4574-f8cf-4890-bc7e-e6987c2b5e1d"
+          },
+          {
+            "dim": "ad_format",
+            "sql": "SELECT ad_format k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+            "query_id": "dd74a1bf-4908-4334-baed-f7743c6a34ad"
+          }
+        ]
+      },
+      "decomposition": {
+        "method": "LMDI (log-mean Divisia)",
+        "cross_check": "Shapley (mean of all 24 orderings)",
+        "lmdi_shapley_max_divergence_pct": 0.79,
+        "stable": true,
+        "delta_revenue_per_day": -3.3346,
+        "identity": "requests \u00d7 fill_rate \u00d7 render_rate \u00d7 ecpm/1000 \u2261 revenue/day",
+        "reconciliation_note": "residual is zero BY CONSTRUCTION (the factors telescope) \u2014 what is validated is LMDI vs Shapley agreement",
+        "baseline_window": "same weekdays as 2026-06-28..2026-06-30, window excluded",
+        "factors": [
+          {
+            "factor": "requests",
+            "window_value": 6633.0,
+            "baseline": 6038.8889,
+            "deviation_pct": 9.8,
+            "log_change": 0.093837,
+            "lmdi_contribution": 0.519271,
+            "shapley_contribution": 0.543566,
+            "pct_effect": -15.57,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_1"
+          },
+          {
+            "factor": "fill_rate",
+            "window_value": 0.3879,
+            "baseline": 0.7852,
+            "deviation_pct": -50.6,
+            "log_change": -0.70533,
+            "lmdi_contribution": -3.903113,
+            "shapley_contribution": -3.929498,
+            "pct_effect": 117.05,
+            "verdict": "primary_driver",
+            "verdict_label": "driver",
+            "ev": "ev_2"
+          },
+          {
+            "factor": "render_rate",
+            "window_value": 0.9808,
+            "baseline": 0.9796,
+            "deviation_pct": 0.1,
+            "log_change": 0.001234,
+            "lmdi_contribution": 0.006829,
+            "shapley_contribution": 0.007117,
+            "pct_effect": -0.2,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_3"
+          },
+          {
+            "factor": "ecpm",
+            "window_value": 1.5982,
+            "baseline": 1.586,
+            "deviation_pct": 0.8,
+            "log_change": 0.007668,
+            "lmdi_contribution": 0.042432,
+            "shapley_contribution": 0.044234,
+            "pct_effect": -1.27,
+            "verdict": "ruled_out",
+            "verdict_label": "normal \u2192 ruled out",
+            "ev": "ev_4"
+          },
+          {
+            "factor": "ctr",
+            "window_value": 0.0123,
+            "baseline": 0.0107,
+            "deviation_pct": 15.2,
+            "log_change": 0.141151,
+            "lmdi_contribution": null,
+            "shapley_contribution": null,
+            "pct_effect": null,
+            "verdict": "context",
+            "verdict_label": "context (not a CPM revenue factor)",
+            "ev": "ev_5"
+          }
+        ]
+      },
+      "ruled_out": [
+        {
+          "segment": "os_version=iOS 18.1",
+          "deviation_pct": -12.7,
+          "residual_after_exclusion_pct": null,
+          "why": "dilution \u2014 explained by os_version=iOS 18.1 \u00d7 region=APAC",
+          "ev": "ev_8"
+        },
+        {
+          "segment": "country=JP",
+          "deviation_pct": -11.2,
+          "residual_after_exclusion_pct": 0.5,
+          "why": "explained by os_version=iOS 18.1 \u00d7 region=APAC \u2014 excluding it, this segment moves +0.5% (was -11.2%)",
+          "ev": "ev_9",
+          "ev_residual": "ev_10"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 6633.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 0.3879,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        {
+          "id": "ev_3",
+          "label": "render_rate @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 0.9808,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        {
+          "id": "ev_4",
+          "label": "ecpm @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 1.5982,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        {
+          "id": "ev_5",
+          "label": "ctr @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 0.0123,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        {
+          "id": "ev_6",
+          "label": "deviation @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": -50.6,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+        },
+        {
+          "id": "ev_7",
+          "label": "explanatory power @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 98.65,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+        },
+        {
+          "id": "ev_8",
+          "label": "deviation @ os_version=iOS 18.1",
+          "value": -12.7,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+        },
+        {
+          "id": "ev_9",
+          "label": "deviation @ country=JP",
+          "value": -11.2,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "993bf507-fe3c-48bf-8895-14a0f9251d88"
+        },
+        {
+          "id": "ev_10",
+          "label": "deviation @ country=JP excluding the culprit",
+          "value": 0.5,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "993bf507-fe3c-48bf-8895-14a0f9251d88"
+        }
+      ],
+      "hypotheses": {
+        "supported": [
+          {
+            "segment": "os_version=iOS 18.1 \u00d7 region=APAC",
+            "dimension": "os_version\u00d7region",
+            "explanatory_power": 0.9865,
+            "ev": "ev_6"
+          }
+        ],
+        "ruled_out": [
+          {
+            "segment": "os_version=iOS 18.1",
+            "why": "dilution \u2014 explained by os_version=iOS 18.1 \u00d7 region=APAC",
+            "ev": "ev_8"
+          },
+          {
+            "segment": "country=JP",
+            "why": "explained by os_version=iOS 18.1 \u00d7 region=APAC \u2014 excluding it, this segment moves +0.5% (was -11.2%)",
+            "ev": "ev_9"
+          }
+        ],
+        "inconclusive": []
+      },
+      "scores": {
+        "explained_variance": 0.642,
+        "localization_lift": 6.54,
+        "robust_z": -36.93
+      },
+      "evidence_store": {
+        "ev_1": {
+          "id": "ev_1",
+          "label": "requests @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 6633.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        "ev_2": {
+          "id": "ev_2",
+          "label": "fill_rate @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 0.3879,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        "ev_3": {
+          "id": "ev_3",
+          "label": "render_rate @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 0.9808,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        "ev_4": {
+          "id": "ev_4",
+          "label": "ecpm @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 1.5982,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        "ev_5": {
+          "id": "ev_5",
+          "label": "ctr @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 0.0123,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') rqw,sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rqb, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') fw,sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) fb, sumIf(impressions,day BETWEEN '2026-06-28' AND '2026-06-30') iw,sumIf(impressions,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) ib, sumIf(clicks,day BETWEEN '2026-06-28' AND '2026-06-30') cw,sumIf(clicks,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) cb, sumIf(revenue,day BETWEEN '2026-06-28' AND '2026-06-30') rw,sumIf(revenue,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) rb, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wd, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd FROM rca.cube WHERE os_version='iOS 18.1' AND region='APAC'",
+          "query_id": "75334dbd-9d6e-4a60-ac3f-36da7562d380"
+        },
+        "ev_6": {
+          "id": "ev_6",
+          "label": "deviation @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": -50.6,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+        },
+        "ev_7": {
+          "id": "ev_7",
+          "label": "explanatory power @ os_version=iOS 18.1 \u00d7 region=APAC",
+          "value": 98.65,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+        },
+        "ev_8": {
+          "id": "ev_8",
+          "label": "deviation @ os_version=iOS 18.1",
+          "value": -12.7,
+          "sql": "SELECT os_version k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "162d310b-c3d6-4747-9dd3-9efd85641d7e"
+        },
+        "ev_9": {
+          "id": "ev_9",
+          "label": "deviation @ country=JP",
+          "value": -11.2,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "993bf507-fe3c-48bf-8895-14a0f9251d88"
+        },
+        "ev_10": {
+          "id": "ev_10",
+          "label": "deviation @ country=JP excluding the culprit",
+          "value": 0.5,
+          "sql": "SELECT country k, sumIf(fills,day BETWEEN '2026-06-28' AND '2026-06-30') wn, sumIf(fills,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bn, sumIf(requests,day BETWEEN '2026-06-28' AND '2026-06-30') wd, sumIf(requests,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bd, countDistinctIf(day,day BETWEEN '2026-06-28' AND '2026-06-30') wdays, countDistinctIf(day,day IN ('2026-06-07','2026-06-08','2026-06-09','2026-06-14','2026-06-15','2026-06-16','2026-06-21','2026-06-22','2026-06-23')) bdays FROM rca.cube  GROUP BY k",
+          "query_id": "993bf507-fe3c-48bf-8895-14a0f9251d88"
+        }
+      },
+      "diagnosis": {
+        "diagnosis": "The fill_rate metric moved by -50.6% in the segment os_version=iOS 18.1 \u00d7 region=APAC. The factors checked and found normal include requests (window value 6633.0), render_rate (window value 0.9808), and ecpm (window value 1.5982).",
+        "citations": [
+          "ev_1",
+          "ev_3",
+          "ev_4"
+        ],
+        "source": "llm+validator",
+        "rejected": 0
+      }
+    }
+  ]
+}

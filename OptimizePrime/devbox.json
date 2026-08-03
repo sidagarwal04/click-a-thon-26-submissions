@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.5/.schema/devbox.schema.json",
+  "packages": [
+    "go@1.26.4",
+    "golangci-lint@2.12.2",
+    "gotools@latest",
+    "gopls@latest",
+    "delve@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export GOPATH=$(pwd)/.devbox/gopath",
+      "export GOBIN=$(pwd)/bin",
+      "export PATH=$GOBIN:$PATH",
+      "export CGO_ENABLED=0"
+    ],
+    "scripts": {
+      "build": "make build",
+      "test": "make test",
+      "lint": "make lint",
+      "verify": "make run ARGS=verify"
+    }
+  }
+}

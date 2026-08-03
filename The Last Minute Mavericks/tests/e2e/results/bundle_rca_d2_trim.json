@@ -1,0 +1,888 @@
+{
+  "scan_summary": {
+    "database": "rca_d2",
+    "metrics_scanned": [
+      "requests",
+      "fill_rate",
+      "ecpm"
+    ],
+    "real_incidents": 11,
+    "ruled_out": 9,
+    "wall_clock_s": 56.95
+  },
+  "investigations": [
+    {
+      "id": "inv_fill_rate_2026-06-08",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-08",
+        "2026-06-09"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "fill_rate -5.8% at os_version=iOS 17.5",
+      "culprit": {
+        "dimension": "os_version",
+        "segment": "iOS 17.5",
+        "deviation_pct": -5.8
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 29291.0,
+          "baseline": 27777.4242,
+          "deviation_pct": 5.4,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7295,
+          "baseline": 0.7762,
+          "deviation_pct": -6.0,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5328,
+          "baseline": 2.5332,
+          "deviation_pct": -0.0,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0102,
+          "baseline": 0.0109,
+          "deviation_pct": -6.8,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ iOS 17.5",
+          "value": 29291.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-08' AND '2026-06-09') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rqb, sumIf(fills,day BETWEEN '2026-06-08' AND '2026-06-09') fw,sumIf(fills,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) fb, sumIf(impressions,day BETWEEN '2026-06-08' AND '2026-06-09') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) ib, sumIf(clicks,day BETWEEN '2026-06-08' AND '2026-06-09') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) cb, sumIf(revenue,day BETWEEN '2026-06-08' AND '2026-06-09') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rb FROM rca_d2.cube WHERE os_version='iOS 17.5'",
+          "query_id": "05f5dbb6-74e3-46dc-a32d-25e102a67865"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ iOS 17.5",
+          "value": 0.7295,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-08' AND '2026-06-09') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rqb, sumIf(fills,day BETWEEN '2026-06-08' AND '2026-06-09') fw,sumIf(fills,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) fb, sumIf(impressions,day BETWEEN '2026-06-08' AND '2026-06-09') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) ib, sumIf(clicks,day BETWEEN '2026-06-08' AND '2026-06-09') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) cb, sumIf(revenue,day BETWEEN '2026-06-08' AND '2026-06-09') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rb FROM rca_d2.cube WHERE os_version='iOS 17.5'",
+          "query_id": "05f5dbb6-74e3-46dc-a32d-25e102a67865"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ iOS 17.5",
+          "value": 2.5328,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-08' AND '2026-06-09') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rqb, sumIf(fills,day BETWEEN '2026-06-08' AND '2026-06-09') fw,sumIf(fills,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) fb, sumIf(impressions,day BETWEEN '2026-06-08' AND '2026-06-09') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) ib, sumIf(clicks,day BETWEEN '2026-06-08' AND '2026-06-09') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) cb, sumIf(revenue,day BETWEEN '2026-06-08' AND '2026-06-09') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rb FROM rca_d2.cube WHERE os_version='iOS 17.5'",
+          "query_id": "05f5dbb6-74e3-46dc-a32d-25e102a67865"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ iOS 17.5",
+          "value": 0.0102,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-08' AND '2026-06-09') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rqb, sumIf(fills,day BETWEEN '2026-06-08' AND '2026-06-09') fw,sumIf(fills,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) fb, sumIf(impressions,day BETWEEN '2026-06-08' AND '2026-06-09') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) ib, sumIf(clicks,day BETWEEN '2026-06-08' AND '2026-06-09') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) cb, sumIf(revenue,day BETWEEN '2026-06-08' AND '2026-06-09') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-08' AND '2026-06-09')) rb FROM rca_d2.cube WHERE os_version='iOS 17.5'",
+          "query_id": "05f5dbb6-74e3-46dc-a32d-25e102a67865"
+        }
+      ]
+    },
+    {
+      "id": "inv_ecpm_2026-06-10",
+      "metric": "ecpm",
+      "window": [
+        "2026-06-10",
+        "2026-06-10"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "ecpm -5.4% at os_version=Android 13",
+      "culprit": {
+        "dimension": "os_version",
+        "segment": "Android 13",
+        "deviation_pct": -5.4
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 44469.0,
+          "baseline": 41831.1471,
+          "deviation_pct": 6.3,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7812,
+          "baseline": 0.7761,
+          "deviation_pct": 0.7,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.3789,
+          "baseline": 2.5246,
+          "deviation_pct": -5.8,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0108,
+          "baseline": 0.0108,
+          "deviation_pct": -0.3,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ Android 13",
+          "value": 44469.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-10' AND '2026-06-10') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rqb, sumIf(fills,day BETWEEN '2026-06-10' AND '2026-06-10') fw,sumIf(fills,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) fb, sumIf(impressions,day BETWEEN '2026-06-10' AND '2026-06-10') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) ib, sumIf(clicks,day BETWEEN '2026-06-10' AND '2026-06-10') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) cb, sumIf(revenue,day BETWEEN '2026-06-10' AND '2026-06-10') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rb FROM rca_d2.cube WHERE os_version='Android 13'",
+          "query_id": "a3558bc5-ab20-4616-9fbb-de9a8f07538a"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ Android 13",
+          "value": 0.7812,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-10' AND '2026-06-10') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rqb, sumIf(fills,day BETWEEN '2026-06-10' AND '2026-06-10') fw,sumIf(fills,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) fb, sumIf(impressions,day BETWEEN '2026-06-10' AND '2026-06-10') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) ib, sumIf(clicks,day BETWEEN '2026-06-10' AND '2026-06-10') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) cb, sumIf(revenue,day BETWEEN '2026-06-10' AND '2026-06-10') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rb FROM rca_d2.cube WHERE os_version='Android 13'",
+          "query_id": "a3558bc5-ab20-4616-9fbb-de9a8f07538a"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ Android 13",
+          "value": 2.3789,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-10' AND '2026-06-10') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rqb, sumIf(fills,day BETWEEN '2026-06-10' AND '2026-06-10') fw,sumIf(fills,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) fb, sumIf(impressions,day BETWEEN '2026-06-10' AND '2026-06-10') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) ib, sumIf(clicks,day BETWEEN '2026-06-10' AND '2026-06-10') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) cb, sumIf(revenue,day BETWEEN '2026-06-10' AND '2026-06-10') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rb FROM rca_d2.cube WHERE os_version='Android 13'",
+          "query_id": "a3558bc5-ab20-4616-9fbb-de9a8f07538a"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ Android 13",
+          "value": 0.0108,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-10' AND '2026-06-10') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rqb, sumIf(fills,day BETWEEN '2026-06-10' AND '2026-06-10') fw,sumIf(fills,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) fb, sumIf(impressions,day BETWEEN '2026-06-10' AND '2026-06-10') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) ib, sumIf(clicks,day BETWEEN '2026-06-10' AND '2026-06-10') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) cb, sumIf(revenue,day BETWEEN '2026-06-10' AND '2026-06-10') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-10' AND '2026-06-10')) rb FROM rca_d2.cube WHERE os_version='Android 13'",
+          "query_id": "a3558bc5-ab20-4616-9fbb-de9a8f07538a"
+        }
+      ]
+    },
+    {
+      "id": "inv_fill_rate_2026-06-13",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-13",
+        "2026-06-14"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "fill_rate -8.8% at ad_format=banner",
+      "culprit": {
+        "dimension": "ad_format",
+        "segment": "banner",
+        "deviation_pct": -8.8
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 47031.5,
+          "baseline": 56699.1818,
+          "deviation_pct": -17.1,
+          "verdict": "contributing"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7098,
+          "baseline": 0.777,
+          "deviation_pct": -8.6,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 1.2999,
+          "baseline": 1.296,
+          "deviation_pct": 0.3,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0119,
+          "baseline": 0.011,
+          "deviation_pct": 8.2,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ banner",
+          "value": 47031.5,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-13' AND '2026-06-14') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-13' AND '2026-06-14') fw,sumIf(fills,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-13' AND '2026-06-14') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-13' AND '2026-06-14') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-13' AND '2026-06-14') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rb FROM rca_d2.cube WHERE ad_format='banner'",
+          "query_id": "99b64c83-1bcf-4b57-a2b2-fea179f066c6"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ banner",
+          "value": 0.7098,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-13' AND '2026-06-14') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-13' AND '2026-06-14') fw,sumIf(fills,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-13' AND '2026-06-14') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-13' AND '2026-06-14') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-13' AND '2026-06-14') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rb FROM rca_d2.cube WHERE ad_format='banner'",
+          "query_id": "99b64c83-1bcf-4b57-a2b2-fea179f066c6"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ banner",
+          "value": 1.2999,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-13' AND '2026-06-14') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-13' AND '2026-06-14') fw,sumIf(fills,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-13' AND '2026-06-14') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-13' AND '2026-06-14') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-13' AND '2026-06-14') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rb FROM rca_d2.cube WHERE ad_format='banner'",
+          "query_id": "99b64c83-1bcf-4b57-a2b2-fea179f066c6"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ banner",
+          "value": 0.0119,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-13' AND '2026-06-14') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rqb, sumIf(fills,day BETWEEN '2026-06-13' AND '2026-06-14') fw,sumIf(fills,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) fb, sumIf(impressions,day BETWEEN '2026-06-13' AND '2026-06-14') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) ib, sumIf(clicks,day BETWEEN '2026-06-13' AND '2026-06-14') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) cb, sumIf(revenue,day BETWEEN '2026-06-13' AND '2026-06-14') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-13' AND '2026-06-14')) rb FROM rca_d2.cube WHERE ad_format='banner'",
+          "query_id": "99b64c83-1bcf-4b57-a2b2-fea179f066c6"
+        }
+      ]
+    },
+    {
+      "id": "inv_ecpm_2026-06-15",
+      "metric": "ecpm",
+      "window": [
+        "2026-06-15",
+        "2026-06-16"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "ecpm -8.9% at ad_format=rewarded",
+      "culprit": {
+        "dimension": "ad_format",
+        "segment": "rewarded",
+        "deviation_pct": -8.9
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 60840.0,
+          "baseline": 55786.9091,
+          "deviation_pct": 9.1,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7809,
+          "baseline": 0.777,
+          "deviation_pct": 0.5,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 3.5456,
+          "baseline": 3.8875,
+          "deviation_pct": -8.8,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0109,
+          "baseline": 0.0109,
+          "deviation_pct": 0.1,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ rewarded",
+          "value": 60840.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-15' AND '2026-06-16') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rqb, sumIf(fills,day BETWEEN '2026-06-15' AND '2026-06-16') fw,sumIf(fills,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) fb, sumIf(impressions,day BETWEEN '2026-06-15' AND '2026-06-16') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) ib, sumIf(clicks,day BETWEEN '2026-06-15' AND '2026-06-16') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) cb, sumIf(revenue,day BETWEEN '2026-06-15' AND '2026-06-16') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rb FROM rca_d2.cube WHERE ad_format='rewarded'",
+          "query_id": "edca3404-24de-42e4-a99d-a9fa26832d82"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ rewarded",
+          "value": 0.7809,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-15' AND '2026-06-16') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rqb, sumIf(fills,day BETWEEN '2026-06-15' AND '2026-06-16') fw,sumIf(fills,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) fb, sumIf(impressions,day BETWEEN '2026-06-15' AND '2026-06-16') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) ib, sumIf(clicks,day BETWEEN '2026-06-15' AND '2026-06-16') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) cb, sumIf(revenue,day BETWEEN '2026-06-15' AND '2026-06-16') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rb FROM rca_d2.cube WHERE ad_format='rewarded'",
+          "query_id": "edca3404-24de-42e4-a99d-a9fa26832d82"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ rewarded",
+          "value": 3.5456,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-15' AND '2026-06-16') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rqb, sumIf(fills,day BETWEEN '2026-06-15' AND '2026-06-16') fw,sumIf(fills,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) fb, sumIf(impressions,day BETWEEN '2026-06-15' AND '2026-06-16') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) ib, sumIf(clicks,day BETWEEN '2026-06-15' AND '2026-06-16') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) cb, sumIf(revenue,day BETWEEN '2026-06-15' AND '2026-06-16') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rb FROM rca_d2.cube WHERE ad_format='rewarded'",
+          "query_id": "edca3404-24de-42e4-a99d-a9fa26832d82"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ rewarded",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-15' AND '2026-06-16') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rqb, sumIf(fills,day BETWEEN '2026-06-15' AND '2026-06-16') fw,sumIf(fills,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) fb, sumIf(impressions,day BETWEEN '2026-06-15' AND '2026-06-16') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) ib, sumIf(clicks,day BETWEEN '2026-06-15' AND '2026-06-16') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) cb, sumIf(revenue,day BETWEEN '2026-06-15' AND '2026-06-16') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-15' AND '2026-06-16')) rb FROM rca_d2.cube WHERE ad_format='rewarded'",
+          "query_id": "edca3404-24de-42e4-a99d-a9fa26832d82"
+        }
+      ]
+    },
+    {
+      "id": "inv_fill_rate_2026-06-18",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-18",
+        "2026-06-19"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "fill_rate -12.0% at region=APAC",
+      "culprit": {
+        "dimension": "region",
+        "segment": "APAC",
+        "deviation_pct": -12.0
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 93482.5,
+          "baseline": 85032.4242,
+          "deviation_pct": 9.9,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.6859,
+          "baseline": 0.7763,
+          "deviation_pct": -11.7,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5407,
+          "baseline": 2.5322,
+          "deviation_pct": 0.3,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0109,
+          "baseline": 0.0109,
+          "deviation_pct": -0.0,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [
+        {
+          "segment": "country=PH",
+          "deviation_pct": -12.4,
+          "why": "explained by APAC (residual - outside it)"
+        },
+        {
+          "segment": "country=ID",
+          "deviation_pct": -11.9,
+          "why": "explained by APAC (residual - outside it)"
+        },
+        {
+          "segment": "country=JP",
+          "deviation_pct": -11.7,
+          "why": "explained by APAC (residual - outside it)"
+        },
+        {
+          "segment": "country=IN",
+          "deviation_pct": -11.8,
+          "why": "explained by APAC (residual - outside it)"
+        },
+        {
+          "segment": "country=SG",
+          "deviation_pct": -11.8,
+          "why": "explained by APAC (residual - outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ APAC",
+          "value": 93482.5,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-18' AND '2026-06-19') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-18' AND '2026-06-19') fw,sumIf(fills,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-18' AND '2026-06-19') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-18' AND '2026-06-19') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-18' AND '2026-06-19') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rb FROM rca_d2.cube WHERE region='APAC'",
+          "query_id": "6d87657c-1902-4118-9c40-4f5d88bb6124"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ APAC",
+          "value": 0.6859,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-18' AND '2026-06-19') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-18' AND '2026-06-19') fw,sumIf(fills,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-18' AND '2026-06-19') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-18' AND '2026-06-19') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-18' AND '2026-06-19') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rb FROM rca_d2.cube WHERE region='APAC'",
+          "query_id": "6d87657c-1902-4118-9c40-4f5d88bb6124"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ APAC",
+          "value": 2.5407,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-18' AND '2026-06-19') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-18' AND '2026-06-19') fw,sumIf(fills,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-18' AND '2026-06-19') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-18' AND '2026-06-19') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-18' AND '2026-06-19') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rb FROM rca_d2.cube WHERE region='APAC'",
+          "query_id": "6d87657c-1902-4118-9c40-4f5d88bb6124"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ APAC",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-18' AND '2026-06-19') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rqb, sumIf(fills,day BETWEEN '2026-06-18' AND '2026-06-19') fw,sumIf(fills,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) fb, sumIf(impressions,day BETWEEN '2026-06-18' AND '2026-06-19') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) ib, sumIf(clicks,day BETWEEN '2026-06-18' AND '2026-06-19') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) cb, sumIf(revenue,day BETWEEN '2026-06-18' AND '2026-06-19') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-18' AND '2026-06-19')) rb FROM rca_d2.cube WHERE region='APAC'",
+          "query_id": "6d87657c-1902-4118-9c40-4f5d88bb6124"
+        }
+      ]
+    },
+    {
+      "id": "inv_ecpm_2026-06-20",
+      "metric": "ecpm",
+      "window": [
+        "2026-06-20",
+        "2026-06-21"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "ecpm -12.1% at region=MEA",
+      "culprit": {
+        "dimension": "region",
+        "segment": "MEA",
+        "deviation_pct": -12.1
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 28729.5,
+          "baseline": 34052.5758,
+          "deviation_pct": -15.6,
+          "verdict": "contributing"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7791,
+          "baseline": 0.7797,
+          "deviation_pct": -0.1,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.2321,
+          "baseline": 2.5352,
+          "deviation_pct": -12.0,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0109,
+          "baseline": 0.0109,
+          "deviation_pct": 0.3,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [
+        {
+          "segment": "country=ZA",
+          "deviation_pct": -12.1,
+          "why": "explained by MEA (residual - outside it)"
+        },
+        {
+          "segment": "country=AE",
+          "deviation_pct": -11.9,
+          "why": "explained by MEA (residual - outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ MEA",
+          "value": 28729.5,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-20' AND '2026-06-21') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rqb, sumIf(fills,day BETWEEN '2026-06-20' AND '2026-06-21') fw,sumIf(fills,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) fb, sumIf(impressions,day BETWEEN '2026-06-20' AND '2026-06-21') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) ib, sumIf(clicks,day BETWEEN '2026-06-20' AND '2026-06-21') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) cb, sumIf(revenue,day BETWEEN '2026-06-20' AND '2026-06-21') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rb FROM rca_d2.cube WHERE region='MEA'",
+          "query_id": "2f8f3cfe-611b-4eb6-b139-3c6df2df9f54"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ MEA",
+          "value": 0.7791,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-20' AND '2026-06-21') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rqb, sumIf(fills,day BETWEEN '2026-06-20' AND '2026-06-21') fw,sumIf(fills,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) fb, sumIf(impressions,day BETWEEN '2026-06-20' AND '2026-06-21') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) ib, sumIf(clicks,day BETWEEN '2026-06-20' AND '2026-06-21') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) cb, sumIf(revenue,day BETWEEN '2026-06-20' AND '2026-06-21') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rb FROM rca_d2.cube WHERE region='MEA'",
+          "query_id": "2f8f3cfe-611b-4eb6-b139-3c6df2df9f54"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ MEA",
+          "value": 2.2321,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-20' AND '2026-06-21') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rqb, sumIf(fills,day BETWEEN '2026-06-20' AND '2026-06-21') fw,sumIf(fills,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) fb, sumIf(impressions,day BETWEEN '2026-06-20' AND '2026-06-21') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) ib, sumIf(clicks,day BETWEEN '2026-06-20' AND '2026-06-21') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) cb, sumIf(revenue,day BETWEEN '2026-06-20' AND '2026-06-21') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rb FROM rca_d2.cube WHERE region='MEA'",
+          "query_id": "2f8f3cfe-611b-4eb6-b139-3c6df2df9f54"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ MEA",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-20' AND '2026-06-21') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rqb, sumIf(fills,day BETWEEN '2026-06-20' AND '2026-06-21') fw,sumIf(fills,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) fb, sumIf(impressions,day BETWEEN '2026-06-20' AND '2026-06-21') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) ib, sumIf(clicks,day BETWEEN '2026-06-20' AND '2026-06-21') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) cb, sumIf(revenue,day BETWEEN '2026-06-20' AND '2026-06-21') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-20' AND '2026-06-21')) rb FROM rca_d2.cube WHERE region='MEA'",
+          "query_id": "2f8f3cfe-611b-4eb6-b139-3c6df2df9f54"
+        }
+      ]
+    },
+    {
+      "id": "inv_fill_rate_2026-06-23",
+      "metric": "fill_rate",
+      "window": [
+        "2026-06-23",
+        "2026-06-24"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "fill_rate -19.8% at country=IN",
+      "culprit": {
+        "dimension": "country",
+        "segment": "IN",
+        "deviation_pct": -19.8
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 18587.5,
+          "baseline": 16284.7879,
+          "deviation_pct": 14.1,
+          "verdict": "contributing"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.6238,
+          "baseline": 0.7722,
+          "deviation_pct": -19.2,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5505,
+          "baseline": 2.5346,
+          "deviation_pct": 0.6,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0098,
+          "baseline": 0.011,
+          "deviation_pct": -11.4,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [
+        {
+          "segment": "region\u00d7device_model=region=APAC \u00d7 device_model=Pixel 7",
+          "deviation_pct": -5.3,
+          "why": "explained by IN (residual -0.2% outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ IN",
+          "value": 18587.5,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-24') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-24') fw,sumIf(fills,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-24') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-24') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-24') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rb FROM rca_d2.cube WHERE country='IN'",
+          "query_id": "70c6400e-32cd-425c-b78c-33a59d38b31e"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ IN",
+          "value": 0.6238,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-24') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-24') fw,sumIf(fills,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-24') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-24') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-24') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rb FROM rca_d2.cube WHERE country='IN'",
+          "query_id": "70c6400e-32cd-425c-b78c-33a59d38b31e"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ IN",
+          "value": 2.5505,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-24') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-24') fw,sumIf(fills,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-24') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-24') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-24') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rb FROM rca_d2.cube WHERE country='IN'",
+          "query_id": "70c6400e-32cd-425c-b78c-33a59d38b31e"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ IN",
+          "value": 0.0098,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-23' AND '2026-06-24') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rqb, sumIf(fills,day BETWEEN '2026-06-23' AND '2026-06-24') fw,sumIf(fills,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) fb, sumIf(impressions,day BETWEEN '2026-06-23' AND '2026-06-24') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) ib, sumIf(clicks,day BETWEEN '2026-06-23' AND '2026-06-24') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) cb, sumIf(revenue,day BETWEEN '2026-06-23' AND '2026-06-24') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-23' AND '2026-06-24')) rb FROM rca_d2.cube WHERE country='IN'",
+          "query_id": "70c6400e-32cd-425c-b78c-33a59d38b31e"
+        }
+      ]
+    },
+    {
+      "id": "inv_ecpm_2026-06-25",
+      "metric": "ecpm",
+      "window": [
+        "2026-06-25",
+        "2026-06-26"
+      ],
+      "verdict": "LOCALIZED_1D",
+      "headline": "ecpm -20.3% at country=BR",
+      "culprit": {
+        "dimension": "country",
+        "segment": "BR",
+        "deviation_pct": -20.3
+      },
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 19127.0,
+          "baseline": 16818.303,
+          "deviation_pct": 13.7,
+          "verdict": "contributing"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7841,
+          "baseline": 0.7788,
+          "deviation_pct": 0.7,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.0265,
+          "baseline": 2.5351,
+          "deviation_pct": -20.1,
+          "verdict": "driver"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0104,
+          "baseline": 0.0111,
+          "deviation_pct": -6.4,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [
+        {
+          "segment": "region=LATAM",
+          "deviation_pct": -6.2,
+          "why": "explained by BR (residual +0.5% outside it)"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ BR",
+          "value": 19127.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-25' AND '2026-06-26') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rqb, sumIf(fills,day BETWEEN '2026-06-25' AND '2026-06-26') fw,sumIf(fills,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) fb, sumIf(impressions,day BETWEEN '2026-06-25' AND '2026-06-26') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) ib, sumIf(clicks,day BETWEEN '2026-06-25' AND '2026-06-26') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) cb, sumIf(revenue,day BETWEEN '2026-06-25' AND '2026-06-26') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rb FROM rca_d2.cube WHERE country='BR'",
+          "query_id": "fe55753f-1ee1-49eb-934e-c101cd32933a"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ BR",
+          "value": 0.7841,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-25' AND '2026-06-26') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rqb, sumIf(fills,day BETWEEN '2026-06-25' AND '2026-06-26') fw,sumIf(fills,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) fb, sumIf(impressions,day BETWEEN '2026-06-25' AND '2026-06-26') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) ib, sumIf(clicks,day BETWEEN '2026-06-25' AND '2026-06-26') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) cb, sumIf(revenue,day BETWEEN '2026-06-25' AND '2026-06-26') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rb FROM rca_d2.cube WHERE country='BR'",
+          "query_id": "fe55753f-1ee1-49eb-934e-c101cd32933a"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ BR",
+          "value": 2.0265,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-25' AND '2026-06-26') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rqb, sumIf(fills,day BETWEEN '2026-06-25' AND '2026-06-26') fw,sumIf(fills,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) fb, sumIf(impressions,day BETWEEN '2026-06-25' AND '2026-06-26') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) ib, sumIf(clicks,day BETWEEN '2026-06-25' AND '2026-06-26') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) cb, sumIf(revenue,day BETWEEN '2026-06-25' AND '2026-06-26') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rb FROM rca_d2.cube WHERE country='BR'",
+          "query_id": "fe55753f-1ee1-49eb-934e-c101cd32933a"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ BR",
+          "value": 0.0104,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-25' AND '2026-06-26') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rqb, sumIf(fills,day BETWEEN '2026-06-25' AND '2026-06-26') fw,sumIf(fills,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) fb, sumIf(impressions,day BETWEEN '2026-06-25' AND '2026-06-26') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) ib, sumIf(clicks,day BETWEEN '2026-06-25' AND '2026-06-26') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) cb, sumIf(revenue,day BETWEEN '2026-06-25' AND '2026-06-26') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-25' AND '2026-06-26')) rb FROM rca_d2.cube WHERE country='BR'",
+          "query_id": "fe55753f-1ee1-49eb-934e-c101cd32933a"
+        }
+      ]
+    },
+    {
+      "id": "inv_requests_2026-06-29",
+      "metric": "requests",
+      "window": [
+        "2026-06-29",
+        "2026-06-29"
+      ],
+      "verdict": "GLOBAL_UNLOCALIZED",
+      "headline": "requests moved -11.0% \u2014 global, no single segment",
+      "culprit": null,
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 288906.0,
+          "baseline": 280011.0588,
+          "deviation_pct": 3.2,
+          "verdict": "driver"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7795,
+          "baseline": 0.7764,
+          "deviation_pct": 0.4,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5377,
+          "baseline": 2.5292,
+          "deviation_pct": 0.3,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0112,
+          "baseline": 0.0109,
+          "deviation_pct": 3.0,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ global",
+          "value": 288906.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-29' AND '2026-06-29') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rqb, sumIf(fills,day BETWEEN '2026-06-29' AND '2026-06-29') fw,sumIf(fills,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) fb, sumIf(impressions,day BETWEEN '2026-06-29' AND '2026-06-29') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) ib, sumIf(clicks,day BETWEEN '2026-06-29' AND '2026-06-29') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) cb, sumIf(revenue,day BETWEEN '2026-06-29' AND '2026-06-29') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rb FROM rca_d2.cube ",
+          "query_id": "3ac0429d-70f5-4ef5-b861-17b6171df52a"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ global",
+          "value": 0.7795,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-29' AND '2026-06-29') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rqb, sumIf(fills,day BETWEEN '2026-06-29' AND '2026-06-29') fw,sumIf(fills,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) fb, sumIf(impressions,day BETWEEN '2026-06-29' AND '2026-06-29') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) ib, sumIf(clicks,day BETWEEN '2026-06-29' AND '2026-06-29') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) cb, sumIf(revenue,day BETWEEN '2026-06-29' AND '2026-06-29') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rb FROM rca_d2.cube ",
+          "query_id": "3ac0429d-70f5-4ef5-b861-17b6171df52a"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ global",
+          "value": 2.5377,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-29' AND '2026-06-29') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rqb, sumIf(fills,day BETWEEN '2026-06-29' AND '2026-06-29') fw,sumIf(fills,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) fb, sumIf(impressions,day BETWEEN '2026-06-29' AND '2026-06-29') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) ib, sumIf(clicks,day BETWEEN '2026-06-29' AND '2026-06-29') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) cb, sumIf(revenue,day BETWEEN '2026-06-29' AND '2026-06-29') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rb FROM rca_d2.cube ",
+          "query_id": "3ac0429d-70f5-4ef5-b861-17b6171df52a"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ global",
+          "value": 0.0112,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-06-29' AND '2026-06-29') rqw,sumIf(requests,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rqb, sumIf(fills,day BETWEEN '2026-06-29' AND '2026-06-29') fw,sumIf(fills,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) fb, sumIf(impressions,day BETWEEN '2026-06-29' AND '2026-06-29') iw,sumIf(impressions,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) ib, sumIf(clicks,day BETWEEN '2026-06-29' AND '2026-06-29') cw,sumIf(clicks,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) cb, sumIf(revenue,day BETWEEN '2026-06-29' AND '2026-06-29') rw,sumIf(revenue,NOT(day BETWEEN '2026-06-29' AND '2026-06-29')) rb FROM rca_d2.cube ",
+          "query_id": "3ac0429d-70f5-4ef5-b861-17b6171df52a"
+        }
+      ]
+    },
+    {
+      "id": "inv_requests_2026-07-01",
+      "metric": "requests",
+      "window": [
+        "2026-07-01",
+        "2026-07-01"
+      ],
+      "verdict": "GLOBAL_UNLOCALIZED",
+      "headline": "requests moved -23.2% \u2014 global, no single segment",
+      "culprit": null,
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 250977.0,
+          "baseline": 281126.6176,
+          "deviation_pct": -10.7,
+          "verdict": "driver"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.78,
+          "baseline": 0.7764,
+          "deviation_pct": 0.5,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5399,
+          "baseline": 2.5292,
+          "deviation_pct": 0.4,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0105,
+          "baseline": 0.0109,
+          "deviation_pct": -3.7,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ global",
+          "value": 250977.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-01') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-01') fw,sumIf(fills,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-01') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-01') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-01') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rb FROM rca_d2.cube ",
+          "query_id": "e4859d91-c5e6-4119-8221-beab87bd3b2b"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ global",
+          "value": 0.78,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-01') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-01') fw,sumIf(fills,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-01') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-01') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-01') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rb FROM rca_d2.cube ",
+          "query_id": "e4859d91-c5e6-4119-8221-beab87bd3b2b"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ global",
+          "value": 2.5399,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-01') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-01') fw,sumIf(fills,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-01') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-01') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-01') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rb FROM rca_d2.cube ",
+          "query_id": "e4859d91-c5e6-4119-8221-beab87bd3b2b"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ global",
+          "value": 0.0105,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-01' AND '2026-07-01') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rqb, sumIf(fills,day BETWEEN '2026-07-01' AND '2026-07-01') fw,sumIf(fills,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) fb, sumIf(impressions,day BETWEEN '2026-07-01' AND '2026-07-01') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) ib, sumIf(clicks,day BETWEEN '2026-07-01' AND '2026-07-01') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) cb, sumIf(revenue,day BETWEEN '2026-07-01' AND '2026-07-01') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-01' AND '2026-07-01')) rb FROM rca_d2.cube ",
+          "query_id": "e4859d91-c5e6-4119-8221-beab87bd3b2b"
+        }
+      ]
+    },
+    {
+      "id": "inv_requests_2026-07-03",
+      "metric": "requests",
+      "window": [
+        "2026-07-03",
+        "2026-07-03"
+      ],
+      "verdict": "GLOBAL_UNLOCALIZED",
+      "headline": "requests moved -32.8% \u2014 global, no single segment",
+      "culprit": null,
+      "decomposition": [
+        {
+          "factor": "requests",
+          "window_value": 223654.0,
+          "baseline": 281930.2353,
+          "deviation_pct": -20.7,
+          "verdict": "driver"
+        },
+        {
+          "factor": "fill_rate",
+          "window_value": 0.7802,
+          "baseline": 0.7764,
+          "deviation_pct": 0.5,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ecpm",
+          "window_value": 2.5433,
+          "baseline": 2.5291,
+          "deviation_pct": 0.6,
+          "verdict": "normal \u2192 ruled out"
+        },
+        {
+          "factor": "ctr",
+          "window_value": 0.0109,
+          "baseline": 0.0109,
+          "deviation_pct": 0.1,
+          "verdict": "context (not a CPM revenue factor)"
+        }
+      ],
+      "ruled_out": [],
+      "evidence": [
+        {
+          "id": "ev_1",
+          "label": "requests @ global",
+          "value": 223654.0,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-03' AND '2026-07-03') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rqb, sumIf(fills,day BETWEEN '2026-07-03' AND '2026-07-03') fw,sumIf(fills,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) fb, sumIf(impressions,day BETWEEN '2026-07-03' AND '2026-07-03') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) ib, sumIf(clicks,day BETWEEN '2026-07-03' AND '2026-07-03') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) cb, sumIf(revenue,day BETWEEN '2026-07-03' AND '2026-07-03') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rb FROM rca_d2.cube ",
+          "query_id": "99816b58-ba33-4a24-ad5d-11df13ef676f"
+        },
+        {
+          "id": "ev_2",
+          "label": "fill_rate @ global",
+          "value": 0.7802,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-03' AND '2026-07-03') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rqb, sumIf(fills,day BETWEEN '2026-07-03' AND '2026-07-03') fw,sumIf(fills,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) fb, sumIf(impressions,day BETWEEN '2026-07-03' AND '2026-07-03') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) ib, sumIf(clicks,day BETWEEN '2026-07-03' AND '2026-07-03') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) cb, sumIf(revenue,day BETWEEN '2026-07-03' AND '2026-07-03') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rb FROM rca_d2.cube ",
+          "query_id": "99816b58-ba33-4a24-ad5d-11df13ef676f"
+        },
+        {
+          "id": "ev_3",
+          "label": "ecpm @ global",
+          "value": 2.5433,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-03' AND '2026-07-03') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rqb, sumIf(fills,day BETWEEN '2026-07-03' AND '2026-07-03') fw,sumIf(fills,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) fb, sumIf(impressions,day BETWEEN '2026-07-03' AND '2026-07-03') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) ib, sumIf(clicks,day BETWEEN '2026-07-03' AND '2026-07-03') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) cb, sumIf(revenue,day BETWEEN '2026-07-03' AND '2026-07-03') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rb FROM rca_d2.cube ",
+          "query_id": "99816b58-ba33-4a24-ad5d-11df13ef676f"
+        },
+        {
+          "id": "ev_4",
+          "label": "ctr @ global",
+          "value": 0.0109,
+          "sql": "SELECT sumIf(requests,day BETWEEN '2026-07-03' AND '2026-07-03') rqw,sumIf(requests,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rqb, sumIf(fills,day BETWEEN '2026-07-03' AND '2026-07-03') fw,sumIf(fills,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) fb, sumIf(impressions,day BETWEEN '2026-07-03' AND '2026-07-03') iw,sumIf(impressions,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) ib, sumIf(clicks,day BETWEEN '2026-07-03' AND '2026-07-03') cw,sumIf(clicks,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) cb, sumIf(revenue,day BETWEEN '2026-07-03' AND '2026-07-03') rw,sumIf(revenue,NOT(day BETWEEN '2026-07-03' AND '2026-07-03')) rb FROM rca_d2.cube ",
+          "query_id": "99816b58-ba33-4a24-ad5d-11df13ef676f"
+        }
+      ]
+    }
+  ]
+}

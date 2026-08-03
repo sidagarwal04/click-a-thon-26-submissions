@@ -1,0 +1,45 @@
+# evidence: spike_sustainability_phoenix_next
+# what: healthy vs weak spike, same acquisition, opposite sustain
+# run_utc: 2026-08-01 22:30:44
+# git: 9c4fec7-dirty
+# host: ss-cric
+# row_count: 2312139
+# event_watermark: 2026-08-02 07:17:58.866
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 22:30:38   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+database	phoenix_next
+sessions_per_scenario	2000
+seed	20260802
+source.healthy.sessions	2000
+source.weak.sessions	2000
+healthy.peak_concurrency	2000
+healthy.minutes_to_peak	2
+healthy.minutes_above_80pct_peak	13
+healthy.retention_5m_percent	97.8
+healthy.retention_10m_percent	93
+healthy.retention_15m_percent	78
+healthy.background_rate	0.03
+healthy.timeout_rate	0
+healthy.error_rate	0.01
+healthy.entered_sessions	2000
+healthy.spike_type	healthy_sustained
+weak.peak_concurrency	2000
+weak.minutes_to_peak	2
+weak.minutes_above_80pct_peak	3
+weak.retention_5m_percent	48.6
+weak.retention_10m_percent	20.8
+weak.retention_15m_percent	3.5
+weak.background_rate	0.15
+weak.timeout_rate	0
+weak.error_rate	0.05
+weak.entered_sessions	2000
+weak.spike_type	short_lived
+classification.healthy	healthy_sustained	(required healthy_sustained)
+classification.weak	short_lived	(required short_lived)
+verdict	PASS

@@ -1,0 +1,73 @@
+/**
+ * useDLGet<%= className %>ListQuery Hook
+ *
+ * Fetches a list of <%= propertyName %>s.
+ */
+
+import type { ApiQueryDescriptor } from '@open-zentra/foundation-data-model';
+import {
+  useDLGetList,
+  type QueryDescriptorArgs,
+  type UseDLGetOptions,
+} from '@open-zentra/foundation-data-layer';
+import type { <%= className %> } from '<%= dataModel %>';
+import { <%= propertyName %>Keys } from './<%= fileName %>-keys';
+
+export type <%= className %>ListFilters = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
+export const default<%= className %>ListQuery: ApiQueryDescriptor<
+  <%= className %>ListFilters,
+  <%= className %>[]
+> = {
+  path: '<%= endpoint %>',
+};
+
+/**
+ * Options for useDLGet<%= className %>ListQuery
+ */
+export type UseDLGet<%= className %>ListQueryOptions<
+  TQuery extends ApiQueryDescriptor<<%= className %>ListFilters, <%= className %>[]>
+> = Omit<
+  UseDLGetOptions<TQuery, <%= className %>[]>,
+  'query' | 'args' | 'table' | 'queryKey'
+>;
+
+/**
+ * Input for useDLGet<%= className %>ListQuery
+ */
+export interface UseDLGet<%= className %>ListQueryInput<
+  TQuery extends ApiQueryDescriptor<<%= className %>ListFilters, <%= className %>[]>
+> {
+  readonly query?: TQuery;
+  readonly args?: QueryDescriptorArgs<TQuery>;
+  readonly filters?: <%= className %>ListFilters;
+  readonly options?: UseDLGet<%= className %>ListQueryOptions<TQuery>;
+}
+
+/**
+ * Fetch a list of <%= propertyName %>s.
+ *
+ * Note: The current foundation data-layer API uses `useDLGetList`.
+ * Pagination should be expressed in query args handled by your HTTP API.
+ */
+export function useDLGet<%= className %>ListQuery<
+  TQuery extends ApiQueryDescriptor<<%= className %>ListFilters, <%= className %>[]> = typeof default<%= className %>ListQuery
+>(
+  input: UseDLGet<%= className %>ListQueryInput<TQuery> = {}
+) {
+  const { query, args, filters, options } = input;
+
+  const resolvedQuery = (query ?? default<%= className %>ListQuery) as TQuery;
+  const resolvedArgs = args ?? (filters as QueryDescriptorArgs<TQuery> | undefined);
+
+  return useDLGetList<TQuery, <%= className %>[]>({
+    query: resolvedQuery,
+    args: resolvedArgs,
+    table: '<%= propertyName %>s',
+    queryKey: <%= propertyName %>Keys.list(filters),
+    ...options,
+  });
+}

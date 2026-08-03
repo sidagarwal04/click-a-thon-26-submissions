@@ -1,0 +1,269 @@
+Metadata-Version: 2.4
+Name: atlys-agentic
+Version: 0.1.0
+Summary: Atlys Agentic Analytics System
+License: Proprietary
+Requires-Python: <3.14,>=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: crewai>=1.15.0
+Requires-Dist: clickhouse-connect>=0.7.0
+Requires-Dist: chdb>=4.2.1
+Requires-Dist: litellm>=1.50.0
+Requires-Dist: langfuse>=4.0.0
+Requires-Dist: google-genai>=0.1.0
+Requires-Dist: fastapi>=0.110.0
+Requires-Dist: uvicorn>=0.30.0
+Requires-Dist: pydantic>=2.6.0
+Requires-Dist: python-dotenv>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: httpx>=0.27.0; extra == "dev"
+Dynamic: license-file
+
+# InsightMesh — Atlys Agentic Analytics System
+
+A production-grade, multi-agent data analytics and schema engineering system built for Atlys. InsightMesh automates ClickHouse schema design from product specifications (`spec.md`) and raw event streams (`events.ndjson`), maintains an embedded living context layer in `chDB`, and performs multi-cut root-cause diagnostics with statistical confidence scoring and Langfuse observability.
+
+---
+
+## 📚 Critical User Journeys (CUJ) Documentation
+
+Comprehensive architectural designs, multi-agent rosters, prompt contracts, and execution workflows are documented in the `docs/` directory:
+
+| Document | Description | Key Focus |
+| :--- | :--- | :--- |
+| [**`docs/CUJ1.md`**](docs/CUJ1.md) | **CUJ 1 — Schema Ingestion & Evolution** | 6-Pillar ClickHouse storage design, Instrumentation Agent, Context Agent, invariant safety validator, 2-turn HITL chat gate, and live ClickHouse event loading. |
+| [**`docs/CUJ2.md`**](docs/CUJ2.md) | **CUJ 2 — Telemetry Analytics & PM Diagnosis** | Context retrieval via ClickHouse cosine distance, live aggregate probing, answerability contract, Query Architect multi-cut planning, signal derivation, and PM synthesis. |
+| [**`docs/cuj_architecture.md`**](docs/cuj_architecture.md) | **Architecture & System Flow Diagrams** | Visual diagrams, component interactions, custodianship model, and data flow charts. |
+
+---
+
+## 🛠️ Prerequisites
+
+- **Python**: `3.11+`
+- **ClickHouse**: ClickHouse Cloud instance or embedded `chDB` (included in Python package)
+- **Docker & Docker Compose**: (Optional) For running LibreChat Web UI & MongoDB
+- **LLM API Key**: Google Gemini API key (`GEMINI_API_KEY` or `GOOGLE_API_KEY`)
+- **Langfuse**: (Optional) Public and secret keys for complete agent step & LLM generation tracing
+
+---
+
+## 🚀 Setup & Installation
+
+### 1. Clone & Set Up Virtual Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/deepesh17feb/InsightMesh.git
+cd InsightMesh
+
+# Create and activate Python virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Upgrade pip and install package in editable mode with development dependencies
+pip install --upgrade pip
+pip install -e .
+```
+
+### 2. Environment Configuration
+
+Copy the example environment configuration file:
+
+```bash
+cp src/atlys_agentic/config/.env.example src/atlys_agentic/config/.env
+```
+
+Edit `src/atlys_agentic/config/.env` with your credentials:
+
+```ini
+# ==============================================================================
+# ClickHouse Cloud Connection
+# ==============================================================================
+CLICKHOUSE_HOST=your-clickhouse-host.clickhouse.cloud
+CLICKHOUSE_PORT=8443
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=your-clickhouse-password
+CLICKHOUSE_DATABASE=default
+CLICKHOUSE_SECURE=true
+
+# ==============================================================================
+# Embedded Metadata & Context Storage (chDB)
+# ==============================================================================
+CHDB_PATH=./chdb_data
+
+# ==============================================================================
+# LLM Configuration (LiteLLM / Gemini)
+# ==============================================================================
+LLM_MODEL=gemini/gemini-2.5-flash
+GEMINI_API_KEY=your-gemini-api-key
+# GOOGLE_API_KEY=your-google-api-key
+
+# ==============================================================================
+# Observability & Tracing (Langfuse)
+# ==============================================================================
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://us.cloud.langfuse.com
+LANGFUSE_TRACING_ENABLED=true
+
+# ==============================================================================
+# CrewAI Telemetry
+# ==============================================================================
+CREWAI_DISABLE_TELEMETRY=true
+CREWAI_TRACING_ENABLED=false
+```
+
+---
+
+## 🏃 Running the Application
+
+### 1. Start the Unified Backend Service (Port 8008)
+
+The FastAPI backend exposes both the OpenAI-compatible chat completions endpoint (used by LibreChat and curl) and the CUJ 1 web ingestion UI:
+
+```bash
+# Start backend server with auto-reload
+uvicorn atlys_agentic.run_chat:app --host 0.0.0.0 --port 8008 --reload
+
+# Or via the Python module
+python -m atlys_agentic.run_chat
+
+# Or via the installed CLI entrypoint
+atlys-chat
+```
+
+Verify backend health:
+```bash
+curl http://localhost:8008/healthz
+# Output: {"status":"ok"}
+```
+
+### 2. Start LibreChat Web Interface (Port 3080)
+
+InsightMesh includes a pre-configured LibreChat stack configured for two dedicated agent personas:
+
+```bash
+# Start LibreChat and MongoDB services
+docker compose -f src/atlys_agentic/librechat/docker-compose.librechat.yml up -d
+```
+
+- Open **`http://localhost:3080`** in your browser.
+- Register an account on first visit (open registration enabled).
+- Select your agent persona from the top-left dropdown:
+  - **`Atlys Instrumentation Engineer`** (`atlys-instrumentation`): CUJ 1 schema proposals, 6-pillar ClickHouse storage design deep dives, and HITL cloud deployment.
+  - **`Atlys Product Analyst`** (`atlys-analyst`): CUJ 2 conversion drop-off analysis, multi-cut breakdowns, K-issue anomaly correlation, and confidence scoring.
+
+### 3. Alternative UI Surfaces
+
+- **FastAPI Web Portal**: Open `http://localhost:8008/` or `http://localhost:8008/ui/ingestion` for the web-based schema review and HITL approval interface.
+- **Streamlit Ingestion Portal**:
+  ```bash
+  streamlit run src/atlys_agentic/ui_ingestion.py
+  # Or via CLI entrypoint
+  atlys-ui
+  ```
+- **CLI Ingestion**:
+  ```bash
+  # Dry-run proposal review
+  python -m atlys_agentic.run_ingestion --spec_dir "problem statment/specs/01_express_checkout" --dry-run
+
+  # Interactive live deployment gate
+  python -m atlys_agentic.run_ingestion --spec_dir "problem statment/specs/01_express_checkout"
+  ```
+
+---
+
+## 🧪 Testing & Accuracy Evaluation
+
+The repository includes a comprehensive 4-level test suite and an acceptance criteria accuracy evaluation benchmark:
+
+### Run Full Test Suite
+```bash
+pytest -v
+```
+
+### Run Multi-Level Complexity Suite (Levels 1–4)
+```bash
+pytest tests/test_cuj2_analytics_flow.py -v
+```
+
+- **Level 1 (Fundamental Invariants & Safety)**: Read-only `SELECT` validation, vector cosine distance properties, confidence calibration bounds.
+- **Level 2 (Component Integration & Traps)**: 3-guard semantic retrieval, zero-LLM aggregate live probing, metric-boundary trap honesty, K1 known-issue matching, mandatory multi-cut query planning.
+- **Level 3 (End-to-End Orchestration & Persistence)**: Phase 0–11 pipeline execution, concentration ratio computation, PM markdown synthesis, hidden tokens, and submission artifact emission.
+- **Level 4 (Generalization / Unseen Spec)**: Zero-shot semantic resolution of un-hardcoded feature specs (`06_visa_fast_track`).
+
+### Run Acceptance Criteria Accuracy Benchmark
+```bash
+pytest tests/test_accuracy_evaluation.py -v
+```
+
+### Benchmark Results
+| Evaluation Category | Target Acceptance Criteria | Measured Accuracy | Status |
+| :--- | :--- | :--- | :--- |
+| **Level 1: Invariants & Safety** | Read-only enforcement, mathematical bounds | **100.0%** (1.00) | ✅ Pass |
+| **Level 2: Answerability Trap Precision** | Honest decline on un-instrumented metrics | **100.0%** (1.00) | ✅ Pass |
+| **Level 2: Multi-Cut Plan Completeness** | All 9 required dimensions & intersections | **100.0%** (1.00) | ✅ Pass |
+| **Level 3: Signal & Correlation Accuracy** | Root cause delta, concentration ratio, K1 match | **100.0%** (1.00) | ✅ Pass |
+| **Level 3: End-to-End Synthesis Accuracy** | Report structure, hidden tokens, disk persistence | **100.0%** (1.00) | ✅ Pass |
+| **Level 4: Unseen Spec Generalization** | Semantic retrieval without hardcoded keywords | **100.0%** (1.00) | ✅ Pass |
+
+---
+
+## 🔌 API Endpoints Reference
+
+| Endpoint | Method | Purpose |
+| :--- | :--- | :--- |
+| `http://localhost:8008/healthz` | `GET` | Service liveness healthcheck |
+| `http://localhost:8008/v1/chat/completions` | `POST` | OpenAI-compatible endpoint used by LibreChat and curl |
+| `http://localhost:8008/` or `/ui/ingestion` | `GET` | Interactive Web Portal for CUJ 1 Schema Ingestion & HITL approval |
+| `http://localhost:8008/api/specs` | `GET` | Lists available feature specifications |
+| `http://localhost:8008/api/ingest/propose` | `POST` | Generates schema proposals & context diffs (Dry run) |
+| `http://localhost:8008/api/ingest/approve` | `POST` | Deploys approved schema to ClickHouse Cloud & updates `chDB` registry |
+| `http://localhost:8008/api/analyze/query` | `POST` | Programmatic analyst query execution |
+
+---
+
+## 📁 Repository Structure
+
+```text
+InsightMesh/
+├── README.md                           # Setup, installation, and execution guide
+├── docs/                               # In-depth architectural and CUJ specifications
+│   ├── CUJ1.md                         # CUJ 1: Schema Ingestion & Evolution specification
+│   ├── CUJ2.md                         # CUJ 2: Telemetry Analytics & PM Diagnosis specification
+│   └── cuj_architecture.md             # Visual diagrams & flow documentation
+├── problem statment/                   # Input feature specifications and raw event streams
+│   ├── base_context.md                 # Seed business context (metrics, caveats, K1–K7)
+│   ├── data/                           # DDL and load scripts
+│   └── specs/                          # Product specs (01_express_checkout, 02_group_family, ...)
+├── src/atlys_agentic/
+│   ├── agents.py                       # CrewAI agent persona definitions
+│   ├── ch_client.py                    # ClickHouse Cloud HTTP client
+│   ├── chdb_client.py                  # Embedded chDB metadata client & vector distance
+│   ├── paths.py                        # Path and spec resolution utilities
+│   ├── prompts.py                      # System prompts & markdown template builders
+│   ├── run_chat.py                     # Unified FastAPI chat backend & web portal
+│   ├── run_ingestion.py                # CLI runner for CUJ 1 ingestion
+│   ├── tools_common.py                 # Shared models, embeddings, safety checks & scoring
+│   ├── tools_cuj1.py                   # CUJ 1 schema ingestion & evolution tools
+│   ├── tools_cuj2.py                   # CUJ 2 telemetry analytics & diagnostic tools
+│   ├── tools.py                        # Facade re-exporting all tools for backward compatibility
+│   ├── flows/
+│   │   ├── ingestion_flow.py           # CrewAI flow for CUJ 1 ingestion pipeline
+│   │   └── analysis_flow.py            # CrewAI flow for CUJ 2 analytics pipeline
+│   ├── config/
+│   │   ├── .env.example                # Template environment configuration
+│   │   └── agents.yaml                 # Agent persona YAML definitions
+│   └── librechat/
+│       ├── docker-compose.librechat.yml# Docker compose stack for LibreChat & MongoDB
+│       └── librechat.yaml              # Multi-agent persona configuration for LibreChat
+└── tests/                              # Comprehensive test suites
+    ├── test_accuracy_evaluation.py     # Acceptance criteria benchmark (Levels 1–4)
+    ├── test_cuj2_analytics_flow.py     # CUJ 2 multi-level complexity test suite
+    ├── test_tools.py                   # Unit tests for agent tools
+    ├── test_agents.py                  # Agent persona tests
+    ├── test_chdb_client.py             # Metadata registry and chDB tests
+    └── test_tracing.py                 # Langfuse tracing tests
+```

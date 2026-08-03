@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inmobi-ingest"
+version = "0.2.0"
+description = "InMobi Click-a-thon: Postgres ingest and glossary ontology"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+    "psycopg[binary]>=3.1",
+    "pyarrow>=14.0",
+]
+
+[project.optional-dependencies]
+ontology = [
+    "pyyaml>=6.0",
+]
+ops-ui = [
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.23",
+]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1",
+    "inmobi-ingest[ontology,ops-ui]",
+]
+
+[project.scripts]
+inmobi-ingest = "inmobi_ingest.cli:cli"
+inmobi-ops-ui = "inmobi_ops_ui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+inmobi_ops_ui = ["templates/*", "static/*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

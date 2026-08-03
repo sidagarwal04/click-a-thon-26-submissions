@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Incident detail — RCAMole</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute;">
+    <defs>
+      <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#22D3EE"/><stop offset="1" stop-color="#22C55E"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="brand-row" style="margin-bottom:10px;">
+          <svg class="brand-icon" width="26" height="26" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <ellipse cx="18" cy="17" rx="13" ry="11" fill="url(#chartAreaGradient)"/>
+            <ellipse cx="10.5" cy="21" rx="6.4" ry="5.2" fill="rgba(255,255,255,0.22)"/>
+            <circle cx="5.2" cy="18" r="1.7" fill="#06131C"/>
+            <circle cx="15.5" cy="12.5" r="1.4" fill="#06131C"/>
+          </svg>
+          <span class="brand-name">RCAMole</span>
+        </div>
+        <a class="back" href="index.html">&larr; Back to Incident Center</a>
+      </div>
+      <div class="detail-actions">
+        <button class="btn ghost" id="export-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Export Report
+        </button>
+        <button class="btn primary" id="followup-btn-top" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Follow-up AI
+        </button>
+      </div>
+    </header>
+
+    <div class="detail-title-row">
+      <h1 class="detail-title" id="title">Loading…</h1>
+      <span class="sev-badge" id="sevBadge" style="display:none;"></span>
+    </div>
+    <div class="detail-meta">
+      <span id="dateLabel"></span>
+      <span class="conf" id="confWrap"></span>
+    </div>
+
+    <div class="impact-block">
+      <div class="eyebrow" id="impactLabel">IMPACT</div>
+      <div class="impact-value" id="impactValue">—</div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section-title">AI Investigation Summary</div>
+    <div class="narrative-panel" id="narrative">Loading…</div>
+
+    <hr class="divider" />
+
+    <div class="section-title">Investigation Path</div>
+    <p class="section-hint">Every step the pipeline took to localize the cause — what it checked, what it ruled out, and why.</p>
+    <div class="itree" id="itree"></div>
+
+    <hr class="divider" />
+
+    <div class="section-title">Contribution Breakdown</div>
+    <p class="section-hint">How the revenue identity (requests × fill rate × render rate × eCPM) broke down over this window.</p>
+    <div class="factor-grid" id="factor-grid"></div>
+
+    <hr class="divider" />
+
+    <div class="section-title">Supporting Evidence</div>
+    <div class="evidence-grid" id="detEvidence"></div>
+
+    <hr class="divider" />
+
+    <div class="section-title">How we found it</div>
+    <p class="section-hint">Every segment checked, ranked by how much of the movement it explains — expand a level to see the full evidence.</p>
+    <div id="drill-tree"></div>
+
+    <hr class="divider" />
+
+    <div class="section-title">Investigation Pipeline</div>
+    <div class="stepper" id="detStepper"></div>
+
+    <hr class="divider" />
+
+    <div class="footer-actions">
+      <button class="btn primary" id="followup-btn-bottom" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Ask Follow-up AI
+      </button>
+      <button class="btn" id="langfuse-btn" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        View Langfuse Trace
+      </button>
+      <button class="btn" id="download-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download Investigation
+      </button>
+      <button class="btn" id="sql-download-btn" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download SQL
+      </button>
+    </div>
+  </div>
+  <div class="toast-container" id="toast-container"></div>
+  <script src="incident.js"></script>
+</body>
+</html>

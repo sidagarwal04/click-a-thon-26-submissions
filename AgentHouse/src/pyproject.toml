@@ -1,0 +1,49 @@
+[project]
+name = "clickathon-agenthouse"
+version = "0.1.0"
+description = "Click-a-thon 2026 Atlys AgentHouse — FastAPI + Agno agents on ClickHouse + Postgres"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agno[google,openai,psycopg,sql]>=2.0",
+    "anthropic>=0.120.2",
+    "clickhouse-connect>=0.8",
+    "fastapi>=0.115",
+    "google-genai>=2.16.0",
+    "httpx>=0.28",
+    "mcp>=1.9,<2",
+    "openinference-instrumentation-agno>=1.0.1",
+    "opentelemetry-exporter-otlp>=1.44.0",
+    "opentelemetry-sdk>=1.44.0",
+    "pydantic-settings>=2.7",
+    "python-dotenv>=1.0",
+    "python-multipart>=0.0.32",
+    "sqlalchemy>=2.0",
+    "sqlglot>=26.0",
+    "uvicorn[standard]>=0.34",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "instrumentation_agent", "conversation_agent"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"context_agent/src/context_agent" = "context_agent"
+"context_agent/sql" = "context_agent/sql"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "context_agent/src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

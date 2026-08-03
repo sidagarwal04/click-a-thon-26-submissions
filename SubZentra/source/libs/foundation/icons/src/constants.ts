@@ -1,0 +1,41 @@
+export const ICON_SIZES = {
+  '4XS': '4xs',
+  '3XS': '3xs',
+  '2XS': '2xs',
+  XS: 'xs',
+  SM: 'sm',
+  BASE: 'base',
+  LG: 'lg',
+  XL: 'xl',
+  '2XL': '2xl',
+  '3XL': '3xl',
+  '4XL': '4xl',
+  '5XL': '5xl',
+  '9XL': '9xl',
+  '12XL': '12xl',
+  '16XL': '16xl',
+  '24XL': '24xl',
+  FULL: 'full',
+} as const;
+
+export type IconSizeType = (typeof ICON_SIZES)[keyof typeof ICON_SIZES];
+
+export const ICON_SIZE_MAPPER: Record<IconSizeType, string> = {
+  [ICON_SIZES['4XS']]: 'h-1 w-1',
+  [ICON_SIZES['3XS']]: 'h-2 w-2',
+  [ICON_SIZES['2XS']]: 'h-2.5 w-2.5',
+  [ICON_SIZES.XS]: 'h-3 w-3',
+  [ICON_SIZES.SM]: 'h-3.5 w-3.5',
+  [ICON_SIZES.BASE]: 'h-4 w-4',
+  [ICON_SIZES.LG]: 'h-5 w-5',
+  [ICON_SIZES.XL]: 'h-6 w-6',
+  [ICON_SIZES['2XL']]: 'h-8 w-8',
+  [ICON_SIZES['3XL']]: 'h-9 w-9',
+  [ICON_SIZES['4XL']]: 'h-10 w-10',
+  [ICON_SIZES['5XL']]: 'h-12 w-12',
+  [ICON_SIZES['9XL']]: 'h-16 w-16',
+  [ICON_SIZES['12XL']]: 'h-24 w-24',
+  [ICON_SIZES['16XL']]: 'h-44 w-44',
+  [ICON_SIZES['24XL']]: 'h-56 w-56',
+  [ICON_SIZES.FULL]: 'h-full w-full',
+};

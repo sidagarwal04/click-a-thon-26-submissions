@@ -1,0 +1,238 @@
+{
+  "name": "SonyLIV — Viewer-drop alerts",
+  "tags": [
+    "sonyliv",
+    "alerts",
+    "observability"
+  ],
+  "filters": [],
+  "containers": [
+    {
+      "id": "otherdims",
+      "title": "Retention by dimension",
+      "collapsed": false,
+      "collapsible": false,
+      "bordered": true,
+      "tabs": [
+        {
+          "id": "platform",
+          "title": "Platform"
+        },
+        {
+          "id": "videotype",
+          "title": "Content type"
+        },
+        {
+          "id": "category",
+          "title": "Category"
+        }
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "name": "Worst retention — location",
+      "x": 0,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT if(count() = 0, 1.0, min(retention_sustained)) AS worst_retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE has_opinion AND is_settled"
+      }
+    },
+    {
+      "name": "Worst retention — platform",
+      "x": 6,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT if(count() = 0, 1.0, min(retention_sustained)) AS worst_retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'platform', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE has_opinion AND is_settled"
+      }
+    },
+    {
+      "name": "Worst retention — content type",
+      "x": 12,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT if(count() = 0, 1.0, min(retention_sustained)) AS worst_retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'video type', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE has_opinion AND is_settled"
+      }
+    },
+    {
+      "name": "Worst retention — category",
+      "x": 18,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT if(count() = 0, 1.0, min(retention_sustained)) AS worst_retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'category', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE has_opinion AND is_settled"
+      }
+    },
+    {
+      "name": "Detector lag (s)",
+      "x": 0,
+      "y": 4,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT dateDiff('second', max(watermark_ts), now()) AS detector_lag_s FROM __DATABASE__.serving_watermark FINAL WHERE layer = 'minute'"
+      }
+    },
+    {
+      "name": "Slices breaching",
+      "x": 6,
+      "y": 4,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT uniqExact(concat(grouping, '/', dim_values)) AS slices_breaching FROM (SELECT grouping, dim_values, has_opinion, is_settled, retention_sustained FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) UNION ALL SELECT grouping, dim_values, has_opinion, is_settled, retention_sustained FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'platform', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) UNION ALL SELECT grouping, dim_values, has_opinion, is_settled, retention_sustained FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'video type', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) UNION ALL SELECT grouping, dim_values, has_opinion, is_settled, retention_sustained FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'category', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1)) WHERE has_opinion AND is_settled AND retention_sustained < 0.7"
+      }
+    },
+    {
+      "name": "Slices watched",
+      "x": 12,
+      "y": 4,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "number",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT uniqExactIf(dim_values, has_opinion) AS slices_above_noise_floor FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled"
+      }
+    },
+    {
+      "name": "Settled through",
+      "x": 18,
+      "y": 4,
+      "w": 6,
+      "h": 4,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT max(watermark_ts) AS settled_through_utc, dateDiff('second', max(watermark_ts), now()) AS age_s, sum(rows_out) AS rows_out FROM __DATABASE__.serving_watermark FINAL WHERE layer = 'minute'"
+      }
+    },
+    {
+      "name": "Retention by location (alert below 0.70)",
+      "x": 0,
+      "y": 8,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT minute_start AS ts, dim_values AS series, retention_sustained AS retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled ORDER BY ts",
+        "fillNulls": false
+      }
+    },
+    {
+      "name": "Observed vs baseline by location",
+      "x": 0,
+      "y": 16,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT ts, series, value FROM (SELECT minute_start AS ts, concat(dim_values, ' observed') AS series, observed AS value FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled UNION ALL SELECT minute_start AS ts, concat(dim_values, ' baseline') AS series, baseline AS value FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled) ORDER BY ts",
+        "fillNulls": false
+      }
+    },
+    {
+      "name": "Breaching slices, any dimension",
+      "x": 0,
+      "y": 24,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "table",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT if(grouping = 'country', 'location', grouping) AS dimension, dim_values, count() AS breach_minutes, min(minute_start) AS first_breach, max(minute_start) AS last_breach, round(min(retention_sustained), 4) AS worst_retention, round(max(drop_pct), 2) AS worst_drop_pct, round(min(delta_viewers), 1) AS worst_delta_viewers FROM (SELECT * FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'country', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) UNION ALL SELECT * FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'platform', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) UNION ALL SELECT * FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'video type', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) UNION ALL SELECT * FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'category', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1)) WHERE has_opinion AND is_settled AND retention_sustained < 0.7 GROUP BY dimension, dim_values ORDER BY worst_retention ASC LIMIT 50"
+      }
+    },
+    {
+      "name": "Retention by platform",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT minute_start AS ts, dim_values AS series, retention_sustained AS retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'platform', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled AND has_opinion ORDER BY ts",
+        "fillNulls": false
+      },
+      "containerId": "otherdims",
+      "tabId": "platform"
+    },
+    {
+      "name": "Retention by content type",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT minute_start AS ts, dim_values AS series, retention_sustained AS retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'video type', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled AND has_opinion ORDER BY ts",
+        "fillNulls": false
+      },
+      "containerId": "otherdims",
+      "tabId": "videotype"
+    },
+    {
+      "name": "Retention by category",
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "config": {
+        "displayType": "line",
+        "configType": "sql",
+        "connectionId": "__CONNECTION_ID__",
+        "sqlTemplate": "SELECT minute_start AS ts, dim_values AS series, retention_sustained AS retention FROM __DATABASE__.serving_drop_signal(win_from = $__fromTime_ms, win_to = $__toTime_ms, grouping_key = 'category', baseline_minutes = 15, min_baseline = 25, persist_minutes = 1) WHERE is_settled AND has_opinion ORDER BY ts",
+        "fillNulls": false
+      },
+      "containerId": "otherdims",
+      "tabId": "category"
+    },
+    {
+      "name": "Notes",
+      "x": 0,
+      "y": 32,
+      "w": 24,
+      "h": 7,
+      "config": {
+        "displayType": "markdown",
+        "markdown": "A ClickStack alert is a threshold on a tile's value, and \"viewers dropped\" is not a threshold — 400 concurrent is a catastrophe for a slice that normally runs 4,000 and a record for one that normally runs 40. So the tile computes the drop and the alert thresholds on that. **Retention** is the minute's concurrency over that same slice's trailing 15-minute median; 1.00 holds, 0.00 is gone. Definition lives in `serving_drop_signal`, not in tile JSON.\n\n**Absence of data is not a low value.** A slice that stops reporting returns no row, and a threshold on \"below 0.70\" never fires because there is no value to compare — the alert stays green through a total outage. The view generates the full minute × slice grid and left-joins observations onto it, so a slice that vanishes reads 0 and breaches. Verified on the 2026-07-26 ramp-down: 11:31–11:37 have no source rows at all and report retention 0.\n\n**Three guards against paging on nothing.** The baseline is a trailing *median*, so the spike being detected cannot drag it. Slices under 25 concurrent report \"no opinion\" rather than a breach, because 3 viewers falling to 1 is a 67% drop and means nothing. And `retention_sustained` is a rolling max, so a threshold on it means *two consecutive* minutes below — threshold-agnostic by construction.\n\nBacktested over the full extract at 0.70, raw retention breaches in three episodes: a lone minute at 0.6475 on 07-26 08:53, the genuine 19-minute ramp-down from 11:19, and an 8-minute generator stop on 08-01. Persistence drops the blip and keeps both real events — **two pages in 19 days, zero false.**\n\n**Reads the minute layer, not the 10s live layer.** `serving_concurrency_live` is a ReplacingMergeTree whose sort key is also its dedup key and carries no country column; adding one would silently collapse two countries in a bucket into one row, and re-keying needs DROP TABLE, which the service user does not hold. So detection latency is the minute layer's publish lag — read it off **Detector lag (s)**, and keep every alert interval above it or the window holds no settled minute and the alert cannot fire.\n\n**Alert intervals must exceed that lag**, which is why these run at 15m rather than 1m. *Detector lag* is itself alerted: if the pipeline stops, no minute in the window is settled, the retention tiles correctly return 1.00, and only the staleness alert can tell you the detector went blind.\n\n**`country` holds one value, `india`, in this extract** — so the location alert today reports total collapse rather than a regional one. The machinery is per-slice with an independent baseline each (on 07-26 ANDROID_TAB breached at 11:14, five minutes before ANDROID_PHONE at 11:19), so a multi-country day lights up per country with no change. Platform is where a partial outage is visible today.\n\n**A scheduled end-of-broadcast decline is indistinguishable from an outage** by any baseline-relative detector, and the 07-26 episode is exactly that. Suppressing it needs an EPG signal this extract does not carry. As the baseline decays the alert also self-clears after roughly 15 minutes even if the outage continues — correct for paging, wrong for a status page."
+      }
+    }
+  ]
+}

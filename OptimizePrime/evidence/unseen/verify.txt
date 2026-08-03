@@ -1,0 +1,41 @@
+UNSEEN VERIFY · database sonyliv_unseen_q26 · 2026-08-01T17:41:49Z
+designed truth: evidence/unseen/designed-truth.tsv (generator seed 20260815)
+
+1 · DESIGNED vs SERVED: 1081 minutes compared, 0 mismatched -> PASS
+    designed peak 30 · earliest peak minute 2026-08-15 20:00 UTC · 64 minutes tied
+
+2 · open sessions (trap 3): 12  (designed: 12)
+3 · never-seen dims (trap 4) reached the serving tier:
+     platform VISION_PRO intervals=10 · country nepal=10 · audio mai=10  (designed: 10 each)
+4 · negative content_id (trap 5): 2 intervals at -987654399, 1 at -1  (designed: 2 and 1)
+5 · A10 sentinel collision (ADR 0022) — the REAL content_id=-1 session and the all-content
+    rollup must be SEPARATE rows in cc_hour_agg, distinguished by cube_level:
+   ┌─cube_level─┬─platform──────┬─country─┬─content_id─┬─peak─┬─integral─┐
+1. │          0 │ *             │ *       │         -1 │    2 │     3060 │
+2. │          1 │ ANDROID_PHONE │ *       │         -1 │    2 │     3060 │
+3. │          2 │ *             │ india   │         -1 │    2 │     3060 │
+4. │          3 │ ANDROID_PHONE │ india   │         -1 │    2 │     3060 │
+5. │          4 │ *             │ *       │         -1 │    1 │     1020 │
+6. │          5 │ ANDROID_PHONE │ *       │         -1 │    1 │     1020 │
+7. │          6 │ *             │ india   │         -1 │    1 │     1020 │
+8. │          7 │ ANDROID_PHONE │ india   │         -1 │    1 │     1020 │
+   └────────────┴───────────────┴─────────┴────────────┴──────┴──────────┘
+     rollup (cube_level 0): 2/3060 · real content -1 (cube_level 4): 1/1020 -> PASS
+     (designed: 2/3060 and 1/1020 · the pre-ADR-0022 cube served one merged row 2/4080)
+6 · dictGet on ids absent from content_dim (A9) serves blanks, not errors:
+   ┌─content_id─┬─title──────────────────────┐
+1. │ -987654399 │ [(unknown)]                │
+2. │         -1 │ [(unknown)]                │
+3. │   21000016 │ [Kabhi Khushi, Kabhi Gham] │
+4. │   21000099 │ [(unknown)]                │
+   └────────────┴────────────────────────────┘
+7 · ADR 0014 — peak minute must be the EARLIEST tied minute, at every tier:
+     bare argMax  (what phase 7 prints): 2026-08-15 21:10:00
+     ADR 0014 rule (earliest at max):    2026-08-15 20:00:00  (designed: 2026-08-15 20:00 UTC)
+     change-point rows tied (phase 7's 'minutes tied'): 2 · true MINUTES tied (dense spine): 64 designed
+8 · A3 decoys — speed-pause/speed-resume must not have opened a pause window:
+     block J active hours: 2.1 h  (designed: 6 sessions x 21 min = 2.10 h)
+9 · ADR 0009 same-second pause/resume — block C must have lost NO time:
+     block C active hours: 1.47 h · intervals: 8  (designed: 8 x 11 min = 1.47 h, 8 intervals — one each, NOT split at the tie)
+
+VERIFY VERDICT — designed truth and serving layer AGREE on every minute, and the hour cube keeps the real content -1 separate from the rollup.

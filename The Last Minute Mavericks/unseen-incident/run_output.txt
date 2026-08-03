@@ -1,0 +1,93 @@
+/Users/deepak/clickhouse/clickathon-inmobi-2026/run_incident.py:699: DeprecationWarning: `blocked_instrumentation_scopes` is deprecated and will be removed in a future release. Use `should_export_span` instead. Example: from langfuse.span_filter import is_default_export_span; blocked={"scope"}; should_export_span=lambda span: is_default_export_span(span) and (span.instrumentation_scope is None or span.instrumentation_scope.name not in blocked).
+  lf=Langfuse(public_key=cfg["LANGFUSE_PUBLIC_KEY"],secret_key=cfg["LANGFUSE_SECRET_KEY"],host=cfg.get("LANGFUSE_BASE_URL"),
+  (built rca_unseen.cube — 724,007 rows)
+
+ RCA SCAN — rca_unseen   ·   3 real anomalies, 55 ruled out
+
+ REAL ANOMALIES
+┌───────────┬─────────────────┬────────────────────────────────────────┬───────────┬──────────────┐
+│ Metric    │ Duration        │ Anomaly (segment)                      │ Deviation │ Type         │
+├───────────┼─────────────────┼────────────────────────────────────────┼───────────┼──────────────┤
+│ fill_rate │ Jul 08 → Jul 09 │ os_version = iOS 17.5                  │    -40.0% │ LOCALIZED_1D │
+│ ecpm      │ Jul 08          │ device_model=iPhone 14 × category=news │     +6.0% │ LOCALIZED_2D │
+│ ecpm      │ Jul 09 → Jul 10 │ ad_format = video                      │    -29.5% │ LOCALIZED_1D │
+└───────────┴─────────────────┴────────────────────────────────────────┴───────────┴──────────────┘
+
+ RULED OUT / FALSE  (checked and cleared)
+┌───────────┬────────────────────────────────────────────────────────────────────────┬───────────┬───────────────────────────────────────────────┐
+│ Metric    │ Segment                                                                │ Deviation │ Why it's not the cause                        │
+├───────────┼────────────────────────────────────────────────────────────────────────┼───────────┼───────────────────────────────────────────────┤
+│ fill_rate │ device_model = iPhone 14                                               │    -24.8% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ region = APAC                                                          │    -14.5% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ region×device_model = region=APAC × device_model=iPhone 14             │    -35.0% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ country = ID                                                           │    -25.7% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ country×device_model = country=ID × device_model=iPhone 14             │    -38.3% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ publisher_tier = tier_2                                                │     -7.6% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ ad_format = banner                                                     │     -7.5% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ publisher_tier = tier_3                                                │     -7.7% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ ad_format = native                                                     │     -7.8% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = gaming                                                      │     -7.8% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = news                                                        │     -7.3% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ publisher_tier = tier_1                                                │     -7.6% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ ad_format = interstitial                                               │     -7.5% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ device_model = iPhone 13                                               │     -6.0% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = entertainment                                               │     -7.4% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = social                                                      │     -8.3% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ ad_format = video                                                      │     -7.5% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ device_model = iPhone 15                                               │     -6.9% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = utility                                                     │     -7.6% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ ad_format = rewarded                                                   │     -7.8% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ country = IN                                                           │     -7.6% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = ecommerce                                                   │     -7.2% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ category = finance                                                     │     -7.5% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ country×device_model = country=IN × device_model=iPhone 13             │    -28.5% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ region×device_model = region=NAM × device_model=iPhone 15              │    -13.8% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ region×device_model = region=LATAM × device_model=iPhone 13            │    -14.4% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ country×device_model = country=CA × device_model=iPhone 15             │    -17.9% │ explained by iOS 17.5 (residual - outside it) │
+│ fill_rate │ region×country = region=LATAM × country=BR                             │     -6.5% │ explained by iOS 17.5 (residual - outside it) │
+│ ecpm      │ ad_format = rewarded                                                   │    +24.3% │ explained by video (residual - outside it)    │
+│ ecpm      │ os_version = iOS 16.4                                                  │     -5.0% │ explained by video (residual - outside it)    │
+│ ecpm      │ region = LATAM                                                         │     -5.7% │ explained by video (residual - outside it)    │
+│ ecpm      │ region = EU                                                            │     -5.2% │ explained by video (residual - outside it)    │
+│ ecpm      │ os_version = Android 12                                                │     -5.7% │ explained by video (residual - outside it)    │
+│ ecpm      │ os_version = iOS 17.5                                                  │     -5.4% │ explained by video (residual - outside it)    │
+│ ecpm      │ os_version = Android 14                                                │     -5.2% │ explained by video (residual - outside it)    │
+│ ecpm      │ os_version = iOS 18.1                                                  │     -5.4% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×category = region=APAC × category=news                          │     -5.3% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×category = region=NAM × category=gaming                         │     -5.7% │ explained by video (residual - outside it)    │
+│ ecpm      │ device_model×os_version = device_model=Pixel 8 × os_version=Android 13 │     -6.1% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×os_version = region=NAM × os_version=Android 13                 │     -5.8% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×device_model = region=NAM × device_model=Pixel 8                │     -5.2% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×device_model = region=APAC × device_model=iPhone 15             │     -5.9% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×category = region=NAM × category=entertainment                  │     -5.6% │ explained by video (residual - outside it)    │
+│ ecpm      │ country×os_version = country=CA × os_version=Android 13                │     -6.1% │ explained by video (residual - outside it)    │
+│ ecpm      │ country×category = country=CA × category=gaming                        │     -5.8% │ explained by video (residual - outside it)    │
+│ ecpm      │ vertical = auto                                                        │     -5.3% │ explained by video (residual - outside it)    │
+│ ecpm      │ vertical = travel                                                      │     -5.4% │ explained by video (residual - outside it)    │
+│ ecpm      │ category = utility                                                     │     -5.3% │ explained by video (residual - outside it)    │
+│ ecpm      │ device_model = Pixel 8                                                 │     -5.2% │ explained by video (residual - outside it)    │
+│ ecpm      │ os_version = Android 15                                                │     -5.5% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×country = region=APAC × country=IN                              │     -5.3% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×category = region=APAC × category=entertainment                 │     -5.8% │ explained by video (residual - outside it)    │
+│ ecpm      │ region×category = region=APAC × category=social                        │     -5.5% │ explained by video (residual - outside it)    │
+│ ecpm      │ device_model×category = device_model=iPhone 14 × category=news         │     -5.3% │ explained by video (residual - outside it)    │
+│ ecpm      │ country×device_model = country=AR × device_model=iPhone 15             │     -6.0% │ explained by video (residual - outside it)    │
+└───────────┴────────────────────────────────────────────────────────────────────────┴───────────┴───────────────────────────────────────────────┘
+
+ Weekend seasonality handled by same-weekday baseline (not flagged).
+
+ DIAGNOSES  (LLM narrates from evidence only; validator blocks invented numbers)
+
+  ● The fill_rate metric decreased by 0.4772 (deviation -40.0%) in the segment os_version=iOS 17.5. The sibling factors checked and found normal include requests (-0.5%), render_rate (-0.1%), ecpm (-3.1%), and ctr (-0.2%).
+    └ [llm+validator, cites 1 evidence ids]
+
+  ● The ecpm metric increased by 2.0765 (6.0%) in the device_model=iPhone 14 × category=news segment. The requests metric (-0.5%) and render_rate (-0.1%) were checked and found normal, ruling them out as contributing factors.
+    └ [llm+validator, cites 1 evidence ids]
+
+  ● The metric ecpm moved by -29.5% in the ad_format=video segment. The sibling factors checked and found normal include requests at -2.6%, fill_rate at -4.2%, and render_rate at -0.0%.
+    └ [llm+validator, cites 0 evidence ids]
+
+  bundle → /Users/deepak/clickhouse/click-a-thon-2026/The Last Minute Mavericks/unseen-incident/bundle.json  (3 investigations, evidence w/ query_id)
+
+  Langfuse trace (public): https://cloud.langfuse.com/project/cmsa4wcn20ah0ad0iy746nak4/traces/f6df80cbec40eb48ee1316048c53b8a3
+

@@ -1,0 +1,79 @@
+{
+  "name": "test1",
+  "database": "rca_ts1",
+  "rows": 10000,
+  "days": 40,
+  "seed": 11,
+  "baseline_rule": "same weekdays, 3 preceding weeks, window + other incident windows excluded (identical to run_incident.baseline_days)",
+  "quarantine": "engine/agent/UI code must never read this file \u2014 only test-sql/verify.py, after the scan has already produced its bundle.",
+  "incidents": [
+    {
+      "id": "T1-1",
+      "metric": "fill_rate",
+      "dim": "region",
+      "value": "LATAM",
+      "win": [
+        "2026-06-23",
+        "2026-06-25"
+      ],
+      "drop": 0.45,
+      "why": "classic supply-side fill collapse in one region; 1-D, should localize exactly.",
+      "expect": "detected",
+      "window_days": 3,
+      "expected_deviation_pct": -45.03,
+      "segment_volume_per_day": 539607,
+      "segment_request_share": 0.2696
+    },
+    {
+      "id": "T1-2",
+      "metric": "ecpm",
+      "dim": "ad_format",
+      "value": "video",
+      "win": [
+        "2026-06-29",
+        "2026-06-30"
+      ],
+      "drop": 0.38,
+      "why": "price-side move on the highest-CPM format; fill and requests stay flat, so LMDI must credit ecpm alone.",
+      "expect": "detected",
+      "window_days": 2,
+      "expected_deviation_pct": -38.07,
+      "segment_volume_per_day": 306259,
+      "segment_request_share": null
+    },
+    {
+      "id": "T1-3",
+      "metric": "requests",
+      "dim": "__global__",
+      "value": null,
+      "win": [
+        "2026-07-06",
+        "2026-07-06"
+      ],
+      "drop": 0.3,
+      "why": "uniform one-day traffic loss with NO responsible segment \u2014 must come back GLOBAL_UNLOCALIZED, not a scapegoat segment.",
+      "expect": "detected",
+      "window_days": 1,
+      "expected_deviation_pct": -25.61,
+      "segment_volume_per_day": 1554805,
+      "segment_request_share": 0.7769
+    },
+    {
+      "id": "T1-C1",
+      "metric": "fill_rate",
+      "dim": "country",
+      "value": "AE",
+      "win": [
+        "2026-06-17",
+        "2026-06-19"
+      ],
+      "drop": 0.6,
+      "why": "huge drop in a ~900 req/day segment \u2014 under the 1500/day volume floor. Reporting it is crying wolf.",
+      "expect": "suppressed",
+      "window_days": 3,
+      "expected_deviation_pct": -57.72,
+      "segment_volume_per_day": 944,
+      "segment_request_share": 0.0005
+    }
+  ]
+}

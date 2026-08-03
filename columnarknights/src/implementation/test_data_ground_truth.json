@@ -1,0 +1,67 @@
+{
+  "date_range": [
+    "2026-01-05",
+    "2026-02-22"
+  ],
+  "scenarios": [
+    {
+      "name": "A_fill_rate_localized",
+      "metric": "fill_rate",
+      "window": [
+        "2026-02-03",
+        "2026-02-05"
+      ],
+      "expected_direction": "down",
+      "expected_dimension": "os_version",
+      "expected_value": "Android 12",
+      "expected_depth": 1,
+      "mechanism": "fill probability dropped 0.78 -> 0.45 for os_version=Android 12 only"
+    },
+    {
+      "name": "B_ecpm_revenue_localized_2level",
+      "metric": "ecpm",
+      "window": [
+        "2026-02-10",
+        "2026-02-12"
+      ],
+      "expected_direction": "down",
+      "expected_dimension_path": [
+        [
+          "category",
+          "finance"
+        ],
+        [
+          "ad_format",
+          "video"
+        ]
+      ],
+      "expected_depth": 2,
+      "mechanism": "revenue-per-impression cut 60% for category=finance AND ad_format=video only"
+    },
+    {
+      "name": "C_requests_broad_based",
+      "metric": "requests",
+      "window": [
+        "2026-02-09",
+        "2026-02-09"
+      ],
+      "expected_direction": "down",
+      "expected_dimension": null,
+      "expected_depth": 0,
+      "mechanism": "total row count cut 45% uniformly at random, no dimension bias -- must NOT localize"
+    },
+    {
+      "name": "D_ctr_localized_spike",
+      "metric": "ctr",
+      "window": [
+        "2026-02-17",
+        "2026-02-18"
+      ],
+      "expected_direction": "up",
+      "expected_dimension": "country",
+      "expected_value": "DE",
+      "expected_depth": 1,
+      "mechanism": "click probability raised ~2.6x for country=DE only"
+    }
+  ]
+}

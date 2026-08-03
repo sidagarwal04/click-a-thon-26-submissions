@@ -1,0 +1,706 @@
+CONTINUOUS PUBLICATION — incremental update proof   (ADR 0013)
+generated 2026-08-01T21:26:07Z  ·  commit cdce89d
+live: sonyliv_pub   control: sonyliv_pub_ctl   sonyliv read-only   cut 2026-07-26 10:56:00
+--------------------------------------------------------------------------
+
+PHASE 0 — reset both scratch databases and apply the schema
+  sonyliv_pub has the publication layer (sql/12_publish.sql); sonyliv_pub_ctl does not — it is rebuilt.
+  BOTH have the user tier (45) and the hour/day cube (50) this time: their
+  absence is exactly why the previous harness could not see those tiers go stale.
+
+PHASE 1 — load the truncated slice into both:  event_timestamp < 2026-07-26 10:56:00
+  458477 events · 6659 sessions · newest 2026-07-26 10:55:59.999
+  change log: 6659 rows · 6659 sessions · 1 insert block(s)
+
+  The MV collapsed the load to one row per session per block. No session list
+  was computed by scanning history — this is what the finalizer consumes.
+
+PHASE 2 — build BOTH: control by rebuild, live by the incremental finalizer
+
+  control — tools/build-model.sh's path (TRUNCATE + re-derive all of ev_raw):
+    intervals  read_rows=458.48 thousand  read_bytes=69.08 MiB  parts=7  marks=61/61  639 ms
+    deltas     read_rows=30.45 thousand  read_bytes=2.82 MiB  parts=2  marks=4/4  779 ms
+
+  live — tools/publish.sh, no special bootstrap path:
+    == run 1785619652024  ·  6659 session(s) claimed  ·  cursor 1970-01-01 00:00:00.000 -> 2026-08-01 21:26:53.104
+       negated   0 corrective delta rows   491 ms
+       derived   15224 intervals   1062 ms   (window 2026-07-14 15:43:58.144 .. 2026-07-26 10:55:59.999)
+       pruned    superseded intervals   1458 ms
+       emitted   14878 delta rows   1194 ms
+       hours     14558 hour-cube rows re-derived   610 ms
+       users     49474 user-minute buckets re-derived   1116 ms
+       committed cursor now 2026-08-01 21:26:53.104
+
+  There is no separate initial-build code. The first run sees every session
+  marked dirty by the load and derives them; every later run sees only what
+  arrived. One path, so the bootstrap cannot drift from the steady state.
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1544  │
+ 5. │   5 │ peak — incremental                                                │ 2825  │
+ 6. │   6 │ peak — rebuild                                                    │ 2825  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 14878 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 14878 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2737  │
+12. │  12 │ user peak — rebuild                                               │ 2737  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2825  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2825  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 3 — LATE ARRIVAL (a): the five busiest sessions catch up
+  inserted 4072 events for 5 sessions
+  pending: 5 session(s), lag 83s
+
+    == run 1785619715500  ·  5 session(s) claimed  ·  cursor 2026-08-01 21:26:53.104 -> 2026-08-01 21:28:16.134
+       negated   17 corrective delta rows   651 ms
+       derived   31 intervals   686 ms   (window 2026-07-26 10:36:10.000 .. 2026-07-26 11:29:27.262)
+       pruned    superseded intervals   2084 ms
+       emitted   30 delta rows   549 ms
+       hours     10202 hour-cube rows re-derived   722 ms
+       users     29290 user-minute buckets re-derived   586 ms
+       committed cursor now 2026-08-01 21:28:16.134
+
+  WHAT THE INCREMENTAL RUN TOUCHED, from system.query_log:
+    negate   read_rows=30.46 thousand  read_bytes=2.82 MiB  parts=4  marks=6/6  148 ms
+    derive   read_rows=128.36 thousand  read_bytes=11.42 MiB  parts=3  marks=24/52  169 ms
+    emit     read_rows=30.52 thousand  read_bytes=3.08 MiB  parts=6  marks=8/8  138 ms
+    hours    read_rows=13.48 thousand  read_bytes=289.60 KiB  parts=4  marks=5/5  151 ms
+    users    read_rows=57.15 thousand  read_bytes=3.02 MiB  parts=5  marks=11/11  188 ms
+
+  the same update, done by RECOMPUTING (the control):
+    intervals  read_rows=462.55 thousand  read_bytes=69.70 MiB  parts=8  marks=62/62  450 ms
+    deltas     read_rows=30.48 thousand  read_bytes=2.82 MiB  parts=2  marks=4/4  636 ms
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1554  │
+ 5. │   5 │ peak — incremental                                                │ 2825  │
+ 6. │   6 │ peak — rebuild                                                    │ 2825  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 14925 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 14893 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2737  │
+12. │  12 │ user peak — rebuild                                               │ 2737  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2825  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2825  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 4 — LATE ARRIVAL (b): the entire remaining stream
+  905558 events now loaded · newest 2026-07-26 11:30:04.847
+  pending: 7718 session(s)
+
+    == run 1785619802575  ·  7718 session(s) claimed  ·  cursor 2026-08-01 21:28:16.134 -> 2026-08-01 21:29:42.634
+       negated   7184 corrective delta rows   699 ms
+       derived   21915 intervals   1190 ms   (window 2026-07-26 03:54:23.000 .. 2026-07-26 11:30:04.847)
+       pruned    superseded intervals   1425 ms
+       emitted   20366 delta rows   772 ms
+       hours     23654 hour-cube rows re-derived   649 ms
+       users     83658 user-minute buckets re-derived   727 ms
+       committed cursor now 2026-08-01 21:29:42.634
+
+    derive   read_rows=857.61 thousand  read_bytes=127.85 MiB  parts=4  marks=107/107  754 ms
+    rebuild  read_rows=905.56 thousand  read_bytes=136.45 MiB  parts=9  marks=117/117  762 ms
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1579  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 42475 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28073 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 5 — THE STRAGGLER. One heartbeat, event-dated 46 minutes behind the
+          watermark, landing inside a 290 s gap of an already-published session.
+
+  session B52EB43D855A723E1755B97C75CEAC5D05B60BCCEDC5902DECF4610114D89E6B
+  event   2026-07-26 10:45:10.000   (newest event in ev_raw: 2026-07-26 11:30:04.847)
+  ADR 0004 set W = 2400 s. This event is older than W, so the two-tier design
+  has no path for it and ADR 0006's correction-by-diff is the only answer.
+
+  intervals BEFORE — note the second one starts at 10:47:33:
+   ┌─interval_start──────────┬─interval_end────────────┬─is_open─┐
+1. │ 2026-07-26 10:30:43.000 │ 2026-07-26 10:43:43.000 │       0 │
+2. │ 2026-07-26 10:47:33.000 │ 2026-07-26 10:50:36.000 │       0 │
+3. │ 2026-07-26 10:57:03.000 │ 2026-07-26 10:58:06.000 │       0 │
+   └─────────────────────────┴─────────────────────────┴─────────┘
+
+  served concurrency BEFORE:
+   ┌─at─────┬─at_minute───────────┬─concurrent─┐
+1. │ before │ 2026-07-26 10:42:00 │        128 │
+2. │ before │ 2026-07-26 10:43:00 │        273 │
+3. │ before │ 2026-07-26 10:44:00 │        283 │
+4. │ before │ 2026-07-26 10:45:00 │        356 │
+5. │ before │ 2026-07-26 10:46:00 │        452 │
+6. │ before │ 2026-07-26 10:47:00 │        512 │
+7. │ before │ 2026-07-26 10:48:00 │        592 │
+   └────────┴─────────────────────┴────────────┘
+
+  pending: 1 session(s)
+
+    == run 1785619886392  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:29:42.634 -> 2026-08-01 21:31:10.671
+       negated   6 corrective delta rows   1238 ms
+       derived   2 intervals   602 ms   (window 2026-07-26 10:30:43.000 .. 2026-07-26 10:58:06.000)
+       pruned    superseded intervals   1425 ms
+       emitted   4 delta rows   635 ms
+       hours     21878 hour-cube rows re-derived   1258 ms
+       users     43015 user-minute buckets re-derived   700 ms
+       committed cursor now 2026-08-01 21:31:10.671
+
+  WHAT ONE-SESSION CORRECTION COSTS, from system.query_log:
+    negate   read_rows=30.51 thousand  read_bytes=3.07 MiB  parts=8  marks=8/14  151 ms
+    derive   read_rows=136.54 thousand  read_bytes=9.51 MiB  parts=5  marks=38/108  126 ms
+    prune    read_rows=0.00  read_bytes=0.00 B  parts=0  marks=0/0  1032 ms
+    emit     read_rows=30.52 thousand  read_bytes=3.08 MiB  parts=10  marks=10/16  165 ms
+    hours    read_rows=28.30 thousand  read_bytes=608.12 KiB  parts=4  marks=7/7  179 ms
+    users    read_rows=253.75 thousand  read_bytes=12.30 MiB  parts=9  marks=30/30  223 ms
+  ev_raw holds 905.56 thousand events over 10866 sessions.
+
+  HOW MUCH OF ev_raw DOES A ONE-SESSION CORRECTION HAVE TO READ?
+
+  Not 78 rows, and it is worth being blunt about why. ADR 0002 puts
+  toStartOfHour(event_timestamp) FIRST in ev_raw's sort key and video_session_id
+  third, so a session lookup prunes only by generic exclusion search. The
+  finalizer therefore ALSO bounds the read by the batch's event-time window
+  (the completeness argument is in tools/publish.sh). A/B below on the real
+  query shape — IN (subquery over cc_publish_batch), not an inlined literal,
+  because that is what publish.sh issues and the two do not prune alike.
+
+   ┌─variant────┬─read_rows─┬─pct_of_ev_raw─┬─read_bytes─┬─ms─┐
+1. │ a.unscoped │    905559 │ 100%          │ 64.77 MiB  │ 70 │
+2. │ b.session  │    307766 │ 34%           │ 19.72 MiB  │ 26 │
+3. │ c.windowed │    104640 │ 11.6%         │ 6.75 MiB   │ 11 │
+   └────────────┴───────────┴───────────────┴────────────┴────┘
+    a.unscoped = what a rebuild reads    c.windowed = what publish.sh scopes to
+    mean of 3 runs each, on a settled part set (905559 rows in ev_raw)
+
+  intervals AFTER — the two runs merged, so interval_start 10:47:33 no longer
+  exists. A ReplacingMergeTree cannot delete a key; the prune phase does:
+   ┌─interval_start──────────┬─interval_end────────────┬─is_open─┐
+1. │ 2026-07-26 10:30:43.000 │ 2026-07-26 10:50:36.000 │       0 │
+2. │ 2026-07-26 10:57:03.000 │ 2026-07-26 10:58:06.000 │       0 │
+   └─────────────────────────┴─────────────────────────┴─────────┘
+
+  orphan rows left behind by the vanished key: 0
+
+  served concurrency AFTER — every minute the straggler bridges gains one viewer:
+   ┌─at────┬─at_minute───────────┬─concurrent─┐
+1. │ after │ 2026-07-26 10:42:00 │        128 │
+2. │ after │ 2026-07-26 10:43:00 │        273 │
+3. │ after │ 2026-07-26 10:44:00 │        284 │
+4. │ after │ 2026-07-26 10:45:00 │        357 │
+5. │ after │ 2026-07-26 10:46:00 │        453 │
+6. │ after │ 2026-07-26 10:47:00 │        512 │
+7. │ after │ 2026-07-26 10:48:00 │        592 │
+   └───────┴─────────────────────┴────────────┘
+
+  and the same rebuilt from scratch, for comparison:
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1579  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 29745 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28073 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 6 — SHRINK. A late pause pulls a published interval_end EARLIER.
+
+  A provisional interval carries TAIL_S = 60 s of grace past its last event.
+  A pause arriving inside that grace places the TRUE end earlier — the exact
+  case that broke ReplacingMergeTree(interval_end) once (evidence/truncation.txt),
+  and the case a set-union user tier can NEVER absorb: the user must be
+  RETRACTED from the minute the tail no longer reaches (ADR 0016).
+
+  session 000E0056BB12A6F7242F1C25F6FB3510554DCED51D5D1E25402ABFB559E175A4
+  last event 2026-07-26 11:29:33.623 -> published end +60s; the pause lands at +10s, a
+  heartbeat at +30s keeps the run alive past it, so the segment now ends AT
+  the pause with no tail. Minute 2026-07-26 11:30:00 must LOSE this viewer.
+
+  last interval BEFORE:
+   ┌─interval_start──────────┬─interval_end────────────┬─is_open─┐
+1. │ 2026-07-26 11:28:34.000 │ 2026-07-26 11:30:33.000 │       0 │
+   └─────────────────────────┴─────────────────────────┴─────────┘
+  served at 2026-07-26 11:30:00 BEFORE:  sessions 197, users 191
+
+    == run 1785620001859  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:31:10.671 -> 2026-08-01 21:33:03.962
+       negated   5 corrective delta rows   633 ms
+       derived   2 intervals   1294 ms   (window 2026-07-26 10:58:33.000 .. 2026-07-26 11:30:33.000)
+       pruned    superseded intervals   2137 ms
+       emitted   5 delta rows   574 ms
+       hours     21878 hour-cube rows re-derived   678 ms
+       users     40233 user-minute buckets re-derived   1426 ms
+       committed cursor now 2026-08-01 21:33:03.962
+
+  last interval AFTER — the end moved EARLIER (tail surrendered to the pause):
+   ┌─interval_start──────────┬─interval_end────────────┬─is_open─┐
+1. │ 2026-07-26 11:28:34.000 │ 2026-07-26 11:29:33.000 │       0 │
+   └─────────────────────────┴─────────────────────────┴─────────┘
+  served at 2026-07-26 11:30:00 AFTER:   sessions 196, users 190
+
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1579  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 29755 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28074 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 7 — DIMENSION CHANGE. Late events flip a published interval's platform.
+
+  Dimension attribution is the DOMINANT value among an interval's events
+  (ADR 0008/0009). A burst of late events under a new platform outvotes the
+  old one, so the re-derived interval moves to a different dimension tuple:
+  every minute it covers must be RETRACTED from the old platform's user
+  buckets and hour curves, and credited to the new one's.
+
+  session 0035BAA934200B618EB9B2AE4F1C7C935EA2005C3D43CF7268F928C5CB1A12CC — injecting 9 heartbeats at 100 ms spacing under
+  platform 'FlipOS-ADR0016' (harmless in scratch; any string is a valid dim)
+
+  intervals BEFORE, with their platform attribution:
+   ┌─interval_start──────────┬─interval_end────────────┬─platform─┐
+1. │ 2026-07-26 11:00:33.000 │ 2026-07-26 11:02:13.000 │ IPHONE   │
+2. │ 2026-07-26 11:02:28.000 │ 2026-07-26 11:03:30.000 │ IPHONE   │
+   └─────────────────────────┴─────────────────────────┴──────────┘
+
+    == run 1785620082191  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:33:03.962 -> 2026-08-01 21:34:25.075
+       negated   2 corrective delta rows   885 ms
+       derived   2 intervals   1297 ms   (window 2026-07-26 11:00:33.000 .. 2026-07-26 11:03:30.000)
+       pruned    superseded intervals   1422 ms
+       emitted   2 delta rows   569 ms
+       hours     10658 hour-cube rows re-derived   660 ms
+       users     13443 user-minute buckets re-derived   674 ms
+       committed cursor now 2026-08-01 21:34:25.075
+
+  intervals AFTER — the last interval now belongs to FlipOS-ADR0016, so its
+  minutes changed dimension tuple, not just length:
+   ┌─interval_start──────────┬─interval_end────────────┬─platform───────┐
+1. │ 2026-07-26 11:00:33.000 │ 2026-07-26 11:02:13.000 │ IPHONE         │
+2. │ 2026-07-26 11:02:28.000 │ 2026-07-26 11:03:30.000 │ FlipOS-ADR0016 │
+   └─────────────────────────┴─────────────────────────┴────────────────┘
+
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1579  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 29738 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28074 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 8 — IDEMPOTENCE. Republish sessions whose events did NOT change.
+
+  A resumed run, a replayed batch or an operator correction can all re-publish
+  a session whose events did not change. That is only safe if -deltas(X) +
+  deltas(X) = 0. Forcing a republication of 200 unchanged sessions tests it.
+    == run 1785620143272  ·  200 session(s) claimed  ·  cursor 2026-08-01 21:34:25.075 -> 2026-08-01 21:34:25.075
+       negated   677 corrective delta rows   685 ms
+       derived   532 intervals   749 ms   (window 2026-07-23 16:19:00.000 .. 2026-07-26 11:30:45.000)
+       pruned    superseded intervals   1451 ms
+       emitted   677 delta rows   1391 ms
+       hours     24548 hour-cube rows re-derived   1384 ms
+       users     81190 user-minute buckets re-derived   851 ms
+       committed cursor now 2026-08-01 21:34:25.075
+
+  cc_minute_delta rows: 29738 -> 31092 (corrective rows are APPENDED, never updated)
+  cursor: UNCHANGED at 2026-08-01 21:34:25.075 — a forced run corrects, it does not consume the queue
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1579  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 31092 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28074 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 9 — THE COST LEDGER, per run, from cc_publish_runs
+   ┌────────run_id─┬─cursor_to───────────────┬─sessions─┬─total_ms─┬─intervals_written─┬─delta_rows_written─┬─hour_rows─┬─user_buckets─┬─hours_ms─┬─users_ms─┐
+1. │ 1785619652024 │ 2026-08-01 21:26:53.104 │     6659 │     5931 │             15224 │              14878 │     14558 │        49474 │      610 │     1116 │
+2. │ 1785619715500 │ 2026-08-01 21:28:16.134 │        5 │     5278 │                31 │                 47 │     10202 │        29290 │      722 │      586 │
+3. │ 1785619802575 │ 2026-08-01 21:29:42.634 │     7718 │     5462 │             21915 │              27550 │     23654 │        83658 │      649 │      727 │
+4. │ 1785619886392 │ 2026-08-01 21:31:10.671 │        1 │     5858 │                 2 │                 10 │     21878 │        43015 │     1258 │      700 │
+5. │ 1785620001859 │ 2026-08-01 21:33:03.962 │        1 │     6742 │                 2 │                 10 │     21878 │        40233 │      678 │     1426 │
+6. │ 1785620082191 │ 2026-08-01 21:34:25.075 │        1 │     5507 │                 2 │                  4 │     10658 │        13443 │      660 │      674 │
+7. │ 1785620143272 │ 2026-08-01 21:34:25.075 │      200 │     6511 │               532 │               1354 │     24548 │        81190 │     1384 │      851 │
+   └───────────────┴─────────────────────────┴──────────┴──────────┴───────────────────┴────────────────────┴───────────┴──────────────┴──────────┴──────────┘
+
+  freshness, as a downstream consumer would read it:
+Row 1:
+──────
+publish_cursor:       2026-08-01 21:34:25.075
+ingest_watermark:     2026-08-01 21:34:25.075
+publish_lag_s:        0
+pending_sessions:     0
+retention_ttl_s:      604800
+oldest_pending_age_s: ᴺᵁᴸᴸ
+retention_headroom_s: ᴺᵁᴸᴸ
+retention_alert:      0
+lease_holder:         ᴺᵁᴸᴸ
+last_committed_run:   1785620143272 -- 1.79 trillion
+last_run_ms:          6511
+last_run_sessions:    200
+runs_in_flight:       0
+
+--------------------------------------------------------------------------
+PHASE 10 — RE-MEASURING THE SHELVED PROJECTION on the finalizer's query shape.
+
+  WALKTHROUGH §5 records proj_by_session as measured and NOT shipped: 27.7x on
+  a single-session lookup, but "the actual straggler path uses IN (subquery),
+  which full-scans anyway, so the real gain is 1.00x for +94% storage".
+  The finalizer's derive is exactly that IN (subquery) — plus an event-time
+  window — so the shape is worth re-measuring rather than inheriting.
+
+   ┌─variant────┬─read_rows─┬─pct_of_ev_raw─┬─read_bytes─┬─ms─┬─used_projection─┐
+1. │ b.session  │     38946 │ 4.3%          │ 2.49 MiB   │ 14 │ YES             │
+2. │ c.windowed │      8193 │ 0.9%          │ 600.07 KiB │ 10 │ YES             │
+   └────────────┴───────────┴───────────────┴────────────┴────┴─────────────────┘
+
+  storage: ev_raw 3.74 MiB -> 7.17 MiB (projection itself 3.43 MiB)
+
+  Compare against the PHASE 5 table above: the projection IS chosen for the
+  IN (subquery) shape on 26.2. This does not overturn the storage trade — that
+  is still the operator's call — but the '1.00x' half of it does not hold for
+  the finalizer's query. ADR 0013 records both numbers and ships neither.
+  NOTE: sql/60_projection.sql hard-codes 'sonyliv.', so it cannot be applied to
+  any other database; this phase had to issue the ALTER itself. Same class of
+  defect ADR 0010 fixed in sql/80_content.sql.
+
+--------------------------------------------------------------------------
+PHASE 11 — ADOPTION COSTS NOTHING. Turn the publication layer on over a database
+          that was built the old way, and prove it does not re-derive history.
+
+  sonyliv_pub_ctl has been rebuilt from scratch and has never had sql/12_publish.sql.
+  This is the shape of the graded service today.
+
+  before: 30322 intervals · 28074 delta rows · peak 2917
+  applied sql/12_publish.sql
+    == nothing to publish (no unconsumed settled markings)
+  after:  30322 intervals · 28074 delta rows · peak 2917
+
+  Nothing moved, because nothing has arrived since the layer went on. The change
+  log is empty on a table that was already loaded, so the cursor starts at the
+  current ingest position rather than at the beginning of history. Adoption is
+  one DDL round trip — it does NOT trigger a rebuild to catch up.
+
+--------------------------------------------------------------------------
+PHASE 12 — CRASH MATRIX (Q8, ADR 0019). Kill the publisher at EVERY phase
+           boundary, then run it again and prove full recovery each time.
+
+  Sixteen injection points: after each phase mark AND after each heavy
+  statement (before its mark) — the two ADR 0016 phases included. Three
+  recovery shapes are exercised:
+    claiming/consumed/batch  -> ROLLBACK. The intent row (phase 'claiming',
+        written before any side effect) names the run; recovery deletes its
+        consumed rows, drops its batch partition, marks it aborted, and the
+        markings become claimable again. Before ADR 0019 a crash between
+        the consumed insert and the claimed mark orphaned the batch FOREVER
+        — with pending_sessions reading 0 (reproduced).
+    claimed..users marks     -> RESUME from the phase marker, reusing the
+        run's recorded build_version. Recomputing BV on resume made the
+        prune delete the crashed run's own derivation (reproduced: the
+        session vanished from all four tiers, every status green).
+    *_stmt points            -> RESUME must decide whether the statement
+        landed. The insert_deduplication_token does NOT decide it: a replayed
+        INSERT SELECT into the shared delta table executed BOTH times on
+        26.2.1.525 (system.query_log showed two QueryFinish rows, each with
+        written_rows > 0, and the correction double-applied — caught by this
+        matrix's first green-to-red run). Recovery now consults the server's
+        query log for the negate/emit query_ids; every other statement is
+        replay-safe by construction (pinned build_version + Replacing/idempotent).
+  Each recovery must also outwait the dead holder's lease (TTL 6 s here).
+  Every round appends one +30 s beat to the synthetic probe session and
+  requires the published end to advance by exactly +30 s through the crash.
+
+  probe session adr19-crash-probe published: end 2026-07-26 12:11:40.000 (expected 2026-07-26 12:11:40.000)
+
+    publish.sh: INJECTED CRASH at claiming
+  crash@claiming     recovered: end -> 2026-07-26 12:12:10.000 (+30s), in-flight 0, pending 0
+    publish.sh: INJECTED CRASH at consumed
+  crash@consumed     recovered: end -> 2026-07-26 12:12:40.000 (+30s), in-flight 0, pending 0
+    publish.sh: INJECTED CRASH at batch
+  crash@batch        recovered: end -> 2026-07-26 12:13:10.000 (+30s), in-flight 0, pending 0
+    publish.sh: INJECTED CRASH at claimed
+  crash@claimed      recovered: end -> 2026-07-26 12:13:40.000 (+30s), in-flight 0, pending 0
+    == run 1785620654085  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:42:24.699 -> 2026-08-01 21:43:57.617
+    publish.sh: INJECTED CRASH at negate_stmt
+  crash@negate_stmt  recovered: end -> 2026-07-26 12:14:10.000 (+30s), in-flight 0, pending 0
+    == run 1785620744100  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:43:57.617 -> 2026-08-01 21:45:27.558
+    publish.sh: INJECTED CRASH at negated
+  crash@negated      recovered: end -> 2026-07-26 12:14:40.000 (+30s), in-flight 0, pending 0
+    == run 1785620823639  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:45:27.558 -> 2026-08-01 21:46:48.599
+       negated   2 corrective delta rows   1356 ms
+    publish.sh: INJECTED CRASH at derive_stmt
+  crash@derive_stmt  recovered: end -> 2026-07-26 12:15:10.000 (+30s), in-flight 0, pending 0
+    == run 1785620901353  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:46:48.599 -> 2026-08-01 21:48:04.718
+       negated   2 corrective delta rows   554 ms
+    publish.sh: INJECTED CRASH at derived
+  crash@derived      recovered: end -> 2026-07-26 12:15:40.000 (+30s), in-flight 0, pending 0
+    == run 1785620980679  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:48:04.718 -> 2026-08-01 21:49:25.368
+       negated   2 corrective delta rows   645 ms
+       derived   1 intervals   765 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:15:40.000)
+    publish.sh: INJECTED CRASH at prune_stmt
+  crash@prune_stmt   recovered: end -> 2026-07-26 12:16:10.000 (+30s), in-flight 0, pending 0
+    == run 1785621064362  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:49:25.368 -> 2026-08-01 21:50:49.758
+       negated   2 corrective delta rows   580 ms
+       derived   1 intervals   660 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:16:10.000)
+    publish.sh: INJECTED CRASH at pruned
+  crash@pruned       recovered: end -> 2026-07-26 12:16:40.000 (+30s), in-flight 0, pending 0
+    == run 1785621145113  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:50:49.758 -> 2026-08-01 21:52:11.640
+       negated   2 corrective delta rows   589 ms
+       derived   1 intervals   586 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:16:40.000)
+       pruned    superseded intervals   1455 ms
+    publish.sh: INJECTED CRASH at emit_stmt
+  crash@emit_stmt    recovered: end -> 2026-07-26 12:17:10.000 (+30s), in-flight 0, pending 0
+    == run 1785621234333  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:52:11.640 -> 2026-08-01 21:53:37.442
+       negated   2 corrective delta rows   589 ms
+       derived   1 intervals   772 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:17:10.000)
+       pruned    superseded intervals   1927 ms
+    publish.sh: INJECTED CRASH at emitted
+  crash@emitted      recovered: end -> 2026-07-26 12:17:40.000 (+30s), in-flight 0, pending 0
+    == run 1785621323646  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:53:37.442 -> 2026-08-01 21:55:08.312
+       negated   2 corrective delta rows   688 ms
+       derived   1 intervals   927 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:17:40.000)
+       pruned    superseded intervals   1760 ms
+       emitted   2 delta rows   1277 ms
+    publish.sh: INJECTED CRASH at hours_stmt
+  crash@hours_stmt   recovered: end -> 2026-07-26 12:18:10.000 (+30s), in-flight 0, pending 0
+    == run 1785621422185  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:55:08.312 -> 2026-08-01 21:56:39.156
+       negated   2 corrective delta rows   636 ms
+       derived   1 intervals   1616 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:18:10.000)
+       pruned    superseded intervals   1670 ms
+       emitted   2 delta rows   736 ms
+    publish.sh: INJECTED CRASH at hours
+  crash@hours        recovered: end -> 2026-07-26 12:18:40.000 (+30s), in-flight 0, pending 0
+    == run 1785621514494  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:56:39.156 -> 2026-08-01 21:58:17.786
+       negated   2 corrective delta rows   741 ms
+       derived   1 intervals   1294 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:18:40.000)
+       pruned    superseded intervals   1488 ms
+       emitted   2 delta rows   1309 ms
+       hours     8 hour-cube rows re-derived   1236 ms
+    publish.sh: INJECTED CRASH at users_stmt
+  crash@users_stmt   recovered: end -> 2026-07-26 12:19:10.000 (+30s), in-flight 0, pending 0
+    == run 1785621595537  ·  1 session(s) claimed  ·  cursor 2026-08-01 21:58:17.786 -> 2026-08-01 21:59:39.639
+       negated   2 corrective delta rows   562 ms
+       derived   1 intervals   622 ms   (window 2026-07-26 12:10:10.000 .. 2026-07-26 12:19:10.000)
+       pruned    superseded intervals   1440 ms
+       emitted   2 delta rows   590 ms
+       hours     8 hour-cube rows re-derived   1169 ms
+    publish.sh: INJECTED CRASH at users
+  crash@users        recovered: end -> 2026-07-26 12:19:40.000 (+30s), in-flight 0, pending 0
+
+  convergence after all sixteen crash/recover cycles:
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1589  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 29796 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28076 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 13 — TWO PUBLISHERS AT ONCE (Q9, ADR 0019). The lease admits one.
+
+  Without the lease this exact scenario was reproduced corrupting the tier:
+  two publishers both claimed the same marking under different run_ids, both
+  negated the SAME published contribution X and both emitted X-prime, so the
+  served number landed at 2X'-X — one viewer became two. Both runs were
+  green; nothing detected it; only a full rebuild could repair it.
+
+  probe session adr19-lease-probe ends 2026-07-26 12:31:40.000; probe minute 2026-07-26 12:32:00 serves 3176 before
+    A: == lost the acquisition lottery to 7bdfa4e6-d359-428f-9e79-05197e13dfac — declining.
+    B: == run 1785621764371  ·  1 session(s) claimed  ·  cursor 2026-08-01 22:01:18.087 -> 2026-08-01 22:02:25.525
+    B:    negated   2 corrective delta rows   587 ms
+    B:    derived   1 intervals   559 ms   (window 2026-07-26 12:30:10.000 .. 2026-07-26 12:31:40.000)
+    B:    pruned    superseded intervals   1495 ms
+    B:    emitted   2 delta rows   664 ms
+    B:    hours     8 hour-cube rows re-derived   466 ms
+    B:    users     3 user-minute buckets re-derived   475 ms
+    B:    committed cursor now 2026-08-01 22:02:25.525
+
+  commits: 1 (must be 1)   declines: 1 (must be 1)
+  probe minute 2026-07-26 12:32:00: 3176 -> 3177 (single-publisher answer 3177; the
+  pre-lease double application produced 3178)
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1592  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 29802 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28078 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 14 — SAME-MILLISECOND IDENTITY (Q10, ADR 0019).
+
+  Two inserts can share a marked_at — now64(3) is per-query, and two loads
+  can land in the same millisecond. cc_publish_consumed used to key on the
+  timestamp ALONE: if the slower insert's rows became visible after the
+  faster was consumed, its marking matched the consumed set and was skipped
+  for ever, with pending_sessions reading 0 (reproduced). The key is now
+  the (marked_at, insert_id) pair — initialQueryID() of the firing INSERT,
+  captured by mv_session_dirty.
+
+  probe session adr19-samems-probe published (end 2026-07-26 12:41:40.000); both markings stamped marked_at = 2026-08-01 22:04:24.690
+  fast marking consumed: 1 run(s) digested it
+    == run 1785621944853  ·  1 session(s) claimed  ·  cursor 2026-08-01 22:04:24.690 -> 2026-08-01 22:04:24.690
+       negated   2 corrective delta rows   689 ms
+       derived   1 intervals   547 ms   (window 2026-07-26 12:40:10.000 .. 2026-07-26 12:41:40.000)
+       pruned    superseded intervals   1417 ms
+       emitted   2 delta rows   1276 ms
+       hours     8 hour-cube rows re-derived   496 ms
+       users     3 user-minute buckets re-derived   539 ms
+       committed cursor now 2026-08-01 22:04:24.690
+
+  slow marking claimed: 1 (timestamp-only identity claimed 0)
+  session end: 2026-07-26 12:41:40.000 -> 2026-07-26 12:42:10.000 (wanted 2026-07-26 12:42:10.000)
+
+  CONVERGENCE — incremental (sonyliv_pub) vs from-scratch rebuild (sonyliv_pub_ctl)
+    ┌─ord─┬─check─────────────────────────────────────────────────────────────┬─value─┐
+ 1. │   1 │ delta cells differing                                             │ 0     │
+ 2. │   2 │ interval rows differing                                           │ 0     │
+ 3. │   3 │ served minutes differing (running sum over union of minutes)      │ 0     │
+ 4. │   4 │ served minutes compared                                           │ 1595  │
+ 5. │   5 │ peak — incremental                                                │ 2917  │
+ 6. │   6 │ peak — rebuild                                                    │ 2917  │
+ 7. │   7 │ cc_minute_delta rows — incremental (incl. cancelling corrections) │ 29807 │
+ 8. │   8 │ cc_minute_delta rows — rebuild                                    │ 28080 │
+ 9. │   9 │ user cells differing (minute x dims)                              │ 0     │
+10. │  10 │ user minutes differing (total)                                    │ 0     │
+11. │  11 │ user peak — incremental                                           │ 2844  │
+12. │  12 │ user peak — rebuild                                               │ 2844  │
+13. │  13 │ hour-cube rows differing (peak, peak_minute or integral)          │ 0     │
+14. │  14 │ day rows differing (peak, peak_minute or integral)                │ 0     │
+15. │  15 │ hour-tier peak — incremental                                      │ 2917  │
+16. │  16 │ hour-tier peak — rebuild                                          │ 2917  │
+    └─────┴───────────────────────────────────────────────────────────────────┴───────┘
+
+--------------------------------------------------------------------------
+PHASE 15 — RETENTION HEADROOM (Q11, ADR 0019). The TTL is a deadline.
+
+  session_dirty, cc_publish_batch and cc_publish_consumed carry 7-day TTLs.
+  A marking that outlives them expires SILENTLY and the tiers are wrong with
+  no signal — and a marking older than the claim lookback (PUBLISH_LOOKBACK_S,
+  default 900 s behind the cursor) is already unreachable long before the TTL
+  eats it. v_cc_publish_lag now carries the signal: retention_headroom_s is
+  seconds until the oldest undigested marking hits the TTL, and
+  retention_alert trips a full day before the cliff. This phase plants a
+  6.5-day-old marking and reads the alarm.
+
+  healthy: headroom NULL, alert 0
+  planted:  age 561601s, headroom 43198s, alert 1 (1 = a rebuild is due before the queue lies)
+    == nothing to publish (no unconsumed settled markings)
+  a publish run against it claimed: 0 (0 — beyond the lookback the
+  ALERT is the path to repair, not the claim; the repair is a forced
+  republication or a rebuild, both idempotent)
+  cleared:  alert 0
+
+--------------------------------------------------------------------------
+Every 'differing' row above is 0 or this run failed. cc_minute_delta was never
+truncated after PHASE 2 and session_intervals was never rebuilt: every number
+moved by appending a correction and re-deriving the sessions that changed.

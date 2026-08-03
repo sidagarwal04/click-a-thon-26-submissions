@@ -1,0 +1,127 @@
+{
+  "call_id": "CALL-07-MEDIUM",
+  "category": "Medium",
+  "title": "Weekly Funnel Stage Volumes and Step-Through Rates",
+  "question": "How did weekly application starts, document uploads, and completed purchases trend across H1 2026, and what were the weekly step-through rates?",
+  "database": "default",
+  "target_tables": "application_started, document_uploaded, purchase_completed",
+  "timestamp": "2026-08-02T00:14:31.792494+00:00",
+  "status": "SUCCESS",
+  "error": null,
+  "metrics": {
+    "execution_time_ms": 256.78,
+    "row_count": 27,
+    "columns_count": 7,
+    "columns": [
+      "week_start",
+      "applications_started",
+      "documents_uploaded",
+      "purchases_completed",
+      "start_to_doc_stepthrough_pct",
+      "doc_to_purchase_stepthrough_pct",
+      "overall_funnel_conversion_pct"
+    ]
+  },
+  "telemetry": {
+    "trace_id": "trace-live_run-benchmark_medium_07",
+    "trace_url": "https://us.cloud.langfuse.com/project/cmpwirpg5009oad0esljbiev9/traces/01170d3578d5c81648a14c5d4152586e",
+    "run_mode": "live_run",
+    "pipeline": "atlys_e2e_benchmark"
+  },
+  "generated_sql": "SELECT \n    toStartOfWeek(a.timestamp) AS week_start,\n    count(DISTINCT a.application_id) AS applications_started,\n    count(DISTINCT d.application_id) AS documents_uploaded,\n    count(DISTINCT p.application_id) AS purchases_completed,\n    round(count(DISTINCT d.application_id) * 100.0 / count(DISTINCT a.application_id), 2) AS start_to_doc_stepthrough_pct,\n    round(count(DISTINCT p.application_id) * 100.0 / count(DISTINCT d.application_id), 2) AS doc_to_purchase_stepthrough_pct,\n    round(count(DISTINCT p.application_id) * 100.0 / count(DISTINCT a.application_id), 2) AS overall_funnel_conversion_pct\nFROM default.application_started a\nLEFT JOIN default.document_uploaded d ON a.application_id = d.application_id\nLEFT JOIN default.purchase_completed p ON a.application_id = p.application_id\nGROUP BY week_start\nORDER BY week_start ASC",
+  "result_sample": [
+    {
+      "week_start": "2025-12-28",
+      "applications_started": 2127,
+      "documents_uploaded": 295,
+      "purchases_completed": 106,
+      "start_to_doc_stepthrough_pct": 13.87,
+      "doc_to_purchase_stepthrough_pct": 35.93,
+      "overall_funnel_conversion_pct": 4.98
+    },
+    {
+      "week_start": "2026-01-04",
+      "applications_started": 4675,
+      "documents_uploaded": 590,
+      "purchases_completed": 210,
+      "start_to_doc_stepthrough_pct": 12.62,
+      "doc_to_purchase_stepthrough_pct": 35.59,
+      "overall_funnel_conversion_pct": 4.49
+    },
+    {
+      "week_start": "2026-01-11",
+      "applications_started": 4808,
+      "documents_uploaded": 653,
+      "purchases_completed": 248,
+      "start_to_doc_stepthrough_pct": 13.58,
+      "doc_to_purchase_stepthrough_pct": 37.98,
+      "overall_funnel_conversion_pct": 5.16
+    },
+    {
+      "week_start": "2026-01-18",
+      "applications_started": 5017,
+      "documents_uploaded": 656,
+      "purchases_completed": 252,
+      "start_to_doc_stepthrough_pct": 13.08,
+      "doc_to_purchase_stepthrough_pct": 38.41,
+      "overall_funnel_conversion_pct": 5.02
+    },
+    {
+      "week_start": "2026-01-25",
+      "applications_started": 4953,
+      "documents_uploaded": 674,
+      "purchases_completed": 249,
+      "start_to_doc_stepthrough_pct": 13.61,
+      "doc_to_purchase_stepthrough_pct": 36.94,
+      "overall_funnel_conversion_pct": 5.03
+    },
+    {
+      "week_start": "2026-02-01",
+      "applications_started": 5154,
+      "documents_uploaded": 673,
+      "purchases_completed": 235,
+      "start_to_doc_stepthrough_pct": 13.06,
+      "doc_to_purchase_stepthrough_pct": 34.92,
+      "overall_funnel_conversion_pct": 4.56
+    },
+    {
+      "week_start": "2026-02-08",
+      "applications_started": 5194,
+      "documents_uploaded": 729,
+      "purchases_completed": 245,
+      "start_to_doc_stepthrough_pct": 14.04,
+      "doc_to_purchase_stepthrough_pct": 33.61,
+      "overall_funnel_conversion_pct": 4.72
+    },
+    {
+      "week_start": "2026-02-15",
+      "applications_started": 5417,
+      "documents_uploaded": 725,
+      "purchases_completed": 259,
+      "start_to_doc_stepthrough_pct": 13.38,
+      "doc_to_purchase_stepthrough_pct": 35.72,
+      "overall_funnel_conversion_pct": 4.78
+    },
+    {
+      "week_start": "2026-02-22",
+      "applications_started": 5446,
+      "documents_uploaded": 735,
+      "purchases_completed": 260,
+      "start_to_doc_stepthrough_pct": 13.5,
+      "doc_to_purchase_stepthrough_pct": 35.37,
+      "overall_funnel_conversion_pct": 4.77
+    },
+    {
+      "week_start": "2026-03-01",
+      "applications_started": 5517,
+      "documents_uploaded": 728,
+      "purchases_completed": 252,
+      "start_to_doc_stepthrough_pct": 13.2,
+      "doc_to_purchase_stepthrough_pct": 34.62,
+      "overall_funnel_conversion_pct": 4.57
+    }
+  ],
+  "full_results_count": 27,
+  "summary": "Query executed successfully against ClickHouse default database in 256.78ms, returning 27 aggregate rows across the 2.5M record dataset.",
+  "business_rationale": "Multi-table 3-way join with date truncation toStartOfWeek(timestamp), computing longitudinal step-through rates across 26 calendar weeks."
+}

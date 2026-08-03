@@ -1,0 +1,39 @@
+# evidence: dimension_alignment_fix
+# what: positional INSERT misalignment found and fixed: explicit column lists on every pipeline insert
+# run_utc: 2026-08-02 03:33:04
+# git: 6d595ae-dirty
+# host: ss-cric
+# row_count: 7000000
+# event_watermark: 2026-08-03 11:26:15.032
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 7000000   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 02:35:57   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+defect	positional INSERT misalignment after widening the dimension set
+how_it_happened	four columns were added mid-table; the pipeline INSERTs were bare INSERT INTO t SELECT ..., which matches BY POSITION
+why_it_was_silent	every column involved is LowCardinality(String), so a shifted value is a valid value and nothing errors
+symptom	concurrency_deltas.video_resolution held player_version strings (1.8.2, 3.29.71_adNE); filtering video_resolution = 1920*1080 returned 0 rows
+blast_radius	session path only (session_minute_runs); the user path was already aligned
+fix	explicit column lists on all 8 pipeline INSERTs, plus one canonical column order shared by table and SELECT
+why_that_fix	naming the columns makes physical order irrelevant, which retires the whole class of bug rather than this instance
+prior_art	same class as the event_id incident (scripts/inventory.sh) and the organisers pasted INSERT ... SELECT * commands
+#
+dimension	sample_values_after_fix
+app_version	3.11.1 | 6.34.8 | 6.25.1
+video_type	vod | live
+audio_language	hin | unk
+subtitle_language	unk | UNK
+player_version	1.8.2 | 3.29.71_adNE
+video_resolution	NA | (empty) | 1920*1080
+#
+check	value
+asserted_runs	118498	(unchanged from both prior derives)
+unfiltered_peak	22416 at 2026-07-31 11:16	(unchanged)
+unfiltered_avg_all	914.65	(unchanged)
+unfiltered_avg_active	1667.21	(unchanged)
+video_resolution_filter_1920x1080	peak 4307 at 2026-07-31 10:30, avg_active 822.30	(was 0 before the fix)
+verdict	PASS

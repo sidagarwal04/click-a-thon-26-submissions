@@ -1,0 +1,26 @@
+# SonyLIV event collector — Vector, pushing outbound to ClickHouse.
+# `docker compose up -d` then POST events to http://localhost:${HTTP_PORT}/ingest.
+services:
+  collector:
+    image: timberio/vector:0.44.0-debian
+    container_name: sonyliv-collector
+    restart: unless-stopped
+    # Note: `docker compose --env-file` sets *substitution* vars only — this
+    # env_file is what actually passes CH_* into the container.
+    env_file:
+      - ${COLLECTOR_ENV_FILE:-./.env}
+    ports:
+      - "${HTTP_PORT:-8080}:8080"   # event ingress (simulator / devices POST here)
+      - "9598:9598"                 # Vector internal metrics (Prometheus)
+      - "8686:8686"                 # Vector GraphQL/health API
+    # Lets CH_ENDPOINT=http://host.docker.internal:8123 reach a ClickHouse running
+    # on the host. No effect when CH_ENDPOINT points at Cloud.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./vector.yaml:/etc/vector/vector.yaml:ro
+      - vector-data:/vector-data-dir
+    command: ["--config", "/etc/vector/vector.yaml"]
+
+volumes:
+  vector-data:

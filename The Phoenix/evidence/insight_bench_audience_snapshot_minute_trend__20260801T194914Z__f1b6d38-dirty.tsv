@@ -1,0 +1,26 @@
+# evidence: insight_bench_audience_snapshot_minute_trend
+# what: read_rows, read_bytes, result_rows, tables and EXPLAIN key condition per filter shape for audience_snapshot_minute_trend
+# run_utc: 2026-08-01 19:49:14
+# git: f1b6d38-dirty
+# host: ss-cric
+# row_count: 2203368
+# event_watermark: 2026-08-01 20:03:11.372
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:44:51   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+shape	cold_ms	warm_ms	read_rows	read_bytes	result_rows	memory_bytes	tables_read	raw_scan	key_condition
+unfiltered	67	74	96216	5015017	634	64348539	phoenix_next.audience_minute_snapshot	no	and((minute in (-Inf, 1785542399]), and((minute in (-Inf, 1785110399]), (minute in [1785024000, +Inf)))) ; granules 12/12
+platform	55	57	96216	5015017	634	9936933	phoenix_next.audience_minute_snapshot	no	and((minute in (-Inf, 1785542399]), and((minute in (-Inf, 1785110399]), and((minute in [1785024000, +Inf)), (platform in ['ANDROID_PHONE', 'ANDROID_PHONE'])))) ; granules 12/12
+country	75	74	96216	5015017	634	64356153	phoenix_next.audience_minute_snapshot	no	and((minute in (-Inf, 1785542399]), and((minute in (-Inf, 1785110399]), and((minute in [1785024000, +Inf)), (country in ['india', 'india'])))) ; granules 12/12
+content	18	19	96216	5015770	65	12450147	phoenix_next.audience_minute_snapshot	no	and((minute in (-Inf, 1785542399]), and((minute in (-Inf, 1785110399]), and((minute in [1785024000, +Inf)), (content_id in [2078157818, 2078157818])))) ; granules 12/12
+app_version	48	45	96216	5015017	587	41090627	phoenix_next.audience_minute_snapshot	no	and((minute in (-Inf, 1785542399]), and((minute in (-Inf, 1785110399]), and((minute in [1785024000, +Inf)), (app_version in ['6.34.8', '6.34.8'])))) ; granules 12/12
+platform+country	55	57	96216	5015017	634	41572307	phoenix_next.audience_minute_snapshot	no	and((minute in (-Inf, 1785542399]), and((minute in (-Inf, 1785110399]), and((minute in [1785024000, +Inf)), and((country in ['india', 'india']), (platform in ['ANDROID_PHONE', 'ANDROID_PHONE']))))) ; granules 12/12
+#	query	sql/insights/benchmark/audience_snapshot_minute_trend.sql
+#	window	2026-07-26 00:00:00 -> 2026-07-27 00:00:00
+#	service	26.2.1.525
+#	use_query_cache	0
+gate.raw_events_in_plan	0	(required 0)	PASS

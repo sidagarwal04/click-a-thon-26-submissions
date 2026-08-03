@@ -1,0 +1,123 @@
+# SonyLIV foreground-concurrency — network event collector (Vector)
+#
+# devices/emitter --ndjson over HTTP--> [Vector] --batched HTTPS--> ClickHouse raw_events
+#
+# Devices never talk to the database: they POST raw events to this collector, which
+# validates, normalizes, batches, buffers, and pushes to ClickHouse. Everything that
+# governs scale is an env var (see .env.example). For extreme scale, swap the
+# http_server source for the commented `kafka` source and run N replicas behind an LB.
+#
+# The VRL transform mirrors ingest/load.sh's insert-time transform exactly, so the
+# streaming path and the batch path land byte-identical rows in sonyliv.raw_events.
+
+data_dir: /vector-data-dir
+
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+sources:
+  # ── network ingress: clients/devices POST newline-delimited JSON events ──
+  device_events:
+    type: http_server
+    address: 0.0.0.0:8080
+    path: /ingest
+    decoding:
+      codec: json
+    framing:
+      method: newline_delimited
+
+  # ── the collector observes itself (fed to ClickStack / Prometheus) ──
+  vector_metrics:
+    type: internal_metrics
+
+  # ── SCALE OPTION: durable buffer in front for 1000x (uncomment; run Redpanda/Kafka) ──
+  # kafka_events:
+  #   type: kafka
+  #   bootstrap_servers: "${KAFKA_BROKERS:-redpanda:9092}"
+  #   group_id: sonyliv-collector
+  #   topics: ["video-events"]
+  #   decoding:
+  #     codec: json
+
+transforms:
+  # type/normalize at the edge so ClickHouse just stores typed rows.
+  normalize:
+    type: remap
+    inputs: ["device_events"]        # add "kafka_events" when using the Kafka source
+    drop_on_error: true
+    reroute_dropped: true
+    source: |
+      # Reject null/absent required fields BEFORE coercing. VRL's to_int!(null) is 0
+      # and to_string!(null) is "", so neither aborts — a device sending a null
+      # timestamp would otherwise land a silent 1970-01-01 row in raw_events,
+      # corrupting every concurrency query over that range.
+      if !exists(.event_timestamp) || is_null(.event_timestamp) {
+          abort "event_timestamp is null or absent"
+      }
+      if !exists(.session_start_epoch) || is_null(.session_start_epoch) {
+          abort "session_start_epoch is null or absent"
+      }
+      if !exists(.country) || is_null(.country) {
+          abort "country is null or absent"
+      }
+
+      # epoch-ms -> ClickHouse DateTime64(3) string, in place (keeps the exact source column name)
+      .event_timestamp = format_timestamp!(from_unix_timestamp!(to_int!(.event_timestamp), unit: "milliseconds"), format: "%Y-%m-%d %H:%M:%S%.3f")
+      .session_start_epoch = format_timestamp!(from_unix_timestamp!(to_int!(.session_start_epoch), unit: "milliseconds"), format: "%Y-%m-%d %H:%M:%S%.3f")
+
+      # normalize the case-dirty language/country dims (same as ingest/load.sh)
+      .country = downcase(to_string!(.country))
+      .audio_language = downcase(to_string!(.audio_language))
+      .subtitle_language = upcase(to_string!(.subtitle_language))
+
+      # normalize video_resolution (same rules as ingest/load.sh):
+      #   ''/'NA'/'Auto'/'Auto-Auto' -> 'unknown'; else strip spaces + Auto-/NA-/0- prefix
+      res = to_string(.video_resolution) ?? ""
+      if res == "" || res == "NA" || res == "Auto-Auto" || res == "Auto" {
+          .video_resolution = "unknown"
+      } else {
+          res = replace(res, " ", "")
+          .video_resolution = replace(res, r'^(Auto-|NA-|0-)', "")
+      }
+
+sinks:
+  # ── typed rows -> ClickHouse raw_events (batched, buffered, compressed) ──
+  clickhouse:
+    type: clickhouse
+    inputs: ["normalize"]
+    endpoint: "${CH_ENDPOINT}"
+    database: "${CH_DATABASE:-sonyliv}"
+    table: raw_events
+    format: json_each_row
+    skip_unknown_fields: true
+    auth:
+      strategy: basic
+      user: "${CH_USER:-default}"
+      password: "${CH_PASSWORD}"
+    compression: gzip
+    # ── SCALE KNOBS (env-driven): bigger batches + buffer for 1000x ──
+    batch:
+      max_events: ${BATCH_MAX_EVENTS:-50000}
+      timeout_secs: ${BATCH_TIMEOUT_SECS:-5}
+    buffer:
+      type: disk
+      max_size: ${BUFFER_MAX_SIZE:-536870912}   # 512 MiB; raise for spike absorption
+      when_full: block
+    request:
+      concurrency: adaptive                      # auto-scales parallel inserts under load
+      retry_attempts: 10
+
+  # ── self-observability: expose collector metrics for ClickStack / Prometheus ──
+  metrics_out:
+    type: prometheus_exporter
+    inputs: ["vector_metrics"]
+    address: 0.0.0.0:9598
+
+  # dropped/malformed events (VRL errors) land here so nothing is silently lost
+  dead_letter:
+    type: file
+    inputs: ["normalize.dropped"]
+    path: /vector-data-dir/dead_letter.log
+    encoding:
+      codec: json

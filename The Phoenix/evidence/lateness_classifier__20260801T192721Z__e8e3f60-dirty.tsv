@@ -1,0 +1,25 @@
+# evidence: lateness_classifier
+# what: each lateness class produced by a real arrival through the landing table
+# run_utc: 2026-08-01 19:27:21
+# git: e8e3f60-dirty
+# host: ss-cric
+# row_count: 4
+# event_watermark: 2026-08-01 20:27:18.877
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 0   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 19:27:19   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+check	expected	got	verdict
+raw_events_ingested	4	4	PASS
+rows_with_observed_arrival	4	4	PASS
+audit_rows	3	3	PASS
+on_time_rows_stored	0	0	PASS
+event_dated_in_future	invalid_future_event	invalid_future_event	PASS
+event_10s_old	<absent>	<absent>	PASS
+event_600s_old	late_acceptable	late_acceptable	PASS
+event_7200s_old	late_after_finalization	late_after_finalization	PASS
+#	boundaries	allowed_lateness_seconds=90 finalization_delay_seconds=3600 (PROVISIONAL, see docs/LATENESS.md)
+verdict	PASS	PASS	PASS

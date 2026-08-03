@@ -1,0 +1,52 @@
+# evidence: inventory_phoenix
+# what: engines, keys, columns, views and their health, read from system.* on phoenix
+# run_utc: 2026-08-01 23:45:46
+# git: 0768278-dirty
+# host: ss-cric
+# row_count: 1857093
+# event_watermark: 2026-08-01 23:45:44.769
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 905558   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-01 23:45:45   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+section	object	detail
+version	server	26.2.1.525
+version	database	phoenix
+table	_skeptic_touched	Memory | ORDER BY (none) | PARTITION BY (none) | parts 0 | 0.00 B
+table	concurrency_boundary_deltas	SharedSummingMergeTree | ORDER BY (platform, country, video_type, content_id, app_version, ts) | PARTITION BY (toYYYYMMDD(ts)) | parts 7 | 172.55 KiB
+table	concurrency_deltas	SharedSummingMergeTree | ORDER BY (platform, country, video_type, content_id, app_version, minute) | PARTITION BY (toYYYYMMDD(minute)) | parts 9 | 113.87 KiB
+table	concurrency_deltas_naive	SharedSummingMergeTree | ORDER BY (platform, country, video_type, content_id, app_version, minute) | PARTITION BY (toYYYYMMDD(minute)) | parts 7 | 46.37 KiB
+table	content	SharedReplacingMergeTree | ORDER BY (content_id) | PARTITION BY (none) | parts 1 | 220.67 KiB
+table	foreground_intervals	SharedMergeTree | ORDER BY (video_session_id, interval_start) | PARTITION BY (toYYYYMMDD(interval_start)) | parts 7 | 2.77 MiB
+table	raw_events	SharedMergeTree | ORDER BY (video_session_id, event_timestamp) | PARTITION BY (toYYYYMMDD(event_timestamp)) | parts 13 | 12.83 MiB
+table	raw_events_landing	Null | ORDER BY (none) | PARTITION BY (none) | parts 0 | 0.00 B
+table	session_minute_runs	SharedCollapsingMergeTree | ORDER BY (video_session_id, run_start, run_end) | PARTITION BY (toYYYYMMDD(run_start)) | parts 8 | 1.18 MiB
+table	user_concurrency_deltas	SharedSummingMergeTree | ORDER BY (platform, country, video_type, content_id, app_version, minute) | PARTITION BY (toYYYYMMDD(minute)) | parts 10 | 110.50 KiB
+table	user_minute_runs	SharedCollapsingMergeTree | ORDER BY (user_id, run_start, run_end) | PARTITION BY (toYYYYMMDD(run_start)) | parts 8 | 683.06 KiB
+columns	_skeptic_touched	video_session_id String
+columns	concurrency_boundary_deltas	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), ts DateTime, delta Int32
+columns	concurrency_boundary_deltas_mv	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), ts DateTime, delta Int16
+columns	concurrency_deltas	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), minute DateTime, delta Int32
+columns	concurrency_deltas_mv	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), minute DateTime, delta Int32
+columns	concurrency_deltas_naive	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), minute DateTime, delta Int32
+columns	content	content_id Int64, title String, video_type LowCardinality(String), category LowCardinality(String), ingested_at DateTime
+columns	event_state	video_session_id String, ts DateTime64(3), is_open UInt8, is_open_pause_active UInt8
+columns	foreground_intervals	video_session_id String, user_id String, content_id Int64, platform LowCardinality(String), country LowCardinality(String), app_version LowCardinality(String), video_type LowCardinality(String), interval_start DateTime, interval_end DateTime
+columns	raw_events	video_session_id String, user_id String, content_id Int64, event_type LowCardinality(String), event LowCardinality(String), event_timestamp DateTime64(3), platform LowCardinality(String), app_version LowCardinality(String), country LowCardinality(String), audio_language LowCardinality(String), subtitle_language LowCardinality(String), player_version LowCardinality(String), session_start_epoch DateTime64(3), ingested_at DateTime, event_id String
+columns	raw_events_landing	content_id Int64, video_session_id String, user_id String, event_type LowCardinality(String), event LowCardinality(String), event_timestamp Int64, platform LowCardinality(String), app_version LowCardinality(String), country LowCardinality(String), audio_language LowCardinality(String), subtitle_language LowCardinality(String), player_version LowCardinality(String), session_start_epoch Int64, event_id String
+columns	raw_events_mv	video_session_id String, user_id String, content_id Int64, event_type LowCardinality(String), event LowCardinality(String), event_timestamp DateTime64(3), platform LowCardinality(String), app_version LowCardinality(String), country LowCardinality(String), audio_language LowCardinality(String), subtitle_language LowCardinality(String), player_version LowCardinality(String), session_start_epoch DateTime64(3), event_id String
+columns	session_minute_runs	video_session_id String, user_id String, content_id Int64, platform LowCardinality(String), country LowCardinality(String), app_version LowCardinality(String), video_type LowCardinality(String), run_start DateTime, run_end DateTime, sign Int8
+columns	user_concurrency_deltas	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), minute DateTime, delta Int32
+columns	user_concurrency_deltas_mv	platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), minute DateTime, delta Int32
+columns	user_minute_runs	user_id String, platform LowCardinality(String), country LowCardinality(String), video_type LowCardinality(String), content_id Int64, app_version LowCardinality(String), run_start DateTime, run_end DateTime, sign Int8
+view	concurrency_boundary_deltas_mv	MaterializedView :: SELECT platform, country, video_type, content_id, app_version, b.1 AS ts, b.2 AS delta FROM phoenix.foreground_intervals ARRAY JOIN [(interval_start, 1), (interval_end, -1)] AS b WHERE interval_start < interval_end
+view	concurrency_deltas_mv	MaterializedView :: SELECT platform, country, video_type, content_id, app_version, d.1 AS minute, (d.2) * sign AS delta FROM phoenix.session_minute_runs ARRAY JOIN [(run_start, 1), (run_end + toIntervalMinute(1), -1)] AS d
+view	event_state	View :: WITH collapsed AS (SELECT video_session_id, ts, min(strict) AS strict_cls, min(loose) AS loose_cls FROM (SELECT video_session_id, event_timestamp AS ts, multiIf((event_type IN (\'AppBackgrounded\', \'VideoSessionEnd\', \'VideoError\')), 0, (event_type = \'VideoHeartbeat\') AND (event IN (\'pause\', \'speed-pause\', \'AdPause\')), 0, (event_type IN (\'VideoSessionStart\', \'VideoPlay\', \'AppForegrounded\')), 1, (event_type = \'VideoHeartbeat\') AND (event IN (\'resume\', \'speed-resume\', \'AdResume\')), 1, NULL) AS strict, multiIf((event_type IN (\'AppBackgrounded\', \'VideoSessionEnd\', \'VideoError\')), 0, (event_type IN (\'VideoSessionStart\', \'VideoPlay\', \'AppForegrounded\')), 1, (event_type = \'VideoHeartbeat\') AND (event IN (\'resume\', \'speed-resume\', \'AdResume\')), 1, NULL) AS loose FROM phoenix.raw_events) GROUP BY video_session_id, ts) SELECT video_session_id, ts, coalesce(argMax(strict_cls, if(strict_cls IS NULL, toDateTime64(0, 3), ts)) OVER w, 1) AS is_open, coalesce(argMax(loose_cls, if(loose_cls IS NULL, toDateTime64(0, 3), ts)) OVER w, 1) AS is_open_pause_active FROM collapsed WINDOW w AS (PARTITION BY video_session_id ORDER BY ts ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+view	raw_events_mv	MaterializedView :: SELECT video_session_id, user_id, content_id, event_type, event, fromUnixTimestamp64Milli(event_timestamp) AS event_timestamp, platform, app_version, country, audio_language, subtitle_language, player_version, fromUnixTimestamp64Milli(session_start_epoch) AS session_start_epoch, event_id FROM phoenix.raw_events_landing
+view	user_concurrency_deltas_mv	MaterializedView :: SELECT platform, country, video_type, content_id, app_version, d.1 AS minute, (d.2) * sign AS delta FROM phoenix.user_minute_runs ARRAY JOIN [(run_start, 1), (run_end + toIntervalMinute(1), -1)] AS d
+view_health	phoenix.concurrency_deltas_mv	QueryFinish x121 last 2026-08-01 23:44:54 | no exceptions
+view_health	phoenix.raw_events_mv	QueryFinish x134 last 2026-08-01 23:45:14 | no exceptions
+view_health	phoenix.user_concurrency_deltas_mv	QueryFinish x119 last 2026-08-01 23:45:28 | no exceptions

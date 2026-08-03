@@ -1,0 +1,32 @@
+{
+  "name": "detection-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sweep:local": "tsx --env-file=.env.local scripts/run-sweep-local.ts",
+    "setup:local": "tsx --env-file=.env.local scripts/run-setup-local.ts",
+    "recompute:local": "tsx --env-file=.env.local scripts/recompute-detections-local.ts",
+    "backfill:segments:local": "tsx --env-file=.env.local scripts/backfill-segment-dimensions-local.ts",
+    "prototype:registry": "tsx --env-file=.env.local scripts/prototype-registry.ts",
+    "incidents:local": "tsx --env-file=.env.local scripts/incidents-local.ts",
+    "db:up": "docker compose up -d",
+    "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
+    "db:seed": "tsx --env-file=.env.local scripts/db-seed.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "24.x",
+    "@types/pg": "^8.20.3",
+    "tsx": "^4.19.2",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.23.1",
+    "pg": "^8.22.0",
+    "zod": "4.4.3"
+  }
+}

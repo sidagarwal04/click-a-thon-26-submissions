@@ -1,0 +1,55 @@
+services:
+
+  backend:
+    restart: "no"
+    ports:
+      - "8000:8000"
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command:
+      - fastapi
+      - run
+      - --reload
+      - "app/main.py"
+    develop:
+      watch:
+        - path: ./backend
+          action: sync
+          target: /app/backend
+          ignore:
+            - ./backend/.venv
+            - .venv
+        - path: ./backend/pyproject.toml
+          action: rebuild
+        - path: ./incoming_features
+          action: sync
+          target: /app/incoming_features
+    # TODO: remove once coverage is done locally
+    volumes:
+      - ./backend/htmlcov:/app/backend/htmlcov
+    environment:
+      SMTP_HOST: "mailcatcher"
+      SMTP_PORT: "1025"
+      SMTP_TLS: "false"
+      EMAILS_FROM_EMAIL: "noreply@example.com"
+
+  mcp:
+    restart: "no"
+    develop:
+      watch:
+        - path: ./backend
+          action: sync+restart
+          target: /app/backend
+          ignore:
+            - ./backend/.venv
+            - .venv
+        - path: ./incoming_features
+          action: sync+restart
+          target: /app/incoming_features
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1080:1080"
+      - "1025:1025"

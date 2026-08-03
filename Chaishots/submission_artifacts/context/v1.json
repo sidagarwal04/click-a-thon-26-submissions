@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "run_id": null,
+  "relationships": [
+    {
+      "source_table": "destination_card_clicked",
+      "source_column": "user_id",
+      "target_table": "application_started",
+      "target_column": "user_id",
+      "reason": "All eight event tables join on user_id, the traveller identity."
+    },
+    {
+      "source_table": "application_started",
+      "source_column": "application_id",
+      "target_table": "document_uploaded",
+      "target_column": "application_id",
+      "reason": "Application created at application_started; later funnel steps reference the same application_id."
+    },
+    {
+      "source_table": "application_started",
+      "source_column": "application_id",
+      "target_table": "pay_now_clicked",
+      "target_column": "application_id",
+      "reason": "pay_now_clicked belongs to the application started earlier in the funnel."
+    },
+    {
+      "source_table": "application_started",
+      "source_column": "application_id",
+      "target_table": "purchase_completed",
+      "target_column": "application_id",
+      "reason": "purchase_completed is the conversion event for a given application."
+    },
+    {
+      "source_table": "search_typed",
+      "source_column": "user_id",
+      "target_table": "destination_card_clicked",
+      "target_column": "user_id",
+      "reason": "Supporting events (search_typed, landing_page_scrolled, auth_completed) join on user_id and may precede an application, so application_id can be empty."
+    }
+  ],
+  "metrics": [
+    {
+      "name": "conversion_rate",
+      "description": "Headline metric reported to leadership.",
+      "numerator": "count(purchase_completed)",
+      "denominator": "count(sessions)",
+      "dimensions": [
+        "device_type",
+        "geoip_country_code",
+        "destination"
+      ]
+    },
+    {
+      "name": "drop_off_rate",
+      "description": "Per funnel stage: 1 - (users at stage N+1 / users at stage N), counting distinct user_id reaching each stage in order within the window.",
+      "numerator": "uniq(user_id) at stage N - uniq(user_id) at stage N+1",
+      "denominator": "uniq(user_id) at stage N",
+      "dimensions": [
+        "destination",
+        "device_type"
+      ]
+    },
+    {
+      "name": "step_through_rate",
+      "description": "Users at stage N+1 divided by users at stage N.",
+      "numerator": "uniq(user_id) at stage N+1",
+      "denominator": "uniq(user_id) at stage N",
+      "dimensions": [
+        "destination",
+        "device_type"
+      ]
+    },
+    {
+      "name": "passport_capture_pass_rate",
+      "description": "Document uploads that did not cross the failed-capture threshold, divided by all document uploads.",
+      "numerator": "count(document_uploaded WHERE is_crossed_failed_attempt_threshold = 0)",
+      "denominator": "count(document_uploaded)",
+      "dimensions": [
+        "capture_mode",
+        "doc_type"
+      ]
+    },
+    {
+      "name": "on_time_delivery_rate",
+      "description": "Applications issued on or before visa_issuance_eta_days, divided by applications issued. Reported by the fulfilment team from post-purchase systems; not computable from the funnel tables here.",
+      "numerator": "count(applications issued on or before visa_issuance_eta_days)",
+      "denominator": "count(applications issued)",
+      "dimensions": [
+        "destination"
+      ]
+    },
+    {
+      "name": "revenue_per_conversion",
+      "description": "value on purchase_completed, in the event's currency.",
+      "numerator": "sum(value)",
+      "denominator": "count(purchase_completed)",
+      "dimensions": [
+        "currency",
+        "destination"
+      ]
+    },
+    {
+      "name": "funnel_conversion_rate",
+      "description": "Within the funnel, conversion is purchase_completed users divided by users who started an application (application_started). This is the denominator used in the drop-off dashboards.",
+      "numerator": "uniq(user_id) with purchase_completed",
+      "denominator": "uniq(user_id) with application_started",
+      "dimensions": [
+        "destination",
+        "device_type"
+      ]
+    }
+  ],
+  "conflicts": [
+    "K1 - iOS WebKit OTP autofill regression: payment OTP field fails to autofill on recent iOS builds; some users abandon at the pay step. Payment-heavy geos (Gulf card users) most exposed. Watch pay_now_clicked -> purchase_completed for iOS.",
+    "K2 - Passport scan model update (Apr 2026): on-device passport model updated early April; some Android devices report more capture failures since; being monitored.",
+    "K3 - MRZ OCR weaker on non-Latin passports: passports with non-Latin machine-readable zones need more capture retries.",
+    "K4 - Schengen summer slot scarcity (Apr-Jun): appointment slots for Schengen destinations are scarce in summer; expect seasonal softness, not a bug.",
+    "K5 - WhatsApp nudge launch (Feb 2026): a WhatsApp re-engagement nudge went live in February; can lift returns to the funnel for previously-dropped users.",
+    "K6 - SUMMER20 coupon campaign: a SUMMER20 promo ran in Q2; expect elevated coupon_applied and lower realised value.",
+    "K7 - App 7.45 rollout: app version 7.45.x rolled out mid-quarter; minor funnel-timing shifts around the rollout are expected."
+  ]
+}

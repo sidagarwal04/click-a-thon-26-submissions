@@ -1,0 +1,59 @@
+# evidence: frozen_slice_stability
+# what: frozen-slice metric set run twice with live ingest in between; identical means the isolation predicate holds
+# run_utc: 2026-08-02 01:45:17
+# git: 9e82f15-dirty
+# host: ss-cric
+# row_count: 6369329
+# event_watermark: 2026-08-02 01:45:03.550
+# frozen_before: 2026-08-01
+# frozen_slice_rows: 6369329   (event_timestamp < frozen_before, the validated corpus)
+# ingest_watermark: 2026-08-02 01:45:03   (NOT REPRODUCIBLE, see below)
+# ingest_watermark_warning: ingested_at was added by ALTER after the July rows were loaded.
+#   ClickHouse does not rewrite existing parts, so for those 905,558 rows the DEFAULT now()
+#   is evaluated AT READ TIME and the column equals the wall clock of whichever query reads
+#   it. Proven in evidence/ingested_at_nondeterminism. Do not filter on it.
+metric	value
+frozen_before	2026-08-01
+settle_seconds	30
+raw_events_before	6342974
+raw_events_after	6369329
+rows_ingested_between_runs	26355
+metrics_compared	34
+differing_lines	24
+verdict	FAIL
+#
+# differences:
+# 3c3
+# < intervals.positive_length	1715554
+# ---
+# > intervals.positive_length	1727338
+# 11,16c11,16
+# < rows.foreground_intervals	1969086
+# < rows.raw_events	6342974
+# < runs.session_minute_runs.asserted	337704
+# < runs.user_minute_runs.asserted	291554
+# < serving.avg_active_minutes	309.73
+# < serving.avg_all_minutes	44.41
+# ---
+# > rows.foreground_intervals	1980870
+# > rows.raw_events	6369329
+# > runs.session_minute_runs.asserted	340145
+# > runs.user_minute_runs.asserted	292481
+# > serving.avg_active_minutes	311.99
+# > serving.avg_all_minutes	44.73
+# 22,23c22,23
+# < serving.user_avg_active_minutes	282.55
+# < serving.user_avg_all_minutes	40.51
+# ---
+# > serving.user_avg_active_minutes	283.05
+# > serving.user_avg_all_minutes	40.58
+# 29c29
+# < span.last_event	2026-08-02 01:44:32.298
+# ---
+# > span.last_event	2026-08-02 01:45:03.550
+# 33,34c33,34
+# < uniq.sessions	242499
+# < uniq.users	212014
+# ---
+# > uniq.sessions	243430
+# > uniq.users	212814

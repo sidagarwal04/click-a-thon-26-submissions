@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mission Control — Ad-Ops Root-Cause Analyst</title>
+    <link rel="stylesheet" href="style.css?v=5" />
+  </head>
+  <body>
+    <nav>
+      <div class="brand">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="grad">The Boring Team</span>
+      </div>
+      <div class="tabs">
+        <button data-view="chat" class="active"><span class="ic">💬</span>Chat</button>
+        <button data-view="anomalies"><span class="ic">🚨</span>Anomalies</button>
+        <button data-view="alerts">
+          <span class="ic">🔔</span>Alerts<span id="alerts-badge" hidden></span>
+        </button>
+        <!-- Rollup vs Raw: hidden for now. The view and its API are intact; restore the button to bring it back. -->
+        <button data-view="rollup" hidden><span class="ic">📦</span>Rollup vs Raw</button>
+        <button data-view="llm"><span class="ic">🧠</span>AI Insights</button>
+        <button data-view="health"><span class="ic">💓</span>System Health</button>
+      </div>
+      <div class="nav-foot">live · ClickHouse + Langfuse + ClickStack</div>
+    </nav>
+
+    <main>
+      <div class="view active" id="view-chat">
+        <iframe id="chat-frame" title="LibreChat"></iframe>
+      </div>
+
+      <div class="view" id="view-anomalies">
+        <div class="pad">
+          <h1>🚨 Anomalies</h1>
+          <div class="sub">
+            Live sweep from the investigation engine — what it actually found, not a mock.
+          </div>
+          <div class="range">
+            <label>From <input type="date" id="a-from" /></label>
+            <label>To <input type="date" id="a-to" /></label>
+            <button id="a-apply" type="button">Apply</button>
+            <button id="a-reset" type="button" class="ghost">All time</button>
+            <span id="a-range-note"></span>
+          </div>
+          <div id="anomalies-body" class="loading">
+            <div class="spinner"></div>
+            Loading…
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-alerts">
+        <div class="pad">
+          <h1>🔔 Alerts</h1>
+          <div class="sub">
+            What the watchman found while nobody was watching. These are incidents you asked to be
+            told about, caught by the scheduled sweep rather than by someone opening this page.
+          </div>
+          <div id="alerts-body" class="loading">
+            <div class="spinner"></div>
+            Loading…
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-rollup">
+        <div class="pad">
+          <h1>📦 Rollup vs Raw</h1>
+          <div class="sub">
+            Same tool calls, twice: rollup forced on vs forced off. Measured from
+            <code>system.query_log</code>.
+          </div>
+          <div id="rollup-body" class="loading">
+            <div class="spinner"></div>
+            Loading…
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-llm">
+        <div class="pad">
+          <h1>🧠 AI Insights</h1>
+          <div class="sub">
+            What the AI is actually doing: LLM spend, and, per prompt, the investigation trail
+            behind each answer.
+          </div>
+          <div class="subtabs">
+            <button class="subtab active" data-llmview="overview">Cost Overview</button>
+            <button class="subtab" data-llmview="prompts">Recent Prompts</button>
+          </div>
+          <div id="llm-view-overview">
+            <div id="llm-body" class="loading">
+              <div class="spinner"></div>
+              Loading…
+            </div>
+          </div>
+          <div id="llm-view-prompts" hidden>
+            <div id="llm-prompts-body" class="loading">
+              <div class="spinner"></div>
+              Loading…
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-health">
+        <div class="pad">
+          <h1>💓 System Health</h1>
+          <div class="sub">
+            Stage latency &amp; error rate, last 24h, from ClickStack's own trace store. "Errors"
+            here includes deliberate validation refusals (unknown metric, invalid dimension,
+            out-of-range window) — those are the engine correctly rejecting a bad request, not a
+            failure.
+          </div>
+          <div id="health-body" class="loading">
+            <div class="spinner"></div>
+            Loading…
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="app.js?v=5"></script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+export {
+  AUTH_STATE,
+  type AuthInvalidateReason,
+  type AuthNavigationIntent,
+  type AuthPrincipal,
+  type AuthProviderAdapter,
+  type AuthScopeListener,
+  type AuthScopeSnapshot,
+  type AuthServerAdapter,
+  type AuthServerContext,
+  type AuthSessionSnapshot,
+  type AuthSessionState,
+  type AuthState,
+  type AuthStateListener,
+  type AuthStateType,
+  type AuthTenantSnapshot,
+  type AuthTransport,
+  type AuthTransportAudience,
+  type AuthTransportRequest,
+  type ResolvedAuthTransport,
+} from '../core/contracts';
+export {
+  USER_ROLES,
+  getUserPermissions,
+  isValidRole,
+  normalizeProviderRole,
+  type UserPermissions,
+  type UserRole,
+} from '../core/roles';
+export { createAuthScope, createInitializingAuthState, createUnauthenticatedAuthState } from '../core/state';

@@ -1,0 +1,139 @@
+{
+  "feature_slug": "express_checkout",
+  "table_fqn": "atlys.f_express_checkout_events",
+  "event_column": "event",
+  "event_types": [
+    "express_checkout_shown",
+    "express_checkout_selected",
+    "saved_method_used",
+    "otp_entered",
+    "express_payment_confirmed"
+  ],
+  "entity_key": "user_id",
+  "entity_key_confidence": 0.8,
+  "secondary_keys": [
+    "application_id"
+  ],
+  "ordered_steps": [
+    "express_checkout_shown",
+    "express_checkout_selected",
+    "saved_method_used",
+    "otp_entered",
+    "express_payment_confirmed"
+  ],
+  "step_order_source": "spec",
+  "segment_dims": [
+    "app_version",
+    "city",
+    "client_lib",
+    "destination",
+    "device_type",
+    "geoip_country_code",
+    "os",
+    "currency",
+    "saved_method_type",
+    "payment_currency"
+  ],
+  "measures": [
+    {
+      "column": "otp_attempts",
+      "kind": "count",
+      "scoped_to_events": [
+        "otp_entered"
+      ],
+      "unit": "count"
+    },
+    {
+      "column": "payment_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "express_payment_confirmed"
+      ],
+      "unit": "mixed_currency"
+    },
+    {
+      "column": "payment_latency_ms",
+      "kind": "duration_ms",
+      "scoped_to_events": [
+        "express_payment_confirmed"
+      ],
+      "unit": "ms"
+    },
+    {
+      "column": "shown_amount",
+      "kind": "money",
+      "scoped_to_events": [
+        "express_checkout_shown"
+      ],
+      "unit": "mixed_currency"
+    }
+  ],
+  "flags": [
+    "nested_fields_flattened:payment.amount,payment.currency,payment.latency_ms",
+    "explicit_json_nulls:os",
+    "row_id_32char_hex_not_uuid:id",
+    "entity_key_coextensive_alternatives:application_id"
+  ],
+  "disconnected_event_types": [],
+  "partial_identity_columns": [],
+  "cross_reference_hints": [
+    {
+      "from_column": "destination",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "destination",
+      "evidence": "`destination` shares 14/14 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `destination` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "geoip_country_code",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "geoip_country_code",
+      "evidence": "`geoip_country_code` shares 7/7 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `geoip_country_code` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "city",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.application_started",
+        "atlys.auth_completed",
+        "atlys.destination_card_clicked",
+        "atlys.document_uploaded",
+        "atlys.landing_page_scrolled",
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed",
+        "atlys.search_typed"
+      ],
+      "join_key": "city",
+      "evidence": "`city` shares 7/7 of its values with atlys.application_started and the column exists on 8 pre-existing tables -- a shared segment vocabulary. Join on `city` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    },
+    {
+      "from_column": "currency",
+      "matches": "existing_column_values",
+      "targets": [
+        "atlys.pay_now_clicked",
+        "atlys.purchase_completed"
+      ],
+      "join_key": "currency",
+      "evidence": "`currency` shares 7/7 of its values with atlys.pay_now_clicked and the column exists on 2 pre-existing tables -- a shared segment vocabulary. Join on `currency` (+ date), never on user_id/application_id: those id spaces are disjoint and an identity join returns zero rows silently."
+    }
+  ]
+}
