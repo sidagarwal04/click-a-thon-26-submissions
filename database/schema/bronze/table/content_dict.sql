@@ -1,0 +1,1 @@
+CREATE DICTIONARY bronze.content_dict (`content_id` UInt64, `video_type` String, `category` String, `title` String, `show_name` String) PRIMARY KEY content_id SOURCE(CLICKHOUSE(TABLE 'content_dimension' DB 'bronze' USER 'default' PASSWORD '[HIDDEN]')) LIFETIME(MIN 300 MAX 600) LAYOUT(HASHED())

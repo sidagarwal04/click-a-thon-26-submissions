@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SonyLIV — End-to-End Concurrency Example (Story Acceptance Walkthrough)</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel2: #243247; --line: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #f59e0b; --ch: #ffcc01;
+    --green: #34d399; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; padding: 24px; }
+  .wrap { max-width: 1150px; margin: 0 auto; }
+  h1 { font-size: 1.55rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 18px; }
+  h2 { font-size: 1.1rem; margin: 30px 0 12px; padding-bottom: 6px;
+       border-bottom: 1px solid var(--line); color: var(--ch); }
+  h3 { font-size: 0.98rem; margin: 16px 0 8px; color: var(--blue); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+           padding: 16px; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin: 8px 0; }
+  th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; background: var(--panel2); }
+  td.num { text-align: right; font-family: Consolas, Menlo, monospace; }
+  .hl { color: var(--accent); font-weight: 700; }
+  .ok { color: var(--green); }
+  .bad { color: var(--red); }
+  .pill { display: inline-block; font-size: 0.7em; font-weight: 700; padding: 1px 8px;
+          border-radius: 20px; background: rgba(245,158,11,0.15); color: var(--accent);
+          border: 1px solid rgba(245,158,11,0.4); margin-right: 6px; vertical-align: 1px; }
+  .pill.green { background: rgba(52,211,153,0.12); color: var(--green); border-color: rgba(52,211,153,0.4); }
+  .pill.red { background: rgba(248,113,113,0.12); color: var(--red); border-color: rgba(248,113,113,0.4); }
+  .pill.blue { background: rgba(96,165,250,0.12); color: var(--blue); border-color: rgba(96,165,250,0.4); }
+  code, .mono { font-family: Consolas, Menlo, monospace; font-size: 0.85em;
+                background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+                border-radius: 4px; padding: 1px 5px; }
+  pre { background: #0b1220; border: 1px solid var(--line); border-radius: 8px;
+        padding: 12px; overflow-x: auto; font-family: Consolas, Menlo, monospace;
+        font-size: 0.8em; line-height: 1.5; color: #cbd5e1; }
+  .k { color: #93c5fd; } .s { color: #86efac; } .c { color: #64748b; }
+  .step { display: inline-block; font-size: 0.75em; font-weight: 800; color: #0f172a;
+          background: var(--ch); border-radius: 5px; padding: 2px 9px; margin-right: 8px; }
+  .note { font-size: 0.85em; color: var(--muted); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 12px; }
+  .card { background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; padding: 12px; }
+  .card .t { font-weight: 700; font-size: 0.92em; }
+  .card .d { font-size: 0.8em; color: var(--muted); }
+  .bar-row { display: flex; align-items: flex-end; gap: 3px; height: 110px; padding-top: 8px; }
+  .bar { flex: 1; background: linear-gradient(180deg, var(--accent), #b45309);
+         border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
+  .bar .v { position: absolute; top: -16px; left: 0; right: 0; text-align: center;
+            font-size: 0.68em; color: var(--muted); }
+  .bar .lbl { position: absolute; top: 100%; left: 0; right: 0; text-align: center;
+              font-size: 0.62em; color: var(--muted); margin-top: 2px; }
+  .bar.naive { background: linear-gradient(180deg, var(--red), #7f1d1d); }
+  .legend { font-size: 0.82em; color: var(--muted); margin-top: 22px; }
+  .legend span { display:inline-block; width:12px; height:12px; border-radius:3px; margin:0 4px 0 12px; vertical-align:-1px; }
+  .ac-box { border-left: 3px solid var(--green); padding: 4px 0 4px 12px; margin: 8px 0; }
+  .ac-box .ac-t { font-size: 0.82em; color: var(--green); font-weight: 700; }
+  .gk { font-size: 0.8em; color: var(--violet); background: rgba(167,139,250,0.08);
+        border: 1px solid rgba(167,139,250,0.3); border-radius: 6px;
+        padding: 5px 10px; margin: 8px 0; }
+  .gk b { color: var(--violet); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>SonyLIV — End-to-End Concurrency Example</h1>
+<div class="sub">A worked scenario running through the full pipeline, with minute-wise results mapped to each story's acceptance criteria (US-01 … US-10).</div>
+
+<h2>0. The scenario — 5 sessions on the morning of 2026-07-26</h2>
+<div class="panel">
+  <div class="card-grid">
+    <div class="card">
+      <div class="t">A · JIO_ANDROID_TV · india · 101 · Live</div>
+      <div class="d">start 10:00 · heartbeats 40s cadence · <b>AppBackgrounded 10:05</b> · AppForegrounded 10:08 · end 10:12</div>
+    </div>
+    <div class="card">
+      <div class="t">B · JIO_ANDROID_TV · india · 101 · Live</div>
+      <div class="d">start 10:00 · clean continuous playback · end 10:11 (<i>end event arrives late at 10:20 — US-10</i>)</div>
+    </div>
+    <div class="card">
+      <div class="t">C · JIO_ANDROID_TV · india · 202 · VOD</div>
+      <div class="d">start 10:02 · continuous · end 10:09</div>
+    </div>
+    <div class="card">
+      <div class="t">D · iOS · US · 101 · Live</div>
+      <div class="d">start 10:00 · <b>backgrounded 10:04</b> · foregrounded 10:06 · end 10:10</div>
+    </div>
+    <div class="card">
+      <div class="t">E · JIO_ANDROID_TV · india · 303 · Live</div>
+      <div class="d">start 10:00 · heartbeats stop at 10:05 · <b>no bg event, no end event — silent gap</b> · open until watermark (US-07/US-08)</div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:10px">Heartbeat cadence in the real dataset is ~40s; gap-timeout = <b>90s</b> (US-07). Active interval ends at <code>last_heartbeat + 90s</code>.</p>
+</div>
+
+<h2>1. Pipeline: raw events → enriched</h2>
+<div class="panel">
+  <p><span class="step">L1</span>Raw event rows (representative):</p>
+  <div class="gk"><b>Grouping key:</b> none (row level) · <b>Ordering key:</b> <code>(event_timestamp, video_session_id)</code> · <b>Partition:</b> <code>toDate(event_timestamp)</code></div>
+  <table>
+    <tr><th>video_session_id</th><th>content_id</th><th>event_type</th><th>event</th><th>event_timestamp</th><th>platform</th><th>country</th></tr>
+    <tr><td>A</td><td>101</td><td>VideoSessionStart</td><td>VideoSessionStart</td><td>10:00:00</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>A</td><td>101</td><td>VideoHeartbeat</td><td>network-activity</td><td>10:00:40</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>A</td><td>101</td><td>VideoHeartbeat</td><td>buffer-health</td><td>10:00:40</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>A</td><td>101</td><td>VideoHeartbeat</td><td>network-activity</td><td>10:01:20</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>…</td><td>…</td><td>VideoHeartbeat</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+    <tr><td>A</td><td>101</td><td>AppBackgrounded</td><td>AppBackgrounded</td><td>10:05:00</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>A</td><td>101</td><td>AppForegrounded</td><td>AppForegrounded</td><td>10:08:00</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>A</td><td>101</td><td>VideoSessionEnd</td><td>VideoSessionEnd</td><td>10:12:00</td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>B</td><td>101</td><td>VideoSessionEnd</td><td>VideoSessionEnd</td><td><b>10:20:00</b> <span class="note">(event time 10:11)</span></td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+    <tr><td>E</td><td>303</td><td>VideoHeartbeat</td><td>network-activity</td><td>10:05:00 <span class="note">(last)</span></td><td>JIO_ANDROID_TV</td><td>india</td></tr>
+  </table>
+  <p style="margin-top:8px"><span class="step">L2</span>Enrich via <code>content_dict</code> (US-11):</p>
+  <div class="gk"><b>Grouping key:</b> none (row level) · <b>Join key:</b> <code>content_id</code> (dictGet) · <b>Added dims:</b> <code>video_type</code>, <code>category</code></div>
+  <table>
+    <tr><th>content_id</th><th>title</th><th>video_type</th><th>category</th></tr>
+    <tr><td>101</td><td>Match Day Live</td><td>live</td><td>sports</td></tr>
+    <tr><td>202</td><td>Filler Clip</td><td>vod</td><td>entertainment</td></tr>
+    <tr><td>303</td><td>Live News Feed</td><td>live</td><td>news</td></tr>
+  </table>
+</div>
+
+<h2>2. L3 · Active-interval derivation — the stateful brain</h2>
+<div class="panel">
+  <p>Per session, the builder walks the ordered event sequence and classifies active/inactive using the L3 rules (US-06/07). Backgrounded windows contribute 0.</p>
+  <div class="gk"><b>Grouping key (session-aware):</b> <code>video_session_id</code> · order by <code>event_timestamp</code> &nbsp;|&nbsp; <b>session-independent:</b> no grouping — pure event-state sequence</div>
+  <table>
+    <tr><th>Session</th><th>Active intervals [start, end)</th><th>Active minutes</th><th>Notes</th></tr>
+    <tr><td>A</td><td>[10:00, 10:05) + [10:08, 10:12)</td><td>10:00–04, 10:08–11 <span class="ok">(8 min)</span></td><td><span class="pill blue">US-06</span> 10:05–10:07 excluded (backgrounded)</td></tr>
+    <tr><td>B</td><td>[10:00, 10:11)</td><td>10:00–10 <span class="ok">(11 min)</span></td><td>continuous</td></tr>
+    <tr><td>C</td><td>[10:02, 10:09)</td><td>10:02–08 <span class="ok">(7 min)</span></td><td>continuous</td></tr>
+    <tr><td>D</td><td>[10:00, 10:04) + [10:06, 10:10)</td><td>10:00–03, 10:06–09 <span class="ok">(8 min)</span></td><td><span class="pill blue">US-06</span> 10:04–05 excluded (backgrounded)</td></tr>
+    <tr><td>E</td><td>[10:00, 10:06:30)</td><td>10:00–05 <span class="ok">(6 min)</span></td><td><span class="pill blue">US-07</span> last heartbeat 10:05:00 + 90s → close at 10:06:30; open until watermark</td></tr>
+  </table>
+  <div class="ac-box">
+    <div class="ac-t">US-07 acceptance check</div>
+    Session E: gap between last heartbeat (10:05:00) and silence &gt; 90s → active closes at <code>10:06:30</code>. Minutes [10:06:30–…) are NOT counted, even though the session row is still open.
+  </div>
+</div>
+
+<h2>3. L4 · Expand to deltas + compact</h2>
+<div class="panel">
+  <p><span class="step">L4</span>Each interval emits <code>+1</code> at start minute, <code>−1</code> at end minute into <code>delta_minute</code> (SummingMergeTree collapses identical keys by summing).</p>
+  <div class="gk"><b>Grouping key (canonical aggregation key):</b> <code>(minute, platform, country, content_id, video_type)</code> · <code>delta Int32</code> summed on merge</div>
+  <table>
+    <tr><th>minute</th><th>platform</th><th>country</th><th>content_id</th><th>video_type</th><th>delta (collapsed)</th><th>who</th></tr>
+    <tr><td>10:00</td><td>JIO_ANDROID_TV</td><td>india</td><td>101</td><td>live</td><td class="num"><span class="hl">+2</span></td><td>A, B start</td></tr>
+    <tr><td>10:00</td><td>JIO_ANDROID_TV</td><td>india</td><td>303</td><td>live</td><td class="num"><span class="hl">+1</span></td><td>E start</td></tr>
+    <tr><td>10:00</td><td>iOS</td><td>US</td><td>101</td><td>live</td><td class="num"><span class="hl">+1</span></td><td>D start</td></tr>
+    <tr><td>10:02</td><td>JIO_ANDROID_TV</td><td>india</td><td>202</td><td>vod</td><td class="num"><span class="hl">+1</span></td><td>C start</td></tr>
+    <tr><td>10:04</td><td>iOS</td><td>US</td><td>101</td><td>live</td><td class="num">−1</td><td>D backgrounds</td></tr>
+    <tr><td>10:05</td><td>JIO_ANDROID_TV</td><td>india</td><td>101</td><td>live</td><td class="num">−1</td><td>A backgrounds</td></tr>
+    <tr><td>10:06</td><td>iOS</td><td>US</td><td>101</td><td>live</td><td class="num">+1</td><td>D foregrounds</td></tr>
+    <tr><td>10:06</td><td>JIO_ANDROID_TV</td><td>india</td><td>303</td><td>live</td><td class="num">−1</td><td>E closes (10:06:30)</td></tr>
+    <tr><td>10:08</td><td>JIO_ANDROID_TV</td><td>india</td><td>101</td><td>live</td><td class="num">+1</td><td>A foregrounds</td></tr>
+    <tr><td>10:09</td><td>JIO_ANDROID_TV</td><td>india</td><td>202</td><td>vod</td><td class="num">−1</td><td>C ends</td></tr>
+    <tr><td>10:10</td><td>iOS</td><td>US</td><td>101</td><td>live</td><td class="num">−1</td><td>D ends</td></tr>
+    <tr><td>10:11</td><td>JIO_ANDROID_TV</td><td>india</td><td>101</td><td>live</td><td class="num">−1</td><td>B ends (<i>applied to event-time 10:11, not 10:20</i>)</td></tr>
+    <tr><td>10:12</td><td>JIO_ANDROID_TV</td><td>india</td><td>101</td><td>live</td><td class="num">−1</td><td>A ends</td></tr>
+  </table>
+  <p class="note"><span class="pill red">US-10</span> Duplicate heartbeat for A at 10:02 (arrived twice) is deduplicated on <code>(video_session_id, event_timestamp, event_type)</code> → applied once, concurrency not inflated. B's late <code>VideoSessionEnd</code> (event time 10:11) lands in minute 10:11, not 10:20.</p>
+</div>
+
+<h2>4. L5 · Reconstruct minute-wise concurrency</h2>
+<div class="panel">
+  <p><span class="step">L5</span>Global concurrency per minute = <code>sum(delta) OVER (PARTITION BY dims ORDER BY minute)</code> (+ baseline). All sessions, all dims:</p>
+  <div class="gk"><b>Grouping key:</b> <code>(minute, platform, country, content_id, video_type, category)</code> · window <code>PARTITION BY</code> the dims, <code>ORDER BY minute</code> for cumulative sum</div>
+  <table>
+    <tr><th>minute</th><th class="num">10:00</th><th class="num">10:01</th><th class="num">10:02</th><th class="num">10:03</th><th class="num">10:04</th><th class="num">10:05</th><th class="num">10:06</th><th class="num">10:07</th><th class="num">10:08</th><th class="num">10:09</th><th class="num">10:10</th><th class="num">10:11</th><th class="num">10:12</th></tr>
+    <tr><td>delta net</td><td class="num">+4</td><td class="num">0</td><td class="num">+1</td><td class="num">0</td><td class="num">−1</td><td class="num">−1</td><td class="num">0</td><td class="num">0</td><td class="num">+1</td><td class="num">−1</td><td class="num">−1</td><td class="num">−1</td><td class="num">−1</td></tr>
+    <tr><td><b>concurrency</b></td><td class="num"><b>4</b></td><td class="num"><b>4</b></td><td class="num"><b class="hl">5</b></td><td class="num"><b class="hl">5</b></td><td class="num"><b>4</b></td><td class="num"><b>3</b></td><td class="num"><b>3</b></td><td class="num"><b>3</b></td><td class="num"><b>4</b></td><td class="num"><b>3</b></td><td class="num"><b>2</b></td><td class="num"><b>1</b></td><td class="num"><b>0</b></td></tr>
+  </table>
+  <div class="bar-row" style="margin-top:14px">
+    <div class="bar" style="height:80%"><span class="v">4</span><span class="lbl">10:00</span></div>
+    <div class="bar" style="height:80%"><span class="v">4</span><span class="lbl">10:01</span></div>
+    <div class="bar" style="height:100%"><span class="v">5</span><span class="lbl">10:02</span></div>
+    <div class="bar" style="height:100%"><span class="v">5</span><span class="lbl">10:03</span></div>
+    <div class="bar" style="height:80%"><span class="v">4</span><span class="lbl">10:04</span></div>
+    <div class="bar" style="height:60%"><span class="v">3</span><span class="lbl">10:05</span></div>
+    <div class="bar" style="height:60%"><span class="v">3</span><span class="lbl">10:06</span></div>
+    <div class="bar" style="height:60%"><span class="v">3</span><span class="lbl">10:07</span></div>
+    <div class="bar" style="height:80%"><span class="v">4</span><span class="lbl">10:08</span></div>
+    <div class="bar" style="height:60%"><span class="v">3</span><span class="lbl">10:09</span></div>
+    <div class="bar" style="height:40%"><span class="v">2</span><span class="lbl">10:10</span></div>
+    <div class="bar" style="height:20%"><span class="v">1</span><span class="lbl">10:11</span></div>
+    <div class="bar" style="height:4%"><span class="v">0</span><span class="lbl">10:12</span></div>
+  </div>
+  <p class="note">Dip at 10:04–10:07 = A and D backgrounded (excluded); E silent. Concurrency correctly drops. <b>Peak = 5 at 10:02–10:03.</b></p>
+</div>
+
+<h2>5. Story-by-story acceptance walkthrough</h2>
+
+<div class="panel">
+  <h3><span class="pill green">US-01</span> Foreground-only concurrency per minute</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Backgrounded and heartbeat-missing periods are excluded; count matches ground truth.</div>
+  <table>
+    <tr><th>minute</th><th class="num">[NOW] naive (counts sessions)</th><th class="num">[BUILD] foreground (A+B group)</th><th>why</th></tr>
+    <tr><td>10:04</td><td class="num">2</td><td class="num">2</td><td>both active</td></tr>
+    <tr><td><b>10:06</b></td><td class="num bad">2</td><td class="num ok"><b>1</b></td><td>A backgrounded → excluded; only B counts</td></tr>
+    <tr><td>10:08</td><td class="num">2</td><td class="num">2</td><td>A foregrounded → resumes</td></tr>
+  </table>
+  <p class="note"><span class="pill red">Correctness</span> The failure mode the whole problem exists to prevent: naive counts A's backgrounded time → overcounts. Foreground view excludes it.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-02</span> Peak over a range</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> max per-minute concurrency within the range, respecting filters.</div>
+  <pre><span class="k">SELECT</span> max(concurrency) <span class="k">FROM</span> ( <span class="c">-- window sum over range</span>
+  <span class="k">SELECT</span> minute, sum(delta) <span class="k">OVER</span> (<span class="k">PARTITION BY</span> platform, country, content_id, video_type <span class="k">ORDER BY</span> minute) <span class="k">AS</span> concurrency
+  <span class="k">FROM</span> delta_minute <span class="k">WHERE</span> minute <span class="k">BETWEEN</span> <span class="s">'10:00'</span> <span class="k">AND</span> <span class="s">'10:12'</span> );</pre>
+  <p>→ Global peak = <b class="hl">5</b> (at 10:02–10:03). For <code>content 101 / JIO / india</code> = <b>2</b>; <code>content 202 / JIO / india</code> = <b>1</b>; <code>content 101 / iOS / US</code> = <b>1</b>.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-03</span> Average over a range</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> avg over per-minute foreground-only counts; sanity check avg ≤ peak.</div>
+  <p>Global minutes 10:00–10:12: (4+4+5+5+4+3+3+3+4+3+2+1+0) / 13 ≈ <b>3.15</b>. &nbsp;avg 3.15 ≤ peak 5 ✓</p>
+  <p class="note"><span class="pill red">Sanity</span> If avg &gt; peak ever appears, backgrounded time leaked into the count (US-03 anti-pattern).</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-04</span> Dimension-filtered concurrency</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Any dim combo returns dashboard-grade latency; each combo peaks at its own minute.</div>
+  <div class="gk"><b>Grouping key:</b> arbitrary subset of <code>(platform, country, content_id, video_type)</code> — e.g., <code>GROUP BY platform</code> or <code>GROUP BY platform, country</code>; pre-materialized via <code>GROUPING SETS</code></div>
+  <table>
+    <tr><th>Filter</th><th>sessions</th><th>peak</th><th>peak minute(s)</th></tr>
+    <tr><td>platform=JIO_ANDROID_TV, country=india, content=101, video_type=live</td><td>A, B</td><td class="num">2</td><td>10:00–04, 10:08–10</td></tr>
+    <tr><td>content=202 (VOD)</td><td>C</td><td class="num">1</td><td>10:02–08</td></tr>
+    <tr><td>platform=iOS, country=US, content=101</td><td>D</td><td class="num">1</td><td>10:00–03, 10:06–09</td></tr>
+  </table>
+  <p class="note">Each combo peaks independently — the window is <code>PARTITION BY</code> the dims, so a filtered query gets its own correct peak, not the global peak minute. Pre-materialized via <code>GROUPING SETS</code> in the serving layer for ms reads.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-05</span> Time grains (minute / hour / day)</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Consistent values across grains; hour = aggregation of its minutes.</div>
+  <div class="gk"><b>Grouping key:</b> <code>(grain, platform, country, content_id, video_type, category)</code> — grain = <code>toStartOfMinute</code> / <code>toStartOfHour</code> / <code>toDate</code>; peak = max · avg = mean of contained minutes</div>
+  <pre><span class="k">SELECT</span> toStartOfHour(minute) <span class="k">AS</span> h, max(concurrency) <span class="k">AS</span> peak, avg(concurrency) <span class="k">AS</span> avg_conc
+<span class="k">FROM</span> ( <span class="c">-- per-minute reconstruction</span> ) <span class="k">GROUP BY</span> h;</pre>
+  <p>Hour 10:00 = peak <b class="hl">5</b> (max of its minutes) / avg ≈ 3.15. Day = max/mean over 1,440 minutes. Consistency check: hour value must equal re-aggregation of its 60 minutes.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-06</span> Exclude backgrounded time</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Backgrounded window contributes 0; active resumes correctly after foreground.</div>
+  <table>
+    <tr><th>Session A timeline</th><th>10:00–04</th><th>10:05–07</th><th>10:08–11</th></tr>
+    <tr><td>state</td><td>active</td><td><span class="bad">backgrounded</span></td><td>active</td></tr>
+    <tr><td>counted?</td><td class="num ok">yes</td><td class="num bad">0</td><td class="num ok">yes</td></tr>
+  </table>
+  <p>Same for D (backgrounded 10:04–05). The <code>AppBackgrounded</code> cut and <code>AppForegrounded</code> resume come straight from the interval builder (L3).</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-07</span> Active interval when heartbeat is missing</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Gap beyond timeout closes the interval at last-known-active + timeout.</div>
+  <p>Session E: last heartbeat 10:05:00, then silence (no bg event, no end event). <code>gap_timeout = 90s</code> → active closes at <b>10:06:30</b>. Minutes after that contribute 0 even though the session row is still open — the <code>−1</code> at 10:06 in <code>delta_minute</code> does the work. Real cadence ~40s &lt; 90s threshold, so normal playback is never wrongly closed.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-08</span> Open sessions update incrementally</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> New heartbeat extends only the tail; already-published minutes unchanged; no full rebuild.</div>
+  <table>
+    <tr><th>step</th><th>event</th><th>effect</th></tr>
+    <tr><td>1</td><td>E open, active [10:00, 10:06:30)</td><td>served minutes 10:00–05 counted</td></tr>
+    <tr><td>2</td><td>new heartbeat 10:07:30 arrives</td><td>provisional end → 10:09:00; only <b>new</b> minutes 10:06, 10:07 get <code>+1</code></td></tr>
+    <tr><td>3</td><td>query minute 10:04</td><td class="num">unchanged (4) ✓</td></tr>
+  </table>
+  <p class="note">Failure case avoided: re-running the full event stream to update one minute.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-09</span> Session-aware vs session-independent parity</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Both approaches agree on closed, fully-observed sessions.</div>
+  <div class="gk"><b>Grouping key:</b> session-aware = <code>video_session_id</code> (then overlap-count) &nbsp;|&nbsp; session-independent = <b>no grouping</b> (running sum of event-state deltas)</div>
+  <table>
+    <tr><th class="num">minute</th><th class="num">10:00</th><th class="num">10:01</th><th class="num">10:02</th><th class="num">10:03</th><th class="num">10:04</th><th class="num">10:05</th><th class="num">10:06</th><th class="num">10:07</th><th class="num">10:08</th><th class="num">10:09</th><th class="num">10:10</th><th class="num">10:11</th><th class="num">10:12</th></tr>
+    <tr><td>session-aware (overlap of intervals)</td><td class="num">4</td><td class="num">4</td><td class="num">5</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">3</td><td class="num">3</td><td class="num">4</td><td class="num">3</td><td class="num">2</td><td class="num">1</td><td class="num">0</td></tr>
+    <tr><td>session-independent (delta running sum)</td><td class="num">4</td><td class="num">4</td><td class="num">5</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">3</td><td class="num">3</td><td class="num">4</td><td class="num">3</td><td class="num">2</td><td class="num">1</td><td class="num">0</td></tr>
+  </table>
+  <p class="note">Identical for all minutes here. The only divergence allowed is for open sessions at the boundary (e.g., E before watermark finalization) — documented, expected.</p>
+</div>
+
+<div class="panel">
+  <h3><span class="pill green">US-10</span> Late / duplicate events</h3>
+  <div class="ac-box"><div class="ac-t">AC</div> Each logical transition applied once; concurrency not inflated.</div>
+  <table>
+    <tr><th>case</th><th>handling</th><th>result</th></tr>
+    <tr><td>duplicate heartbeat A @ 10:02 (×2)</td><td>dedup on <code>(video_session_id, ts, event_type)</code></td><td>applied once → no double-count</td></tr>
+    <tr><td>late <code>VideoSessionEnd</code> for B (event 10:11, arrives 10:20)</td><td>bucketed by <b>event time</b></td><td>−1 lands in minute <b>10:11</b>, not 10:20</td></tr>
+  </table>
+</div>
+
+<h2>6. What the served answers look like</h2>
+<div class="panel">
+  <pre><span class="c">-- benchmark Q: peak concurrency, JIO_ANDROID_TV / india / content 101, last 10 minutes</span>
+<span class="k">SELECT</span> max(concurrency) <span class="k">FROM</span> ( <span class="c">…window sum…</span> )
+<span class="c">-- → 2  (~ms, reads serving_minute only; EXPLAIN shows no raw scan)</span></pre>
+  <p class="note"><span class="pill red">Evidence (US-16)</span> The unseen-day bundle = answers CSV + <code>system.query_log</code> rows showing reads from <code>serving_minute</code> + <code>EXPLAIN</code> + latency per query. No hand-computed answers.</p>
+  <div class="legend">
+    <span style="background:#f59e0b"></span>foreground concurrency <span style="background:#60a5fa"></span>pipeline tables
+    <span style="background:#34d399"></span>accepted <span style="background:#f87171"></span>correctness guard
+  </div>
+</div>
+
+<p class="note" style="text-align:center; color:#64748b">Architecture: <code>design/architecture.md</code> · Visual: <code>design/architecture.html</code> · This example walks US-01…US-10 end to end.</p>
+
+</div>
+</body>
+</html>

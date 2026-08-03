@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Flow Pipeline - Bronze → Silver → Gold</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .layer-card { transition: all 0.3s ease; }
+        .layer-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .layer-bronze { border-left: 4px solid #CD7F32; }
+        .layer-silver { border-left: 4px solid #C0C0C0; }
+        .layer-gold { border-left: 4px solid #FFD700; }
+
+        .tag-cloud-bg {
+            background:
+                radial-gradient(circle at 15% 20%, #e0e7ff 0%, rgba(224,231,255,0) 45%),
+                radial-gradient(circle at 85% 25%, #ddd6fe 0%, rgba(221,214,254,0) 40%),
+                radial-gradient(circle at 50% 90%, #c7d2fe 0%, rgba(199,210,254,0) 50%),
+                linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+        }
+        .tech-tag {
+            display: inline-block;
+            white-space: nowrap;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.9);
+            box-shadow: 0 6px 18px rgba(99,102,241,0.22);
+            font-weight: 600;
+            color: #4338ca;
+            padding: 0.4em 1em;
+            animation: tag-float 6s ease-in-out infinite;
+        }
+        .tag-highest {
+            font-size: 1.9rem;
+            color: #ffffff;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            box-shadow: 0 10px 26px rgba(99,102,241,0.45);
+            padding: 0.45em 1.1em;
+        }
+        .tag-high { font-size: 1.3rem; color: #4338ca; }
+        .tag-med { font-size: 1.05rem; color: #6d28d9; opacity: 0.85; }
+        .tag-low { font-size: 0.85rem; color: #7c7c9c; opacity: 0.7; box-shadow: 0 4px 12px rgba(99,102,241,0.14); }
+        @keyframes tag-float {
+            0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+            50% { transform: translateY(-10px) rotate(var(--rot, 0deg)); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-indigo-600 mb-4">Sony Liv - Counting the crowd</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Know exactly how many people are really watching — every minute!</p>
+            <hr class="mt-6 border-gray-300 max-w-2xl mx-auto">
+        </div>
+
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Scope</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">What the system guarantees — and what it deliberately does not.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="font-semibold text-green-700 mb-3">In Scope</h3>
+                    <ul class="space-y-3">
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-green-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span>Capture <strong class="font-medium text-gray-800">active users precisely</strong>, including active-session overlap and time-window aggregations.</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-green-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Data correctness</strong> — every number is exact and auditable, never an estimate.</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-green-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span>Present <strong class="font-medium text-gray-800">session activeness per minute, hour, and day</strong>.</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-green-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Friendly filters</strong> (platform, country, content, and more) applied on the aggregated state and pushed down to prune the data scanned.</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-green-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Late and duplicate events handled correctly</strong> — they never contribute to incorrect aggregations.</span></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-red-700 mb-3">Out of Scope</h3>
+                    <ul class="space-y-3">
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-red-400 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span><span>Concluding a session's activeness when a heartbeat is missing for a longer duration.</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-red-400 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span><span>Performance benchmarking</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-red-400 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span><span>Cost control</span></li>
+                        <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-red-400 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span><span>TTL routing for hot and cold storage</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section intro -->
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Tech Stack</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">The ClickHouse toolkit behind every number on this page.</p>
+        </div>
+
+        <div class="rounded-3xl shadow-lg mb-12 p-10 tag-cloud-bg">
+            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-5 py-6 leading-tight">
+                <span class="tech-tag tag-highest" style="--rot:-2deg; animation-delay:0s;">ClickHouse</span>
+                <span class="tech-tag tag-high" style="--rot:2deg; animation-delay:.4s;">Materialized Views</span>
+                <span class="tech-tag tag-highest" style="--rot:-3deg; animation-delay:.8s;">Medallion Architecture</span>
+                <span class="tech-tag tag-high" style="--rot:1deg; animation-delay:.2s;">ClickStack</span>
+                <span class="tech-tag tag-high" style="--rot:-1deg; animation-delay:1.2s;">Cascading</span>
+                <span class="tech-tag tag-med" style="--rot:2.5deg; animation-delay:.6s;">Table Engines</span>
+                <span class="tech-tag tag-med" style="--rot:-2.5deg; animation-delay:1s;">Data Compressions</span>
+                <span class="tech-tag tag-med" style="--rot:1.5deg; animation-delay:.3s;">Partitioning</span>
+                <span class="tech-tag tag-low" style="--rot:-1.5deg; animation-delay:.9s;">Real Time Aggregations</span>
+                <span class="tech-tag tag-low" style="--rot:2deg; animation-delay:1.5s;">LibreChat</span>
+            </div>
+        </div>
+
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Data Pipeline Architecture</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">Bronze → Silver → Gold Medallion Architecture</p>
+        </div>
+
+        <!-- Layer overview cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="layer-card bg-white rounded-xl p-6 shadow-lg layer-bronze">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">Bronze Layer</h2>
+                        <p class="text-sm text-gray-500">Raw Ingestion</p>
+                    </div>
+                </div>
+                <p class="text-gray-600">Every action a viewer takes on the platform, captured as it happens — play, pause, stop — exactly as it comes in from the app.</p>
+            </div>
+
+            <div class="layer-card bg-white rounded-xl p-6 shadow-lg layer-silver">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">Silver Layer</h2>
+                        <p class="text-sm text-gray-500">Cleaned & Enriched</p>
+                    </div>
+                </div>
+                <p class="text-gray-600">Raw actions are cleaned up and combined into a simple, minute-by-minute record of what each viewer was watching.</p>
+            </div>
+
+            <div class="layer-card bg-white rounded-xl p-6 shadow-lg layer-gold">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">Gold Layer</h2>
+                        <p class="text-sm text-gray-500">Business Metrics</p>
+                    </div>
+                </div>
+                <p class="text-gray-600">Ready-to-use metrics — viewership, active sessions — rolled up by hour, day, and month for dashboards.</p>
+            </div>
+        </div>
+
+        <!-- Section intro -->
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">What the Data Looks Like at Each Layer</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">Each layer takes the data a step further — from raw activity, to a clean record of viewing behavior, to business-ready numbers.</p>
+        </div>
+
+        <!-- BRONZE LAYER DETAIL -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8 layer-bronze">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Bronze — Raw Viewing Activity</h3>
+            </div>
+            <p class="text-gray-600 mb-5">Every play, pause, and stop event is logged exactly as it happens, with no changes made to it.</p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="bg-amber-50 border-b border-amber-100">
+                            <th class="text-left p-3 font-medium text-amber-800">Time</th>
+                            <th class="text-left p-3 font-medium text-amber-800">Viewer</th>
+                            <th class="text-left p-3 font-medium text-amber-800">Show</th>
+                            <th class="text-left p-3 font-medium text-amber-800">Platform</th>
+                            <th class="text-left p-3 font-medium text-amber-800">Country</th>
+                            <th class="text-left p-3 font-medium text-amber-800">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:30:45 PM</td><td class="p-3">Viewer 4521</td><td class="p-3">The Great Adventure</td><td class="p-3">iOS</td><td class="p-3">US</td><td class="p-3"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Play</span></td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:31:02 PM</td><td class="p-3">Viewer 4521</td><td class="p-3">The Great Adventure</td><td class="p-3">iOS</td><td class="p-3">US</td><td class="p-3"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs">Pause</span></td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:33:10 PM</td><td class="p-3">Viewer 7788</td><td class="p-3">Mountain Peaks</td><td class="p-3">Android</td><td class="p-3">US</td><td class="p-3"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Play</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SILVER LAYER DETAIL -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8 layer-silver">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Silver — Minute-by-Minute Viewing Summary</h3>
+            </div>
+            <p class="text-gray-600 mb-5">The raw actions above are combined into one row per viewer per minute, showing whether they were actively watching.</p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="bg-gray-100 border-b border-gray-200">
+                            <th class="text-left p-3 font-medium text-gray-700">Minute</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Viewer</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Show</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Platform</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Country</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Actively Watching?</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:30 PM</td><td class="p-3">Viewer 4521</td><td class="p-3">The Great Adventure</td><td class="p-3">iOS</td><td class="p-3">US</td><td class="p-3"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Yes</span></td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:31 PM</td><td class="p-3">Viewer 4521</td><td class="p-3">The Great Adventure</td><td class="p-3">iOS</td><td class="p-3">US</td><td class="p-3"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">No (paused)</span></td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:33 PM</td><td class="p-3">Viewer 7788</td><td class="p-3">Mountain Peaks</td><td class="p-3">Android</td><td class="p-3">US</td><td class="p-3"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Yes</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GOLD LAYER DETAIL -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-12 layer-gold">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Gold — Business-Ready Metrics</h3>
+            </div>
+            <p class="text-gray-600 mb-5">Minute-level data is rolled up into hourly, daily, and monthly numbers that feed dashboards.</p>
+
+            <h4 class="font-medium text-gray-700 mb-2">Example: Hourly Platform Metrics</h4>
+            <div class="overflow-x-auto mb-6">
+                <table class="w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="bg-yellow-50 border-b border-yellow-100">
+                            <th class="text-left p-3 font-medium text-yellow-800">Hour</th>
+                            <th class="text-left p-3 font-medium text-yellow-800">Platform</th>
+                            <th class="text-left p-3 font-medium text-yellow-800">Total Viewers</th>
+                            <th class="text-left p-3 font-medium text-yellow-800">Active Sessions</th>
+                            <th class="text-left p-3 font-medium text-yellow-800">Streaming Minutes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:00 PM</td><td class="p-3">iOS</td><td class="p-3">1,240</td><td class="p-3">980</td><td class="p-3">14,500</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">2:00 PM</td><td class="p-3">Android</td><td class="p-3">890</td><td class="p-3">705</td><td class="p-3">10,200</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4 class="font-medium text-gray-700 mb-2">Available Roll-Ups</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="bg-gray-50 border-b">
+                            <th class="text-left p-3 font-medium text-gray-700">Granularity</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Records</th>
+                            <th class="text-left p-3 font-medium text-gray-700">Used For</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50"><td class="p-3">Per minute</td><td class="p-3">13.5K</td><td class="p-3 text-gray-600">Real-time monitoring</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">Per hour</td><td class="p-3">1.3K</td><td class="p-3 text-gray-600">Operational dashboards</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">Per day</td><td class="p-3">514</td><td class="p-3 text-gray-600">Daily business reports</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">Per month</td><td class="p-3">184</td><td class="p-3 text-gray-600">Executive summaries</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3">Per session</td><td class="p-3">108K</td><td class="p-3 text-gray-600">Session-level analysis</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section intro -->
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Why ClickHouse</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">One engine carries the entire pipeline — and it is designed to keep carrying it as the platform grows.</p>
+        </div>
+
+        <!-- THE POWER OF ONE ENGINE -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">The Power of One Engine</h3>
+            </div>
+            <p class="text-gray-600 mb-5">ClickHouse doesn't just store the data — it ingests, enriches, and pre-computes every insight in a single system.</p>
+            <ul class="space-y-3">
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-indigo-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Real-time at write time</strong> — the moment an event lands it is cleaned, enriched, and folded into pre-aggregated states; data is queryable in milliseconds with zero pipeline lag.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-indigo-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Exact answers at scale</strong> — every count is deduplicated and auditable back to the raw event, so numbers are precise, never estimates.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-indigo-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Storage that shrinks itself</strong> — columnar layout, dictionary-encoded dimensions, and modern codecs compress the hot event stream to a fraction of its raw size.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-indigo-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">One moving part, not five</strong> — ingest → enrich → session state → metrics → serving all live in a single database, so there is one system to operate and debug instead of a stitched-together stack.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-indigo-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">The harder the problem, the more it shines</strong> — as events grow, queries still hit precomputed states, pruned partitions, and primary-index skips instead of raw rows.</span></li>
+            </ul>
+        </div>
+
+        <!-- READY FOR SCALE -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Ready for Scale — Built to Grow, Not to Be Replaced</h3>
+            </div>
+            <p class="text-gray-600 mb-5">The architecture is designed for the platform's next million viewers, not just today's demo.</p>
+            <ul class="space-y-3">
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-blue-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Scale = add nodes, not rewrite code</strong> — shared storage and compute let us add replicas for read fan-out without re-architecting the schema.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-blue-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Time never becomes the bottleneck</strong> — monthly partitioning means a year-three query prunes exactly like a year-one query.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-blue-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">States stay bounded</strong> — pre-aggregated states grow with distinct sessions, not raw events, so even a 10× event surge keeps resultsets small.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-blue-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Rollup chain prewired</strong> — minute → hour → day → month states are already merged upward; new reporting granularities are a view away, not a pipeline rebuild.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-blue-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Absorbs product evolution</strong> — materialized views and dictionaries can be replayed in place, so new metrics and dimensions are absorbed without a rewrite.</span></li>
+            </ul>
+        </div>
+
+        <!-- SOLID BY DESIGN -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-teal-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Solid by Design — Engineered to Last</h3>
+            </div>
+            <p class="text-gray-600 mb-5">Not a demo bolted together for one afternoon — a system built with production semantics from day one.</p>
+            <ul class="space-y-3">
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-teal-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Production semantics from day one</strong> — exact deduplication and canonical per-session truth are baked into the model, not bolted on for the demo.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-teal-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Every answer is traceable</strong> — any aggregate can be audited back to the raw event it came from; the number isn't a guess, it's a provable path.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-teal-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Domain solved head-on</strong> — the OTT model (session start/stop, idle gaps, per-minute engagement) is modeled end-to-end instead of flattened into a generic event counter.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-teal-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">One consistent truth for everyone</strong> — real-time ops, product analytics, session insights, and BI all read from the same pre-computed states, so no stakeholder ever sees a different number.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-teal-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Cost engineered out of the design</strong> — more traffic grows the states slightly, never the scans; cost per query stays flat as the audience and the data grow.</span></li>
+            </ul>
+        </div>
+
+        <!-- Section intro -->
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Who Counts on These Numbers</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">Four teams, four different decisions — the same exact numbers power all of them.</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="bg-indigo-50 border-b border-indigo-100">
+                            <th class="text-left p-3 font-medium text-indigo-800">Consumer</th>
+                            <th class="text-left p-3 font-medium text-indigo-800">What they use it for</th>
+                            <th class="text-left p-3 font-medium text-indigo-800">Business value</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">Content / Editorial teams</td><td class="p-3 text-gray-600">See which shows/events are attracting viewers in real time</td><td class="p-3 text-gray-600">Content decisions, programming, engagement</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">Ad & Monetization teams</td><td class="p-3 text-gray-600">Understand concurrent audience by content/platform/region</td><td class="p-3 text-gray-600">Ad inventory, ad-load planning, revenue optimization</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">Platform / SRE teams</td><td class="p-3 text-gray-600">Monitor concurrency spikes and traffic patterns</td><td class="p-3 text-gray-600">Capacity planning, scaling, incident detection</td></tr>
+                        <tr class="hover:bg-gray-50"><td class="p-3 font-medium text-gray-800">Business / Leadership</td><td class="p-3 text-gray-600">Track peak and average audience across dimensions</td><td class="p-3 text-gray-600">Event performance, audience trends, strategic decisions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section intro -->
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Beyond the Hackathon — Future Scope</h2>
+            <p class="text-gray-600 mt-2 max-w-3xl mx-auto">The foundation is done. These are the three pillars we build on it next — from the fastest way to count the crowd, to the system that runs the business on the crowd's behavior.</p>
+        </div>
+
+        <!-- PILLAR 1 -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-violet-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Pillar 1 — Real-time ML + Agentic Workflows on ClickHouse</h3>
+            </div>
+            <p class="text-gray-600 mb-5">The fastest analytical database is currently used for SQL answers. Next, it becomes the nervous system for real-time models and autonomous workflows.</p>
+            <ul class="space-y-3">
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-violet-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Real-time ML models served against live state</strong> — concurrency curves, session health, and engagement feed models that detect anomalies (a spike that is actually an outage), predict churn from degraded sessions, and forecast peak load for capacity and CDN planning.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-violet-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Agentic workflows via N8N or equivalent orchestration</strong> — N8N polls ClickHouse's latest state and acts on what it finds. A concurrency anomaly is picked up by the poll, which triggers a workflow that runs root-cause drill-downs, drafts a summary, and opens a Jira ticket with evidence attached — no human in the loop until a human is needed.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-violet-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Why this is credible now</strong> — the serving layer is already designed for bounded, millisecond reads. ML features and agent triggers read the same tables — no new data plumbing, no batch refresh, no warehouse detour.</span></li>
+            </ul>
+        </div>
+
+        <!-- PILLAR 2 -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Pillar 2 — LibreChat: Humans as Agents, Actions into Agentic Reactions</h3>
+            </div>
+            <p class="text-gray-600 mb-5">Today LibreChat answers questions in chat. Tomorrow it turns human actions into agentic reactions — the human stays the decision-maker, but every question and decision is captured, interpreted, and acted on.</p>
+            <ul class="space-y-3">
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-rose-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Go-to-Market & Sales</strong> — an account executive asks "which titles are under-monetized in a region right now?" → agent pulls concurrency + content metadata, proposes bundles, drafts the pitch — and follow-up actions (pipeline updates, CRM notes) are triggered automatically.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-rose-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Data Analysts & Client Relationship teams</strong> — an analyst's exploration becomes a persisted agent workflow: a question answered today becomes a self-updating report tomorrow. Account health queries (buffering, drop-offs, peak concurrency) become proactive alerts that reach the team before the client does — with evidence attached.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-rose-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Why this is credible now</strong> — LibreChat is already wired to the ClickHouse MCP server. The chat → real query path is proven; this extends it from "answer" to "answer + action," with Langfuse traceability through every step.</span></li>
+            </ul>
+        </div>
+
+        <!-- PILLAR 3 -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Pillar 3 — Data Derivative Engine & Enterprise Dashboards</h3>
+            </div>
+            <p class="text-gray-600 mb-5">Streaming data in ClickHouse is not a report — it is context that compounds. Connecting it to additional datasets turns a single metric into a portfolio of derived intelligence.</p>
+            <ul class="space-y-3">
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-orange-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Derivative engines</strong> — concurrency × content metadata → engagement indices; session behavior × revenue per content → real-time monetization yield; viewing curves × marketing spend → attribution-ready demand signals. Each derivative is a new table that inherits the same incremental, pre-aggregated, cost-bounded pipeline.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-orange-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Enterprise dashboards on ClickStack + LibreChat</strong> — observability-grade telemetry (ClickStack) plus conversational access (LibreChat) over the same data means one source of truth for ops and executives; the boardroom dashboard and the on-call console read identical numbers.</span></li>
+                <li class="flex gap-3 text-gray-600"><span class="mt-1.5 w-4 h-4 text-orange-500 shrink-0"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span><span><strong class="font-medium text-gray-800">Context fusion</strong> — enrich streaming events with external context (catalogue metadata, pricing, promotions, weather, sporting-event schedules) as dictionary lookups, keeping the join-free, scan-minimized discipline that makes this platform cost sub-linear at scale.</span></li>
+            </ul>
+        </div>
+
+        <!-- ROADMAP -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">Net effect</h3>
+            </div>
+            <p class="text-gray-600 mt-2">The hackathon proved ClickHouse can be <strong class="font-medium text-gray-800">one engine that answers before the question is asked</strong>. The future scope makes it <strong class="font-medium text-gray-800">one engine that acts before the problem becomes a headline</strong> — models that see anomalies coming, agents that turn a stakeholder's action into the next action, and derivative data that turns one metric into the whole business.</p>
+        </div>
+
+        <!-- ABOUT US -->
+        <div class="layer-card bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                <h3 class="text-xl font-semibold text-gray-900">About Us</h3>
+            </div>
+            <div class="mt-4">
+                <p class="text-gray-600"><strong class="font-medium text-gray-800">Team Name:</strong> Three Eyed Raven</p>
+                <p class="text-gray-600 mt-2"><strong class="font-medium text-gray-800">Team Members:</strong> Sagar Wagh, Kanad Mehta, Chaitanya Kulkarni</p>
+            </div>
+        </div>
+
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>Medallion Architecture • Bronze → Silver → Gold</p>
+            <p class="mt-1">Each layer refines the data further, from raw activity to business-ready metrics</p>
+        </footer>
+    </div>
+</body>
+</html>
