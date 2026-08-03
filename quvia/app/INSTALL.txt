@@ -1,0 +1,45 @@
+AeroOps/AdOps Dashboard — Installation
+========================================
+
+PREREQUISITES
+-------------
+- Docker Desktop installed and running.
+- These three project folders already present on this machine:
+    this dashboard   ~/Data/clickathon                        (this folder)
+    LibreChat        ~/Data/git/librechat/LibreChat/LibreChat
+    Langfuse          ~/Data/git/langfuse/langfuse
+- A filled-in .env in this folder (CLICKHOUSE_*, ANTHROPIC_API_KEY,
+  LIBRECHAT_*, LANGFUSE_* — see .env in this folder for the full list).
+
+RUN
+---
+    ./deploy.sh
+
+That's it — one command brings up all three stacks (Langfuse, LibreChat,
+then this dashboard + its ClickHouse MCP server), waits for each to
+respond, and prints their URLs when done. Safe to re-run any time.
+
+If your LibreChat/Langfuse folders live somewhere else, override the paths:
+    LANGFUSE_DIR=/path/to/langfuse LIBRECHAT_DIR=/path/to/librechat ./deploy.sh
+
+AFTER IT FINISHES
+-----------------
+    Dashboard    http://localhost:8000
+    LibreChat    http://localhost:3080
+    Langfuse     http://localhost:3000
+
+IMPORTANT: always open the dashboard via "localhost", not "0.0.0.0" or
+127.0.0.1 — the LibreChat auto-login (no sign-in screen) only works when
+the hostname is exactly "localhost", since cookies are host-specific and
+LibreChat also runs on "localhost" (different port). The dashboard
+redirects 0.0.0.0 -> localhost automatically if you land there by accident.
+
+TROUBLESHOOTING
+----------------
+If a service didn't come up, check its logs:
+    (cd <its-folder> && docker compose logs -f)
+
+To stop everything:
+    (cd ~/Data/clickathon && docker compose down)
+    (cd ~/Data/git/librechat/LibreChat/LibreChat && docker compose down)
+    (cd ~/Data/git/langfuse/langfuse && docker compose down)

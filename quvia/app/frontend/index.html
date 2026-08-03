@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AeroOps/AdOps — Root-Cause Analyst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app">
+  <main class="main main-full">
+    <header class="page-header">
+      <div>
+        <span class="eyebrow">AeroOps / AdOps</span>
+        <h1>Root-Cause Analyst</h1>
+      </div>
+      <div class="page-header-actions">
+        <button id="langfuse-btn" class="librechat-btn" title="Open this project's Langfuse traces in a new tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <path d="M15 3h6v6"></path>
+            <path d="M10 14 21 3"></path>
+          </svg>
+          View traces (Langfuse)
+        </button>
+        <span id="health-badge" class="health-badge" title="Checks GET /api/health on load">
+          <span class="health-dot"></span>
+          <span id="health-label">Checking pipeline…</span>
+        </span>
+      </div>
+    </header>
+
+    <section class="panel" id="main-trend-panel">
+      <div class="trend-panel-header">
+        <h3 id="trend-title">Trend</h3>
+        <div class="trend-controls">
+          <div class="control-group">
+            <label for="dimension-select" class="control-label">Category</label>
+            <select id="dimension-select" class="dimension-select">
+              <option value="overall" selected>Overall (no breakdown)</option>
+              <option value="ad_format">Ad format</option>
+              <option value="campaign_type">Campaign type</option>
+              <option value="category">App category</option>
+              <option value="country">Country</option>
+              <option value="device_model">Device model</option>
+              <option value="os_version">Operating system</option>
+              <option value="publisher_tier">Publisher tier</option>
+              <option value="region">Region</option>
+              <option value="vertical">Advertiser industry (vertical)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="metric-select" class="control-label">Y-Axis</label>
+            <select id="metric-select" class="dimension-select">
+              <option value="revenue" selected>Revenue</option>
+              <option value="requests">Requests</option>
+              <option value="fill_rate">Fill rate</option>
+              <option value="ecpm">eCPM</option>
+            </select>
+          </div>
+          <div class="date-range-picker">
+            <input type="date" id="range-start" class="date-input" title="From">
+            <span class="date-range-sep">&rarr;</span>
+            <input type="date" id="range-end" class="date-input" title="To">
+          </div>
+          <div class="toggle-group" id="freq-toggle">
+            <button data-freq="1h" class="toggle-btn active">1h</button>
+            <button data-freq="6h" class="toggle-btn">6h</button>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Every category's value, plotted over time. Larger red dots are hours py's own anomaly detection flagged as a negative deviation — click one to load the full root-cause analysis for that hour.</p>
+      <div class="chart-wrapper chart-wrapper-tall"><canvas id="trend-chart-multi"></canvas></div>
+    </section>
+
+    <div id="incident-view" class="incident-view hidden">
+      <header class="incident-header">
+        <div>
+          <span class="eyebrow">Incident</span>
+          <h2 id="incident-bucket">—</h2>
+        </div>
+        <div class="incident-header-actions">
+          <button id="librechat-copy" class="librechat-copy-btn" title="Copy this incident's exact data — including the auto-captured minute window — as a prompt for LibreChat to query the raw event log with">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy prompt
+          </button>
+          <button id="librechat-btn" class="librechat-btn" title="Open LibreChat in a side panel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            Ask LibreChat
+          </button>
+        </div>
+      </header>
+
+      <section class="kpi-strip" id="kpi-strip"></section>
+
+      <div class="grid-diagnosis-factor">
+        <section class="diagnosis-card">
+          <div class="diagnosis-card-header">
+            <h3>Diagnosis</h3>
+            <button id="ai-summary-btn" class="ai-summary-btn">Generate AI summary</button>
+          </div>
+          <p id="diagnosis-text">—</p>
+          <div id="ruled-out-chips" class="chip-row"></div>
+          <div id="ai-incident-summary" class="llm-summary hidden"></div>
+        </section>
+
+        <section class="panel">
+          <h3>Factor decomposition</h3>
+          <div id="factor-tiles" class="factor-tiles factor-tiles-compact"></div>
+        </section>
+      </div>
+
+      <div class="grid-2">
+        <section class="panel">
+          <h3>Full-day trend — actual vs expected</h3>
+          <canvas id="trend-chart" height="220"></canvas>
+        </section>
+
+        <section class="panel">
+          <h3>Category impact</h3>
+          <p class="hint">Each category's top segment, signed by whether it pulled revenue up (green) or down (red) — same numbers as Diagnosis and Drill-down.</p>
+          <canvas id="radar-chart" height="220"></canvas>
+        </section>
+      </div>
+
+      <section class="panel" id="drilldown-panel">
+        <div class="trend-panel-header">
+          <div>
+            <h3 id="drilldown-title">Drill-down</h3>
+            <p class="hint">Top segments for whichever category is selected (synced with the dropdown above), for this incident's exact time at the selected aggregation level (1h/6h).</p>
+          </div>
+          <div class="control-group">
+            <label for="drilldown-dimension-select" class="control-label">Category</label>
+            <select id="drilldown-dimension-select" class="dimension-select">
+              <option value="ad_format" selected>Ad format</option>
+              <option value="campaign_type">Campaign type</option>
+              <option value="category">App category</option>
+              <option value="country">Country</option>
+              <option value="device_model">Device model</option>
+              <option value="os_version">Operating system</option>
+              <option value="publisher_tier">Publisher tier</option>
+              <option value="region">Region</option>
+              <option value="vertical">Advertiser industry (vertical)</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="drilldown-chart" height="200"></canvas>
+        <div id="drilldown-table"></div>
+        <div id="drilldown-summary" class="llm-summary hidden"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div id="librechat-panel" class="librechat-panel hidden">
+  <div class="librechat-panel-header">
+    <span>LibreChat — ask about this incident</span>
+    <button id="librechat-close" title="Close">&times;</button>
+  </div>
+  <iframe id="librechat-iframe" title="LibreChat" referrerpolicy="no-referrer"></iframe>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/app.js"></script>
+</body>
+</html>
